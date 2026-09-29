@@ -41,7 +41,7 @@ export function Navbar({ activeTab, onTabChange, onNewAppointmentClick, pendingC
               <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-300 opacity-75" />
               <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-400" />
             </span>
-            <span>Estètica Diana · Gran de Gràcia 112, Barcelona</span>
+            <span>Estètica Diana</span>
           </div>
           <div className="hidden sm:flex items-center space-x-4 text-rose-100">
             <span className="flex items-center space-x-1">

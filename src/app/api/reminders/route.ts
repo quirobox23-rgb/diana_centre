@@ -27,7 +27,7 @@ export async function GET(request: Request) {
   let sent = 0;
   for (const apt of toRemind) {
     try {
-      const msg = `👋 Hola ${apt.clientName.split(" ")[0]}! Et recordem la teva cita demà a Estètica Diana:\n\n📅 ${formatDateCatalan(apt.date)}\n🕐 ${apt.startTime}h\n📍 Gran de Gràcia 112, Barcelona\n\nSi necessites canviar-la, respon a aquest xat. T'esperem! ✨`;
+      const msg = `👋 Hola ${apt.clientName.split(" ")[0]}! Et recordem la teva cita demà a Estètica Diana:\n\n📅 ${formatDateCatalan(apt.date)}\n🕐 ${apt.startTime}h\n\nSi necessites canviar-la, respon a aquest xat. T'esperem! ✨`;
       await sendWhatsApp(apt.clientPhone, msg);
       await db.update(appointments).set({ reminderSent: true }).where(eq(appointments.id, apt.id));
       sent++;

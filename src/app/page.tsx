@@ -308,8 +308,6 @@ export default function EsteticaDianaApp() {
             <span className="text-rose-600 font-medium">Tot en català</span>
           </div>
           <div className="flex items-center space-x-4">
-            <span>Gran de Gràcia 112, Barcelona</span>
-            <span>·</span>
             <span>Tel: 689 34 52 10</span>
           </div>
         </div>
