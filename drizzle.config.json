@@ -1,0 +1,7 @@
+{
+  "dialect": "postgresql",
+  "schema": "./src/db/schema.ts",
+  "dbCredentials": {
+    "url": "postgresql://neondb_owner:npg_uV2whbsRgd1K@ep-green-wildflower-b1olalmu-pooler.c-5.eu-central-1.aws.neon.tech/neondb?sslmode=require&channel_binding=require"
+  }
+}
