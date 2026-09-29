@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   Calendar as CalendarIcon,
   ChevronLeft,
@@ -44,6 +44,61 @@ const END_MINUTES = 20 * 60 + 30; // 20:30 = 1230
 const TOTAL_MINUTES = END_MINUTES - START_MINUTES; // 690 minuts
 
 // Convertir HH:MM a minuts des de 00:00
+// Calcula la posició i amplada de cada cita dins d'un dia, separant-les en columnes
+// quan coincideixen en horari (com Google Calendar), en lloc d'amuntegar-les.
+function layoutDayAppointments(
+  apts: Appointment[],
+  startMinutes: number,
+  pxPerMinute: number
+) {
+  const items = apts
+    .map((apt) => {
+      const start = timeToMinutes(apt.startTime);
+      const end = timeToMinutes(apt.endTime) || start + apt.durationMinutes;
+      return { apt, start, end: Math.max(end, start + 15) };
+    })
+    .sort((a, b) => a.start - b.start || a.end - b.end);
+
+  const n = items.length;
+  const columnsEnd: number[] = [];
+  const withCol = items.map((it) => {
+    let col = columnsEnd.findIndex((endT) => endT <= it.start);
+    if (col === -1) {
+      col = columnsEnd.length;
+      columnsEnd.push(it.end);
+    } else {
+      columnsEnd[col] = it.end;
+    }
+    return { ...it, col };
+  });
+
+  // Agrupem per "clústers" de cites que se solapen entre elles per saber quantes columnes necessita cada grup
+  const parent = Array.from({ length: n }, (_, i) => i);
+  const find = (x: number): number => (parent[x] === x ? x : (parent[x] = find(parent[x])));
+  const union = (a: number, b: number) => {
+    const ra = find(a), rb = find(b);
+    if (ra !== rb) parent[ra] = rb;
+  };
+  for (let i = 0; i < n; i++) {
+    for (let j = i + 1; j < n; j++) {
+      if (withCol[i].start < withCol[j].end && withCol[j].start < withCol[i].end) union(i, j);
+    }
+  }
+  const clusterMaxCol: Record<number, number> = {};
+  withCol.forEach((it, idx) => {
+    const root = find(idx);
+    clusterMaxCol[root] = Math.max(clusterMaxCol[root] ?? 0, it.col);
+  });
+
+  return withCol.map((it, idx) => ({
+    apt: it.apt,
+    top: (it.start - startMinutes) * pxPerMinute,
+    height: Math.max(18, (it.end - it.start) * pxPerMinute),
+    col: it.col,
+    colCount: (clusterMaxCol[find(idx)] ?? 0) + 1,
+  }));
+}
+
 function timeToMinutes(timeStr: string): number {
   if (!timeStr) return 0;
   const [h, m] = timeStr.split(":").map(Number);
@@ -64,6 +119,17 @@ export function MultiRoomCalendar({
   // Mode de visualització: "day" (graella horària de 3 sales) o "week" (graella 6 dies amb les 3 sales sub-columnes)
   const [calendarMode, setCalendarMode] = useState<"day" | "week">("day");
   const [selectedRoomFilter, setSelectedRoomFilter] = useState<string>("all");
+  const mobileDefaultApplied = React.useRef(false);
+
+  // En mòbil, mostrar per defecte només 1 sala (les 3 alhora queden massa petites per llegir bé).
+  // Només s'aplica un cop, quan arriben les sales (venen d'una crida asíncrona del component pare).
+  useEffect(() => {
+    if (mobileDefaultApplied.current) return;
+    if (typeof window !== "undefined" && window.innerWidth < 768 && rooms[0]) {
+      setSelectedRoomFilter(String(rooms[0].id));
+      mobileDefaultApplied.current = true;
+    }
+  }, [rooms]);
   const [selectedProfFilter, setSelectedProfFilter] = useState<string>("all");
   const [selectedStatusFilter, setSelectedStatusFilter] = useState<string>("all");
   const [selectedWeekDayTab, setSelectedWeekDayTab] = useState<number>(0);
@@ -370,6 +436,8 @@ export function MultiRoomCalendar({
       {/* 1. GRAELLA VISUAL DE CALENDARI DE DIA (EIX HORARI 09:00 - 20:30 AMB LES 3 SALES EN COLUMNES) */}
       {calendarMode === "day" && (
         <div className="bg-white rounded-2xl shadow-xs border border-gray-200 overflow-hidden flex flex-col">
+        <div className="overflow-x-auto">
+        <div style={{ minWidth: displayedRooms.length > 1 ? `${80 + displayedRooms.length * 150}px` : undefined }}>
           {/* Capçalera de les Sales de la graella */}
           <div className="grid grid-cols-[80px_1fr] sm:grid-cols-[90px_1fr] border-b border-gray-200 bg-stone-50 sticky top-0 z-20">
             {/* Cantonada de l'hora */}
@@ -425,7 +493,7 @@ export function MultiRoomCalendar({
           </div>
 
           {/* Cos de la Graella Horària de Calendari */}
-          <div className="relative overflow-x-auto max-h-[720px] overflow-y-auto">
+          <div className="relative max-h-[65vh] sm:max-h-[720px] overflow-y-auto">
             <div
               className="grid grid-cols-[80px_1fr] sm:grid-cols-[90px_1fr] relative"
               style={{ height: `${TOTAL_MINUTES * PIXELS_PER_MINUTE}px` }}
@@ -518,6 +586,8 @@ export function MultiRoomCalendar({
                         const isCancelled = apt.status === "cancel·lada";
                         const isPending = apt.status === "pendent";
 
+                        const accentColor = apt.serviceColor || "#ec4899";
+
                         return (
                           <div
                             key={apt.id}
@@ -525,25 +595,24 @@ export function MultiRoomCalendar({
                               e.stopPropagation();
                               onEditAppointment(apt);
                             }}
-                            className={`absolute left-1.5 right-1.5 rounded-xl p-2.5 shadow-sm border-l-4 transition-all hover:shadow-md hover:scale-[1.01] cursor-pointer z-10 flex flex-col justify-between overflow-hidden ${
-                              styles.pill
-                            } ${styles.border} ${
-                              isCancelled ? "opacity-50 line-through bg-gray-100 border-gray-400" : ""
+                            className={`absolute left-1.5 right-1.5 rounded-xl p-2.5 shadow-sm border border-gray-200 bg-white transition-all hover:shadow-md hover:scale-[1.01] cursor-pointer z-10 flex flex-col justify-between overflow-hidden ${
+                              isCancelled ? "opacity-50 line-through bg-gray-100 border-gray-300" : ""
                             }`}
                             style={{
                               top: `${topOffset}px`,
                               height: `${blockHeight - 3}px`,
+                              borderLeft: `4px solid ${isCancelled ? "#9ca3af" : accentColor}`,
                             }}
                           >
                             <div className="overflow-hidden">
                               <div className="flex items-center justify-between text-[11px] font-bold">
-                                <span className="flex items-center space-x-1 text-gray-900">
-                                  <Clock className="w-3 h-3 text-rose-600" />
+                                <span className="flex items-center space-x-1 text-gray-700">
+                                  <Clock className="w-3 h-3 text-gray-400" />
                                   <span>
                                     {apt.startTime} - {apt.endTime}
                                   </span>
                                 </span>
-                                <span className="font-extrabold text-gray-900 bg-white/80 px-1.5 py-0.2 rounded-md shadow-2xs">
+                                <span className="font-extrabold text-gray-900">
                                   {apt.price}€
                                 </span>
                               </div>
@@ -552,16 +621,15 @@ export function MultiRoomCalendar({
                                 {apt.clientName}
                               </div>
 
-                              <div className="text-[11px] text-gray-700 font-medium truncate flex items-center space-x-1 mt-0.5">
-                                <Sparkles className="w-3 h-3 text-rose-500 shrink-0" />
-                                <span className="truncate">{apt.serviceName}</span>
+                              <div className="text-[11px] text-gray-600 font-medium truncate mt-0.5">
+                                {apt.serviceName}
                               </div>
                             </div>
 
                             {/* Peu de la targeta de calendari */}
-                            <div className="flex items-center justify-between text-[10px] text-gray-600 mt-1 pt-1 border-t border-black/5">
-                              <span className="truncate font-semibold text-purple-800">
-                                👩‍🦰 {apt.professionalName?.split(" ")[0]}
+                            <div className="flex items-center justify-between text-[10px] text-gray-500 mt-1 pt-1 border-t border-gray-100">
+                              <span className="truncate">
+                                {apt.professionalName?.split(" ")[0]}
                               </span>
                               <span
                                 className={`font-bold px-1.5 py-0.2 rounded-full uppercase text-[9px] ${
@@ -585,151 +653,151 @@ export function MultiRoomCalendar({
             </div>
           </div>
         </div>
+        </div>
+        </div>
       )}
 
-      {/* 2. GRAELLA VISUAL DE CALENDARI DE SETMANA (6 DIES AMB LES 3 SALES A LA VEGADA) */}
+      {/* 2. CALENDARI SETMANAL REAL: eix horari a l'esquerra, els 6 dies com a columnes */}
       {calendarMode === "week" && (
-        <div className="space-y-4">
-          {/* Navegació de pestanyes ràpides de dia per a la setmana */}
-          <div className="bg-white rounded-2xl p-2.5 shadow-xs border border-gray-200 flex items-center justify-between overflow-x-auto gap-2">
-            {weekDays.map((d, dIdx) => {
-              const dayApts = getFilteredAppointments(d.dateStr);
-              const isSelected = selectedWeekDayTab === dIdx;
+        <div className="bg-white rounded-2xl shadow-xs border border-gray-200 overflow-hidden">
+          <div className="overflow-x-auto">
+            <div className="min-w-[900px]">
+              {/* Capçalera amb els 6 dies */}
+              <div className="grid grid-cols-[70px_repeat(6,1fr)] border-b border-gray-200 sticky top-0 bg-white z-20">
+                <div className="p-2 border-r border-gray-200" />
+                {weekDays.map((d) => {
+                  const isDayToday = d.dateStr === new Date().toISOString().split("T")[0];
+                  const dayApts = getFilteredAppointments(d.dateStr);
+                  return (
+                    <button
+                      key={d.dateStr}
+                      onClick={() => onDateChange(d.dateStr)}
+                      className={`p-2 text-center border-r border-gray-100 last:border-r-0 hover:bg-gray-50 transition-colors ${
+                        d.dateStr === selectedDate ? "bg-rose-50" : ""
+                      }`}
+                    >
+                      <div className="text-[10px] uppercase tracking-wider text-gray-500 font-semibold">
+                        {d.dayName}
+                      </div>
+                      <div
+                        className={`text-sm font-extrabold ${
+                          isDayToday
+                            ? "inline-flex items-center justify-center w-6 h-6 rounded-full bg-rose-600 text-white"
+                            : "text-gray-900"
+                        }`}
+                      >
+                        {d.dayNumber}
+                      </div>
+                      <div className="text-[9px] text-gray-400 mt-0.5">
+                        {dayApts.length > 0 ? `${dayApts.length} cites` : ""}
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
 
-              return (
-                <button
-                  key={d.dateStr}
-                  onClick={() => {
-                    setSelectedWeekDayTab(dIdx);
-                    onDateChange(d.dateStr);
-                  }}
-                  className={`flex-1 min-w-[120px] p-2 rounded-xl text-center transition-all ${
-                    isSelected
-                      ? "bg-gradient-to-r from-rose-600 to-pink-600 text-white shadow-xs font-bold"
-                      : "bg-stone-50 hover:bg-stone-100 text-gray-700"
-                  }`}
-                >
-                  <div className="text-[11px] uppercase tracking-wider">{d.dayName}</div>
-                  <div className="text-base font-extrabold">{d.dayNumber}</div>
-                  <div className="text-[10px] opacity-80 mt-0.5">
-                    {dayApts.length} {dayApts.length === 1 ? "cita" : "cites"}
-                  </div>
-                </button>
-              );
-            })}
-          </div>
-
-          {/* Visió simultània de les 3 sales per a tota la setmana en graella de targetes de calendari */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {weekDays.map((d) => {
-              const dayApts = getFilteredAppointments(d.dateStr);
-              const isDayToday = d.dateStr === new Date().toISOString().split("T")[0];
-
-              return (
-                <div
-                  key={d.dateStr}
-                  className={`bg-white rounded-2xl border overflow-hidden shadow-xs flex flex-col ${
-                    d.dateStr === selectedDate
-                      ? "border-rose-400 ring-2 ring-rose-200"
-                      : "border-gray-200"
-                  }`}
-                >
-                  {/* Capçalera del dia */}
-                  <div className="bg-stone-50 p-3 border-b border-gray-200 flex items-center justify-between">
-                    <div>
-                      <div className="flex items-center space-x-1.5">
-                        <span className="font-bold text-sm text-gray-900">{d.label}</span>
-                        {isDayToday && (
-                          <span className="text-[9px] font-extrabold uppercase bg-rose-100 text-rose-800 px-1.5 py-0.2 rounded-full">
-                            Avui
-                          </span>
+              {/* Graella horària amb les cites de cada dia */}
+              <div
+                className="grid grid-cols-[70px_repeat(6,1fr)] relative"
+                style={{ height: `${TOTAL_MINUTES * PIXELS_PER_MINUTE}px` }}
+              >
+                {/* Eix d'hores */}
+                <div className="border-r border-gray-200 bg-stone-50/70 relative">
+                  {TIME_SLOTS.map((time) => {
+                    const mins = timeToMinutes(time) - START_MINUTES;
+                    const isHour = time.endsWith(":00");
+                    return (
+                      <div
+                        key={time}
+                        className="absolute w-full px-1.5 text-right -translate-y-1/2"
+                        style={{ top: `${mins * PIXELS_PER_MINUTE}px` }}
+                      >
+                        {isHour && (
+                          <span className="font-mono text-[10px] font-bold text-gray-700">{time}</span>
                         )}
                       </div>
-                      <p className="text-[11px] text-gray-500">
-                        {dayApts.length} {dayApts.length === 1 ? "cita agendada" : "cites agendades"}
-                      </p>
-                    </div>
-
-                    <div className="flex items-center space-x-1">
-                      <button
-                        onClick={() => {
-                          onDateChange(d.dateStr);
-                          setCalendarMode("day");
-                        }}
-                        className="px-2 py-1 text-[11px] font-bold text-rose-700 bg-rose-50 hover:bg-rose-100 rounded-lg transition-colors"
-                      >
-                        Graella Dia
-                      </button>
-                      <button
-                        onClick={() => onNewAppointment(rooms[0]?.id, "10:00", d.dateStr)}
-                        className="p-1 text-white bg-rose-600 hover:bg-rose-700 rounded-lg transition-colors"
-                        title="Afegir cita aquest dia"
-                      >
-                        <Plus className="w-3.5 h-3.5" />
-                      </button>
-                    </div>
-                  </div>
-
-                  {/* 3 Sales per aquest dia */}
-                  <div className="p-3 space-y-3 flex-1 bg-stone-50/30">
-                    {displayedRooms.map((room, rIdx) => {
-                      const roomApts = dayApts.filter((a) => a.roomId === room.id);
-                      const styles = getRoomColorClasses(rIdx);
-
-                      return (
-                        <div key={room.id} className="bg-white rounded-xl p-2.5 border border-gray-200 shadow-2xs">
-                          <div className="flex items-center justify-between mb-1.5">
-                            <span className="text-xs font-bold text-gray-800 flex items-center space-x-1.5 truncate">
-                              <span className={`w-2 h-2 rounded-full ${styles.border.replace("border-", "bg-")}`} />
-                              <span className="truncate">{room.name.split("-")[0]}</span>
-                            </span>
-                            <button
-                              onClick={() => onNewAppointment(room.id, "10:00", d.dateStr)}
-                              className="text-gray-400 hover:text-rose-600 text-xs p-0.5"
-                              title="Afegir cita a aquesta sala"
-                            >
-                              <Plus className="w-3 h-3" />
-                            </button>
-                          </div>
-
-                          {roomApts.length === 0 ? (
-                            <div
-                              onClick={() => onNewAppointment(room.id, "10:00", d.dateStr)}
-                              className="py-1.5 px-2 text-[10px] text-gray-400 border border-dashed border-gray-200 rounded-lg text-center hover:bg-rose-50/40 hover:text-rose-600 cursor-pointer transition-colors"
-                            >
-                              + Cabina lliure
-                            </div>
-                          ) : (
-                            <div className="space-y-1">
-                              {roomApts.map((apt) => (
-                                <div
-                                  key={apt.id}
-                                  onClick={() => onEditAppointment(apt)}
-                                  className={`p-1.5 rounded-lg border text-[11px] cursor-pointer hover:shadow-xs transition-all flex items-center justify-between ${styles.pill} ${styles.border}`}
-                                >
-                                  <div className="truncate mr-1">
-                                    <div className="font-bold text-gray-900 flex items-center space-x-1">
-                                      <span className="text-rose-600 font-mono">{apt.startTime}</span>
-                                      <span className="truncate">{apt.clientName}</span>
-                                    </div>
-                                    <div className="text-[10px] text-gray-600 truncate">
-                                      {apt.serviceName}
-                                    </div>
-                                  </div>
-                                  <span className="font-extrabold text-[10px] text-gray-800 shrink-0 bg-white/90 px-1 py-0.2 rounded-sm">
-                                    {apt.price}€
-                                  </span>
-                                </div>
-                              ))}
-                            </div>
-                          )}
-                        </div>
-                      );
-                    })}
-                  </div>
+                    );
+                  })}
                 </div>
-              );
-            })}
+
+                {/* Columnes dels 6 dies */}
+                {weekDays.map((d) => {
+                  const dayApts = getFilteredAppointments(d.dateStr);
+                  const laidOut = layoutDayAppointments(dayApts, START_MINUTES, PIXELS_PER_MINUTE);
+
+                  return (
+                    <div
+                      key={d.dateStr}
+                      className="relative border-r border-gray-100 last:border-r-0 hover:bg-stone-50/30 transition-colors"
+                      onClick={(e) => {
+                        const rect = e.currentTarget.getBoundingClientRect();
+                        const clickY = e.clientY - rect.top;
+                        const clickedMins = START_MINUTES + Math.floor(clickY / (30 * PIXELS_PER_MINUTE)) * 30;
+                        const h = Math.floor(clickedMins / 60);
+                        const m = clickedMins % 60;
+                        onNewAppointment(rooms[0]?.id, `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`, d.dateStr);
+                      }}
+                    >
+                      {/* Línies horàries de fons */}
+                      {TIME_SLOTS.map((time) => {
+                        const mins = timeToMinutes(time) - START_MINUTES;
+                        const isHour = time.endsWith(":00");
+                        return (
+                          <div
+                            key={time}
+                            className={`absolute w-full border-b pointer-events-none ${
+                              isHour ? "border-gray-200" : "border-dashed border-gray-100"
+                            }`}
+                            style={{ top: `${mins * PIXELS_PER_MINUTE}px` }}
+                          />
+                        );
+                      })}
+
+                      {/* Cites del dia, separades en columnes quan coincideixen en horari */}
+                      {laidOut.map(({ apt, top, height, col, colCount }) => {
+                        const accentColor = apt.serviceColor || "#ec4899";
+                        const isCancelled = apt.status === "cancel·lada";
+                        const widthPct = 100 / colCount;
+
+                        return (
+                          <div
+                            key={apt.id}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              onEditAppointment(apt);
+                            }}
+                            className={`absolute rounded-lg px-1.5 py-1 border border-gray-200 bg-white shadow-sm cursor-pointer hover:shadow-md hover:z-30 transition-all overflow-hidden ${
+                              isCancelled ? "opacity-50 line-through bg-gray-100" : ""
+                            }`}
+                            style={{
+                              top: `${top}px`,
+                              height: `${height - 2}px`,
+                              left: `calc(${col * widthPct}% + 1px)`,
+                              width: `calc(${widthPct}% - 2px)`,
+                              borderLeft: `3px solid ${isCancelled ? "#9ca3af" : accentColor}`,
+                              zIndex: 10 + col,
+                            }}
+                            title={`${apt.startTime}-${apt.endTime} · ${apt.clientName} · ${apt.serviceName}`}
+                          >
+                            <div className="text-[9px] font-bold text-gray-700 truncate leading-tight">
+                              {apt.startTime}
+                            </div>
+                            <div className="text-[10px] font-bold text-gray-900 truncate leading-tight">
+                              {apt.clientName}
+                            </div>
+                            {height > 34 && (
+                              <div className="text-[9px] text-gray-500 truncate leading-tight">
+                                {apt.serviceName}
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
           </div>
         </div>
       )}

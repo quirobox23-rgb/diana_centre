@@ -342,6 +342,34 @@ export function ServicesManager({ services, rooms, onServicesUpdated }: Services
                 />
               </div>
 
+              <div>
+                <label className="block font-medium text-gray-700 mb-1.5">Color del Tractament</label>
+                <p className="text-[11px] text-gray-400 mb-2">Aquest color identifica el servei al calendari, sigui quina sigui la sala.</p>
+                <div className="flex items-center flex-wrap gap-2">
+                  {["#ec4899", "#f43f5e", "#a855f7", "#8b5cf6", "#3b82f6", "#06b6d4", "#10b981", "#84cc16", "#f59e0b", "#f97316"].map((c) => (
+                    <button
+                      key={c}
+                      type="button"
+                      onClick={() => setColor(c)}
+                      className={`w-7 h-7 rounded-full transition-all ${
+                        color === c ? "ring-2 ring-offset-2 ring-gray-800 scale-110" : "hover:scale-105"
+                      }`}
+                      style={{ backgroundColor: c }}
+                      title={c}
+                    />
+                  ))}
+                  <div className="relative w-7 h-7">
+                    <input
+                      type="color"
+                      value={color}
+                      onChange={(e) => setColor(e.target.value)}
+                      className="w-7 h-7 rounded-full cursor-pointer border border-gray-200 p-0"
+                      title="Color personalitzat"
+                    />
+                  </div>
+                </div>
+              </div>
+
               <div className="border-t border-gray-100 pt-3 flex items-center justify-end space-x-2">
                 <button
                   type="button"
