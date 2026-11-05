@@ -1,9 +1,9 @@
 "use client";
 
 import React from "react";
-import { Sparkles, Calendar, Smartphone, Scissors, Clock, Users, Plus, UserCheck, MessageCircle, LogOut } from "lucide-react";
+import { Sparkles, Calendar, Smartphone, Scissors, Clock, Users, Plus, UserCheck, MessageCircle, LogOut, BarChart3 } from "lucide-react";
 
-type TabId = "calendar" | "clients" | "bot" | "services" | "schedules" | "professionals" | "pending";
+type TabId = "calendar" | "clients" | "bot" | "services" | "schedules" | "professionals" | "pending" | "summary";
 
 interface NavbarProps {
   activeTab: TabId;
@@ -25,6 +25,7 @@ export function Navbar({ activeTab, onTabChange, onNewAppointmentClick, pendingC
     { id: "pending", label: "Per confirmar", icon: MessageCircle, badge: pendingCount },
     { id: "calendar", label: "Calendari", icon: Calendar },
     { id: "clients", label: "Clientes", icon: Users },
+    { id: "summary", label: "Resum", icon: BarChart3 },
     { id: "bot", label: "Simulador", icon: Smartphone },
     { id: "services", label: "Serveis", icon: Scissors },
     { id: "schedules", label: "Horaris", icon: Clock },

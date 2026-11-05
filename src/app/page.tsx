@@ -9,13 +9,14 @@ import { ServicesManager } from "@/components/ServicesManager";
 import { ScheduleManager } from "@/components/ScheduleManager";
 import { ProfessionalsManager } from "@/components/ProfessionalsManager";
 import { ClientsManager } from "@/components/ClientsManager";
+import { ProfessionalSummary } from "@/components/ProfessionalSummary";
 import { AppointmentModal } from "@/components/AppointmentModal";
 import { Room, Professional, Service, Schedule, Appointment, Client } from "@/types";
 import { Sparkles, Calendar, Smartphone, RefreshCw, CheckCircle2 } from "lucide-react";
 import { addDays, todayStr } from "@/lib/dates";
 
 export default function EsteticaDianaApp() {
-  const [activeTab, setActiveTab] = useState<"calendar" | "clients" | "bot" | "services" | "schedules" | "professionals" | "pending">("pending");
+  const [activeTab, setActiveTab] = useState<"calendar" | "clients" | "bot" | "services" | "schedules" | "professionals" | "pending" | "summary">("pending");
   const [selectedDate, setSelectedDate] = useState<string>(() => todayStr());
   const [pendingCount, setPendingCount] = useState(0);
 
@@ -237,6 +238,8 @@ export default function EsteticaDianaApp() {
             )}
 
             {/* PESTANYA 3: SIMULADOR DE MÒBIL (WHATSAPP AMB 3 OPCIONS D'HORARI) */}
+            {activeTab === "summary" && <ProfessionalSummary professionals={professionals} />}
+
             {activeTab === "bot" && (
               <BotSimulatorView
                 services={services}

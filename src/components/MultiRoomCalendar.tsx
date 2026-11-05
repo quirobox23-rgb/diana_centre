@@ -547,6 +547,9 @@ export function MultiRoomCalendar({
                           >
                             <div className="flex items-baseline justify-between gap-2">
                               <span className="font-semibold text-xs text-stone-900 truncate">{apt.clientName}</span>
+                              {blockHeight < 75 && apt.professionalName && (
+                                <ProfessionalTag name={apt.professionalName} color={apt.professionalColor} />
+                              )}
                               {apt.status !== "confirmada" && (
                                 <span
                                   className={`shrink-0 text-[9px] font-semibold px-1.5 rounded-full ${
@@ -560,9 +563,9 @@ export function MultiRoomCalendar({
                             <div className="text-[11px] text-stone-600 truncate">
                               {apt.startTime}–{apt.endTime} · {apt.serviceName}
                             </div>
-                            {blockHeight > 70 && (
-                              <div className="text-[10px] text-stone-500 truncate">
-                                {apt.professionalName?.split(" ")[0]}
+                            {blockHeight >= 75 && apt.professionalName && (
+                              <div className="mt-0.5">
+                                <ProfessionalTag name={apt.professionalName} color={apt.professionalColor} />
                               </div>
                             )}
                           </div>
@@ -700,10 +703,13 @@ export function MultiRoomCalendar({
                               borderLeft: `3px solid ${isCancelled ? "#a8a29e" : accentColor}`,
                               zIndex: 10 + col,
                             }}
-                            title={`${apt.startTime}-${apt.endTime} · ${apt.clientName} · ${apt.serviceName}`}
+                            title={`${apt.startTime}-${apt.endTime} · ${apt.clientName} · ${apt.serviceName} · ${apt.professionalName ?? ""}`}
                           >
                             <div className="text-[9px] font-bold text-stone-700 truncate leading-tight">
                               {apt.startTime}
+                              {apt.professionalName && (
+                                <span className="font-semibold text-stone-500"> · {apt.professionalName.split(" ")[0]}</span>
+                              )}
                             </div>
                             <div className="text-[10px] font-bold text-stone-900 truncate leading-tight">
                               {apt.clientName}
@@ -725,5 +731,15 @@ export function MultiRoomCalendar({
         </div>
       )}
     </div>
+  );
+}
+
+/** Etiqueta petita amb el color i el nom de la professional. */
+function ProfessionalTag({ name, color }: { name: string; color?: string | null }) {
+  return (
+    <span className="inline-flex items-center gap-1 shrink-0 text-[10px] font-medium text-stone-600">
+      <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: color || "#866353" }} />
+      {name.split(" ")[0]}
+    </span>
   );
 }
