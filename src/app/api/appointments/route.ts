@@ -4,6 +4,16 @@ import { appointments, rooms, services, professionals } from "@/db/schema";
 import { eq, and, asc, gte, lte } from "drizzle-orm";
 import { addMinutesToTime, CONFLICT_MESSAGES, findConflict } from "@/lib/availability";
 
+const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
+const TIME_RE = /^([01]\d|2[0-3]):[0-5]\d$/;
+
+function invalidDateOrTime(date?: unknown, startTime?: unknown, duration?: unknown): string | null {
+  if (date !== undefined && (typeof date !== "string" || !DATE_RE.test(date))) return "La data no és vàlida (format AAAA-MM-DD).";
+  if (startTime !== undefined && (typeof startTime !== "string" || !TIME_RE.test(startTime))) return "L'hora no és vàlida (format HH:MM).";
+  if (duration !== undefined && (!Number.isFinite(Number(duration)) || Number(duration) <= 0 || Number(duration) > 600)) return "La durada no és vàlida.";
+  return null;
+}
+
 
 export async function GET(request: Request) {
   try {
@@ -98,6 +108,11 @@ export async function POST(request: Request) {
       }, { status: 400 });
     }
 
+    const validationError = invalidDateOrTime(date, startTime, durationMinutes);
+    if (validationError) {
+      return NextResponse.json({ success: false, error: validationError }, { status: 400 });
+    }
+
     const duration = Number(durationMinutes) || 60;
     const computedEndTime = addMinutesToTime(startTime, duration);
 
@@ -161,6 +176,11 @@ export async function PUT(request: Request) {
 
     if (!id) {
       return NextResponse.json({ success: false, error: "Falta l'identificador de la cita" }, { status: 400 });
+    }
+
+    const validationError = invalidDateOrTime(date, startTime, durationMinutes);
+    if (validationError) {
+      return NextResponse.json({ success: false, error: validationError }, { status: 400 });
     }
 
     const updateData: Record<string, unknown> = {};

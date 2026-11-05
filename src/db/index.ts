@@ -1,11 +1,13 @@
 import { drizzle } from "drizzle-orm/node-postgres";
 import { Pool } from "pg";
 
-const databaseUrl = process.env.DATABASE_URL;
-
-if (!databaseUrl) {
+if (!process.env.DATABASE_URL) {
   throw new Error("DATABASE_URL is required");
 }
+
+// La llibreria pg ja tracta sslmode=require com a verify-full; ho escrivim explícitament
+// per evitar l'avís "SECURITY WARNING" als logs de Vercel i mantenir la seguretat a pg v9.
+const databaseUrl = process.env.DATABASE_URL.replace(/sslmode=(require|prefer|verify-ca)\b/, "sslmode=verify-full");
 
 const globalForDb = globalThis as typeof globalThis & {
   __arenaNextJsPostgresqlPool?: Pool;

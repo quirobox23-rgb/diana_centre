@@ -12,7 +12,7 @@ export async function GET(request: Request) {
   const token = searchParams.get("hub.verify_token");
   const challenge = searchParams.get("hub.challenge");
 
-  if (mode === "subscribe" && token === (process.env.WHATSAPP_VERIFY_TOKEN || "estetica_diana_token")) {
+  if (mode === "subscribe" && process.env.WHATSAPP_VERIFY_TOKEN && token === process.env.WHATSAPP_VERIFY_TOKEN) {
     return new NextResponse(challenge, { status: 200 });
   }
 
@@ -105,7 +105,7 @@ async function handleIncomingMessage(phone: string, clientName: string, body: st
         return;
       }
     }
-    await sendWhatsApp(phone, `Respon amb *1*, *2* o *3* per triar una de les opcions, si us plau 🙏`);
+    await sendWhatsApp(phone, `Respon amb el número d'una de les opcions, si us plau 🙏`);
     return;
   }
 
