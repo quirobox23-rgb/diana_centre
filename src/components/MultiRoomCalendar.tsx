@@ -151,6 +151,17 @@ export function MultiRoomCalendar({
     }
   };
 
+  // "2 – 7 de novembre" o "30 de novembre – 5 de desembre"
+  const formatWeekRange = (startStr: string, endStr: string) => {
+    const months = ["gener", "febrer", "març", "abril", "maig", "juny", "juliol", "agost", "setembre", "octubre", "novembre", "desembre"];
+    const [, m1, d1] = startStr.split("-").map(Number);
+    const [, m2, d2] = endStr.split("-").map(Number);
+    const de = (m: number) => (["abril", "agost", "octubre"].includes(months[m - 1]) ? "d'" : "de ");
+    return m1 === m2
+      ? `${d1} – ${d2} ${de(m2)}${months[m2 - 1]}`
+      : `${d1} ${de(m1)}${months[m1 - 1]} – ${d2} ${de(m2)}${months[m2 - 1]}`;
+  };
+
   const formatShortDay = (dateStr: string) => {
     try {
       const [y, m, d] = dateStr.split("-").map(Number);
@@ -273,9 +284,9 @@ export function MultiRoomCalendar({
               </button>
               <div className="px-3 flex items-center space-x-2 min-w-[200px] justify-center">
                 <CalendarIcon className="w-4 h-4 text-terra-600 shrink-0" />
-                <span className="text-sm font-bold text-stone-900 capitalize text-center">
+                <span className="text-sm font-bold text-stone-900 text-center whitespace-nowrap first-letter:uppercase">
                   {calendarMode === "week"
-                    ? `Setmana del ${formatShortDay(weekDays[0].dateStr)} al ${formatShortDay(weekDays[5].dateStr)}`
+                    ? formatWeekRange(weekDays[0].dateStr, weekDays[5].dateStr)
                     : formatCatalanDate(selectedDate)}
                 </span>
               </div>
@@ -306,7 +317,7 @@ export function MultiRoomCalendar({
               }`}
             >
               <CalendarDays className="w-4 h-4 text-terra-600" />
-              <span>Graella Calendari Dia (3 Sales)</span>
+              <span>Dia</span>
             </button>
             <button
               onClick={() => setCalendarMode("week")}
@@ -317,7 +328,7 @@ export function MultiRoomCalendar({
               }`}
             >
               <CalendarRange className="w-4 h-4 text-moka-600" />
-              <span>Graella Calendari Setmana</span>
+              <span>Setmana</span>
             </button>
           </div>
 
@@ -359,61 +370,17 @@ export function MultiRoomCalendar({
               </select>
             </div>
 
-            {/* Botó Nova Cita */}
-            <button
-              onClick={() => onNewAppointment()}
-              className="inline-flex items-center space-x-1.5 px-4 py-2 text-xs font-bold text-white bg-gradient-to-r from-terra-600 to-arcilla-600 hover:from-terra-700 hover:to-arcilla-700 rounded-xl shadow-xs transition-all shrink-0"
-            >
-              <Plus className="w-4 h-4" />
-              <span>Nova Cita</span>
-            </button>
           </div>
         </div>
 
-        {/* Resum ràpid de la jornada */}
-        <div className="mt-3 pt-3 border-t border-terra-50 grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
-          <div className="bg-terra-50/50 rounded-xl p-2 border border-terra-100 flex items-center space-x-2">
-            <div className="w-6 h-6 rounded-lg bg-terra-500 text-white flex items-center justify-center font-bold text-xs">
-              {todayAppointments.length}
-            </div>
-            <div>
-              <p className="text-stone-500 text-[11px]">Cites avui</p>
-              <p className="font-semibold text-stone-900 text-xs">{confirmedCount} confirmades</p>
-            </div>
-          </div>
-
-          <div className="bg-emerald-50/50 rounded-xl p-2 border border-emerald-100 flex items-center space-x-2">
-            <div className="w-6 h-6 rounded-lg bg-emerald-500 text-white flex items-center justify-center">
-              <DollarSign className="w-3.5 h-3.5" />
-            </div>
-            <div>
-              <p className="text-stone-500 text-[11px]">Previst avui</p>
-              <p className="font-semibold text-emerald-800 text-xs">{todayRevenue.toFixed(2)} €</p>
-            </div>
-          </div>
-
-          <div className="bg-moka-50/50 rounded-xl p-2 border border-moka-100 flex items-center space-x-2">
-            <div className="w-6 h-6 rounded-lg bg-moka-500 text-white flex items-center justify-center">
-              <Layers className="w-3.5 h-3.5" />
-            </div>
-            <div>
-              <p className="text-stone-500 text-[11px]">Sales actives</p>
-              <p className="font-semibold text-moka-900 text-xs">3 Cabines</p>
-            </div>
-          </div>
-
-          <div className="bg-salvia-50/50 rounded-xl p-2 border border-salvia-100 flex items-center space-x-2">
-            <div className="w-6 h-6 rounded-lg bg-salvia-500 text-white flex items-center justify-center">
-              <Smartphone className="w-3.5 h-3.5" />
-            </div>
-            <div>
-              <p className="text-stone-500 text-[11px]">Bot Mòbil</p>
-              <p className="font-semibold text-salvia-900 text-xs">
-                {appointments.filter((a) => a.source === "whatsapp_bot" || a.source === "bot_simulador").length} reserves
-              </p>
-            </div>
-          </div>
-        </div>
+        {/* Resum discret de la jornada */}
+        <p className="mt-3 pt-3 border-t border-stone-100 text-xs text-stone-500">
+          <span className="font-semibold text-stone-800">{todayAppointments.filter((a) => a.status !== "cancel·lada").length}</span> cites
+          {" · "}
+          {confirmedCount} confirmades
+          {" · "}
+          <span className="font-semibold text-stone-800">{todayRevenue.toFixed(0)} €</span> previstos
+        </p>
       </div>
 
       {/* 1. GRAELLA VISUAL DE CALENDARI DE DIA (EIX HORARI 09:00 - 20:30 AMB LES 3 SALES EN COLUMNES) */}
@@ -448,17 +415,12 @@ export function MultiRoomCalendar({
                     <div className="flex items-center space-x-2 overflow-hidden">
                       <span className={`w-3 h-3 rounded-full shrink-0 ${styles.border.replace("border-", "bg-")}`} />
                       <div className="truncate">
-                        <div className="flex items-center space-x-1.5">
-                          <span className="text-[10px] uppercase font-bold text-stone-500">
-                            Sala {idx + 1}
-                          </span>
-                          <span className={`text-[10px] font-bold px-1.5 py-0.2 rounded-full ${styles.badge}`}>
-                            {roomApts.length} {roomApts.length === 1 ? "cita" : "cites"}
-                          </span>
-                        </div>
                         <h4 className="font-bold text-xs sm:text-sm text-stone-900 truncate">
                           {room.name}
                         </h4>
+                        <p className="text-[11px] text-stone-400">
+                          {roomApts.length === 0 ? "Sense cites" : `${roomApts.length} ${roomApts.length === 1 ? "cita" : "cites"}`}
+                        </p>
                       </div>
                     </div>
 
@@ -486,7 +448,7 @@ export function MultiRoomCalendar({
                 {TIME_SLOTS.map((time) => {
                   const mins = timeToMinutes(time) - START_MINUTES;
                   const topPos = mins * PIXELS_PER_MINUTE;
-                  const isHour = time.endsWith(":00");
+                  if (!time.endsWith(":00")) return null;
 
                   return (
                     <div
@@ -494,13 +456,7 @@ export function MultiRoomCalendar({
                       className="absolute w-full px-2 text-right flex items-center justify-end -translate-y-1/2"
                       style={{ top: `${topPos}px` }}
                     >
-                      <span
-                        className={`font-mono text-xs ${
-                          isHour ? "font-bold text-stone-800 text-[11px]" : "text-stone-400 text-[10px]"
-                        }`}
-                      >
-                        {time}
-                      </span>
+                      <span className="text-[11px] font-medium text-stone-500 tabular-nums">{time}</span>
                     </div>
                   );
                 })}
@@ -527,7 +483,7 @@ export function MultiRoomCalendar({
                       <div
                         key={time}
                         className={`absolute w-full border-b ${
-                          isHour ? "border-stone-200" : "border-dashed border-stone-100"
+                          isHour ? "border-stone-100" : "border-dashed border-stone-50"
                         }`}
                         style={{ top: `${topPos}px` }}
                       />
@@ -578,54 +534,37 @@ export function MultiRoomCalendar({
                               e.stopPropagation();
                               onEditAppointment(apt);
                             }}
-                            className={`absolute left-1.5 right-1.5 rounded-xl p-2.5 shadow-sm border border-stone-200 bg-white transition-all hover:shadow-md hover:scale-[1.01] cursor-pointer z-10 flex flex-col justify-between overflow-hidden ${
-                              isCancelled ? "opacity-50 line-through bg-stone-100 border-stone-300" : ""
+                            className={`absolute left-1 right-1 rounded-lg px-2 py-1.5 cursor-pointer z-10 overflow-hidden transition-colors hover:brightness-95 ${
+                              isCancelled ? "opacity-50 line-through" : ""
                             }`}
                             style={{
                               top: `${topOffset}px`,
-                              height: `${blockHeight - 3}px`,
-                              borderLeft: `4px solid ${isCancelled ? "#a8a29e" : accentColor}`,
+                              height: `${blockHeight - 2}px`,
+                              backgroundColor: isCancelled ? "#f5f5f4" : `${accentColor}1f`,
+                              borderLeft: `3px solid ${isCancelled ? "#a8a29e" : accentColor}`,
                             }}
+                            title={`${apt.startTime}-${apt.endTime} · ${apt.clientName} · ${apt.serviceName} · ${apt.professionalName ?? ""} · ${apt.price}€`}
                           >
-                            <div className="overflow-hidden">
-                              <div className="flex items-center justify-between text-[11px] font-bold">
-                                <span className="flex items-center space-x-1 text-stone-700">
-                                  <Clock className="w-3 h-3 text-stone-400" />
-                                  <span>
-                                    {apt.startTime} - {apt.endTime}
-                                  </span>
+                            <div className="flex items-baseline justify-between gap-2">
+                              <span className="font-semibold text-xs text-stone-900 truncate">{apt.clientName}</span>
+                              {apt.status !== "confirmada" && (
+                                <span
+                                  className={`shrink-0 text-[9px] font-semibold px-1.5 rounded-full ${
+                                    isPending ? "bg-amber-100 text-amber-800" : "bg-stone-200 text-stone-600"
+                                  }`}
+                                >
+                                  {apt.status}
                                 </span>
-                                <span className="font-extrabold text-stone-900">
-                                  {apt.price}€
-                                </span>
-                              </div>
-
-                              <div className="font-bold text-xs text-stone-900 truncate mt-1">
-                                {apt.clientName}
-                              </div>
-
-                              <div className="text-[11px] text-stone-600 font-medium truncate mt-0.5">
-                                {apt.serviceName}
-                              </div>
+                              )}
                             </div>
-
-                            {/* Peu de la targeta de calendari */}
-                            <div className="flex items-center justify-between text-[10px] text-stone-500 mt-1 pt-1 border-t border-stone-100">
-                              <span className="truncate">
+                            <div className="text-[11px] text-stone-600 truncate">
+                              {apt.startTime}–{apt.endTime} · {apt.serviceName}
+                            </div>
+                            {blockHeight > 70 && (
+                              <div className="text-[10px] text-stone-500 truncate">
                                 {apt.professionalName?.split(" ")[0]}
-                              </span>
-                              <span
-                                className={`font-bold px-1.5 py-0.2 rounded-full uppercase text-[9px] ${
-                                  apt.status === "confirmada"
-                                    ? "bg-emerald-100 text-emerald-800"
-                                    : isPending
-                                    ? "bg-amber-100 text-amber-800"
-                                    : "bg-salvia-100 text-salvia-800"
-                                }`}
-                              >
-                                {apt.status}
-                              </span>
-                            </div>
+                              </div>
+                            )}
                           </div>
                         );
                       })}
@@ -672,7 +611,7 @@ export function MultiRoomCalendar({
                         {d.dayNumber}
                       </div>
                       <div className="text-[9px] text-stone-400 mt-0.5">
-                        {dayApts.length > 0 ? `${dayApts.length} cites` : ""}
+                        {dayApts.length > 0 ? `${dayApts.length} ${dayApts.length === 1 ? "cita" : "cites"}` : ""}
                       </div>
                     </button>
                   );
@@ -696,7 +635,7 @@ export function MultiRoomCalendar({
                         style={{ top: `${mins * PIXELS_PER_MINUTE}px` }}
                       >
                         {isHour && (
-                          <span className="font-mono text-[10px] font-bold text-stone-700">{time}</span>
+                          <span className="text-[11px] font-medium text-stone-500 tabular-nums">{time}</span>
                         )}
                       </div>
                     );
@@ -729,7 +668,7 @@ export function MultiRoomCalendar({
                           <div
                             key={time}
                             className={`absolute w-full border-b pointer-events-none ${
-                              isHour ? "border-stone-200" : "border-dashed border-stone-100"
+                              isHour ? "border-stone-100" : "border-dashed border-stone-50"
                             }`}
                             style={{ top: `${mins * PIXELS_PER_MINUTE}px` }}
                           />
@@ -749,14 +688,15 @@ export function MultiRoomCalendar({
                               e.stopPropagation();
                               onEditAppointment(apt);
                             }}
-                            className={`absolute rounded-lg px-1.5 py-1 border border-stone-200 bg-white shadow-sm cursor-pointer hover:shadow-md hover:z-30 transition-all overflow-hidden ${
-                              isCancelled ? "opacity-50 line-through bg-stone-100" : ""
+                            className={`absolute rounded-md px-1.5 py-1 cursor-pointer hover:brightness-95 hover:z-30 transition-colors overflow-hidden ${
+                              isCancelled ? "opacity-50 line-through" : ""
                             }`}
                             style={{
                               top: `${top}px`,
                               height: `${height - 2}px`,
                               left: `calc(${col * widthPct}% + 1px)`,
                               width: `calc(${widthPct}% - 2px)`,
+                              backgroundColor: isCancelled ? "#f5f5f4" : `${accentColor}1f`,
                               borderLeft: `3px solid ${isCancelled ? "#a8a29e" : accentColor}`,
                               zIndex: 10 + col,
                             }}
