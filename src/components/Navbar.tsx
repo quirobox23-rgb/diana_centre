@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import { Sparkles, Calendar, Smartphone, Scissors, Clock, Users, Plus, Phone, UserCheck, MessageCircle } from "lucide-react";
+import { Sparkles, Calendar, Smartphone, Scissors, Clock, Users, Plus, Phone, UserCheck, MessageCircle, LogOut } from "lucide-react";
 
 type TabId = "calendar" | "clients" | "bot" | "services" | "schedules" | "professionals" | "pending";
 
@@ -81,6 +81,16 @@ export function Navbar({ activeTab, onTabChange, onNewAppointmentClick, pendingC
             >
               <Plus className="w-4 h-4" />
               <span>Nova Cita</span>
+            </button>
+            <button
+              onClick={async () => {
+                await fetch("/api/auth/logout", { method: "POST" });
+                window.location.href = "/login";
+              }}
+              title="Tancar sessió"
+              className="inline-flex items-center p-2 text-gray-500 hover:text-rose-700 hover:bg-rose-50 rounded-xl transition-all"
+            >
+              <LogOut className="w-4 h-4" />
             </button>
           </div>
         </div>
