@@ -1,8 +1,9 @@
 import { NextResponse } from "next/server";
 import { db } from "@/db";
-import { appointments, botSimulations, services, rooms, professionals } from "@/db/schema";
+import { appointments, botSimulations, services } from "@/db/schema";
 import { eq } from "drizzle-orm";
 import { sendWhatsApp } from "@/lib/twilio";
+import { CONFLICT_MESSAGES, findConflict } from "@/lib/availability";
 
 export async function POST(request: Request) {
   try {
@@ -15,6 +16,7 @@ export async function POST(request: Request) {
     let serviceId: number | null = null;
     let serviceName = "Servei d'estètica";
     let price = "50.00";
+    let durationMinutes = 60;
 
     if (simulationId) {
       const [sim] = await db.select().from(botSimulations).where(eq(botSimulations.id, Number(simulationId)));
@@ -46,7 +48,23 @@ export async function POST(request: Request) {
       if (svc) {
         serviceName = svc.name;
         price = svc.price;
+        durationMinutes = svc.durationMinutes;
       }
+    }
+
+    // L'hora es va oferir fa una estona: comprovem que encara estigui lliure abans de reservar-la
+    const conflict = await findConflict({
+      date: targetSlot.date,
+      startTime: targetSlot.time,
+      endTime: targetSlot.endTime,
+      roomId: Number(targetSlot.roomId),
+      professionalId: Number(targetSlot.professionalId),
+    });
+    if (conflict) {
+      return NextResponse.json({
+        success: false,
+        error: `${CONFLICT_MESSAGES[conflict]} Aquesta hora ja s'ha ocupat des que es va oferir; tria'n una altra.`,
+      }, { status: 409 });
     }
 
     // Crear la cita oficial a la base de dades
@@ -59,7 +77,7 @@ export async function POST(request: Request) {
       date: targetSlot.date,
       startTime: targetSlot.time,
       endTime: targetSlot.endTime,
-      durationMinutes: 60,
+      durationMinutes,
       status: "confirmada",
       price: price,
       notes: `Reservada automàticament via Assistència Virtual Mòbil / WhatsApp. Opcions proposades acceptades.`,
@@ -80,7 +98,7 @@ export async function POST(request: Request) {
         .where(eq(botSimulations.id, Number(simulationId)));
     }
 
-    const confirmationMessage = `✅ Cita Confirmada amb Èxit!\n\n${targetClientName}, t'hem agendat per a *${serviceName}*:\n📅 Data: ${targetSlot.displayDate || targetSlot.date}\n⏰ Hora: ${targetSlot.time}h a ${targetSlot.endTime}h\n🏠 Sala: ${targetSlot.roomName}\n👩‍🦰 Professional: ${targetSlot.professionalName}\n📍 Estètica Diana - Gran de Gràcia 112\n\nSi necessites fer qualsevol canvi, pots respondre a aquest mateix xat. T'esperem! ✨`;
+    const confirmationMessage = `✅ Cita Confirmada amb Èxit!\n\n${targetClientName}, t'hem agendat per a *${serviceName}*:\n📅 Data: ${targetSlot.displayDate || targetSlot.date}\n⏰ Hora: ${targetSlot.time}h a ${targetSlot.endTime}h\n🏠 Sala: ${targetSlot.roomName}\n👩‍🦰 Professional: ${targetSlot.professionalName}\n\nSi necessites fer qualsevol canvi, pots respondre a aquest mateix xat. T'esperem! ✨`;
 
     // Només enviem el WhatsApp real quan ve d'una sol·licitud real pendent de confirmar
     // (evita enviar-lo si és una prova manual des del simulador)

@@ -1,15 +1,9 @@
 import { NextResponse } from "next/server";
 import { db } from "@/db";
 import { appointments, rooms, services, professionals } from "@/db/schema";
-import { eq, and, sql, asc, gte, lte } from "drizzle-orm";
+import { eq, and, asc, gte, lte } from "drizzle-orm";
+import { addMinutesToTime, CONFLICT_MESSAGES, findConflict } from "@/lib/availability";
 
-function addMinutesToTime(time: string, minutes: number): string {
-  const [h, m] = time.split(":").map(Number);
-  const totalMins = h * 60 + m + minutes;
-  const newH = Math.floor(totalMins / 60);
-  const newM = totalMins % 60;
-  return `${String(newH).padStart(2, "0")}:${String(newM).padStart(2, "0")}`;
-}
 
 export async function GET(request: Request) {
   try {
@@ -107,23 +101,17 @@ export async function POST(request: Request) {
     const duration = Number(durationMinutes) || 60;
     const computedEndTime = addMinutesToTime(startTime, duration);
 
-    // Comprovar si la sala ja està ocupada en aquesta data i franja horària
-    const existingRoomAppointments = await db.select().from(appointments)
-      .where(and(
-        eq(appointments.roomId, Number(roomId)),
-        eq(appointments.date, date),
-        sql`${appointments.status} != 'cancel·lada'`
-      ));
-
-    const hasConflict = existingRoomAppointments.some(apt => {
-      return (startTime < apt.endTime && computedEndTime > apt.startTime);
+    // Comprovar que ni la sala ni la professional estiguin ocupades en aquesta franja
+    const conflict = await findConflict({
+      date,
+      startTime,
+      endTime: computedEndTime,
+      roomId: Number(roomId),
+      professionalId: Number(professionalId),
     });
 
-    if (hasConflict) {
-      return NextResponse.json({
-        success: false,
-        error: "La sala seleccionada ja té una cita programada en aquest interval horari.",
-      }, { status: 409 });
+    if (conflict) {
+      return NextResponse.json({ success: false, error: CONFLICT_MESSAGES[conflict] }, { status: 409 });
     }
 
     const [newAppointment] = await db.insert(appointments).values({
@@ -189,12 +177,34 @@ export async function PUT(request: Request) {
     if (status !== undefined) updateData.status = status;
     if (price !== undefined) updateData.price = String(price);
 
-    if (startTime !== undefined && durationMinutes !== undefined) {
-      updateData.startTime = startTime;
-      updateData.durationMinutes = Number(durationMinutes);
-      updateData.endTime = addMinutesToTime(startTime, Number(durationMinutes));
-    } else if (startTime !== undefined) {
-      updateData.startTime = startTime;
+    const [existing] = await db.select().from(appointments).where(eq(appointments.id, Number(id)));
+    if (!existing) {
+      return NextResponse.json({ success: false, error: "No s'ha trobat la cita" }, { status: 404 });
+    }
+
+    // Recalculem sempre l'hora de final (abans, si només canviava l'hora d'inici, el final no es movia)
+    if (startTime !== undefined || durationMinutes !== undefined) {
+      const newStart = startTime ?? existing.startTime;
+      const newDuration = durationMinutes !== undefined ? Number(durationMinutes) : existing.durationMinutes;
+      updateData.startTime = newStart;
+      updateData.durationMinutes = newDuration;
+      updateData.endTime = addMinutesToTime(newStart, newDuration);
+    }
+
+    // Si la cita continua activa, comprovem que el canvi no xoqui amb cap altra cita
+    const finalStatus = (updateData.status as string | undefined) ?? existing.status;
+    if (finalStatus !== "cancel·lada") {
+      const conflict = await findConflict({
+        date: (updateData.date as string | undefined) ?? existing.date,
+        startTime: (updateData.startTime as string | undefined) ?? existing.startTime,
+        endTime: (updateData.endTime as string | undefined) ?? existing.endTime,
+        roomId: (updateData.roomId as number | undefined) ?? existing.roomId,
+        professionalId: (updateData.professionalId as number | undefined) ?? existing.professionalId,
+        excludeAppointmentId: existing.id,
+      });
+      if (conflict) {
+        return NextResponse.json({ success: false, error: CONFLICT_MESSAGES[conflict] }, { status: 409 });
+      }
     }
 
     const [updated] = await db.update(appointments)
