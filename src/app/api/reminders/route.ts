@@ -4,6 +4,7 @@ import { appointments } from "@/db/schema";
 import { eq, and } from "drizzle-orm";
 import { sendWhatsApp } from "@/lib/twilio";
 import { formatDateCatalan } from "@/lib/bot-engine";
+import { addDays, todayStr } from "@/lib/dates";
 
 // Es crida un cop al dia des de Vercel Cron (vercel.json).
 // Envia el recordatori a totes les cites confirmades per a l'endemà que encara no l'han rebut.
@@ -15,9 +16,7 @@ export async function GET(request: Request) {
     return NextResponse.json({ status: "unauthorized" }, { status: 401 });
   }
 
-  const tomorrow = new Date();
-  tomorrow.setDate(tomorrow.getDate() + 1);
-  const tomorrowStr = tomorrow.toISOString().split("T")[0];
+  const tomorrowStr = addDays(todayStr(), 1);
 
   const toRemind = await db.select().from(appointments)
     .where(and(

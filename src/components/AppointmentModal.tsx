@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from "react";
 import { X, Calendar, Clock, User, Scissors, Phone, Mail, FileText, CheckCircle2, AlertCircle, Trash2, Search } from "lucide-react";
 import { Room, Professional, Service, Appointment, Client } from "@/types";
+import { todayStr } from "@/lib/dates";
 
 interface AppointmentModalProps {
   isOpen: boolean;
@@ -40,7 +41,7 @@ export function AppointmentModal({
   const [roomId, setRoomId] = useState<number>(initialRoomId || (rooms[0]?.id ?? 1));
   const [serviceId, setServiceId] = useState<number>(services[0]?.id ?? 1);
   const [professionalId, setProfessionalId] = useState<number>(professionals[0]?.id ?? 1);
-  const [date, setDate] = useState<string>(initialDate || new Date().toISOString().split("T")[0]);
+  const [date, setDate] = useState<string>(initialDate || todayStr());
   const [startTime, setStartTime] = useState<string>(initialTime || "10:00");
   const [durationMinutes, setDurationMinutes] = useState<number>(60);
   const [price, setPrice] = useState<string>("45.00");
@@ -81,7 +82,7 @@ export function AppointmentModal({
         }
       }
       setProfessionalId(professionals[0]?.id ?? 1);
-      setDate(initialDate || new Date().toISOString().split("T")[0]);
+      setDate(initialDate || todayStr());
       setStartTime(initialTime || "10:00");
       setStatus("confirmada");
       setNotes("");

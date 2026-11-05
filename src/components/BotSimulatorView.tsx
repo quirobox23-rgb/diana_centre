@@ -22,6 +22,7 @@ import {
   CheckCheck,
 } from "lucide-react";
 import { ProposedSlot, BotSimulation, Service } from "@/types";
+import { addDays, todayStr } from "@/lib/dates";
 
 interface BotSimulatorViewProps {
   services: Service[];
@@ -72,7 +73,7 @@ export function BotSimulatorView({ services, onAppointmentBooked }: BotSimulator
       timestamp: "09:31",
       slots: [
         {
-          date: new Date().toISOString().split("T")[0],
+          date: todayStr(),
           displayDate: "Avui",
           time: "17:30",
           endTime: "18:30",
@@ -82,7 +83,7 @@ export function BotSimulatorView({ services, onAppointmentBooked }: BotSimulator
           professionalName: "Laia Puig",
         },
         {
-          date: new Date(Date.now() + 86400000).toISOString().split("T")[0],
+          date: addDays(todayStr(), 1),
           displayDate: "Demà",
           time: "16:00",
           endTime: "17:00",
@@ -92,7 +93,7 @@ export function BotSimulatorView({ services, onAppointmentBooked }: BotSimulator
           professionalName: "Laia Puig",
         },
         {
-          date: new Date(Date.now() + 86400000 * 2).toISOString().split("T")[0],
+          date: addDays(todayStr(), 2),
           displayDate: "Passat demà",
           time: "18:30",
           endTime: "19:30",

@@ -1,6 +1,7 @@
 import { db } from "@/db";
 import { rooms, services, professionals, schedules, appointments, botSimulations, centerSettings } from "@/db/schema";
 import { eq, and, sql } from "drizzle-orm";
+import { addDays, dayOfWeek, todayStr } from "@/lib/dates";
 
 export interface SlotOption {
   date: string;
@@ -75,15 +76,13 @@ export async function generateBotReply(params: { clientPhone: string; clientName
   const prefersAfternoon = lower.includes("tarda") || lower.includes("tarde") || lower.includes("vespre");
 
   const foundSlots: SlotOption[] = [];
-  const today = new Date();
+  const today = todayStr();
 
   for (let dayOffset = 0; dayOffset < 8 && foundSlots.length < 3; dayOffset++) {
-    const checkDateObj = new Date(today);
-    checkDateObj.setDate(today.getDate() + dayOffset);
-    const dateStr = checkDateObj.toISOString().split("T")[0];
-    const dayOfWeek = checkDateObj.getDay();
+    const dateStr = addDays(today, dayOffset);
+    const weekDay = dayOfWeek(dateStr);
 
-    const daySchedule = allSchedules.find(s => s.dayOfWeek === dayOfWeek);
+    const daySchedule = allSchedules.find(s => s.dayOfWeek === weekDay);
     if (!daySchedule || !daySchedule.isOpen) continue;
 
     const bookedAppointments = await db.select().from(appointments)
