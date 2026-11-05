@@ -1,7 +1,28 @@
 import { db } from "@/db";
 import { rooms, services, professionals, schedules, appointments, botSimulations, centerSettings } from "@/db/schema";
 import { eq, and, sql } from "drizzle-orm";
-import { addDays, dayOfWeek, todayStr } from "@/lib/dates";
+import { addDays, dayOfWeek, nowTimeStr, todayStr } from "@/lib/dates";
+import { addMinutesToTime } from "@/lib/availability";
+
+// Paraules clau per relacionar la categoria d'un servei amb l'especialitat de cada professional.
+// Si cap professional encaixa, es fa servir qualsevol professional activa.
+const CATEGORY_KEYWORDS: Record<string, string[]> = {
+  "facial": ["facial"],
+  "corporal": ["corporal", "massatge"],
+  "depilació": ["depila", "làser", "laser"],
+  "mans i peus": ["manicura", "pedicura", "mans", "peus", "ungles"],
+  "mirada": ["mirada", "pestany", "cella"],
+  "benestar": ["massatge", "benestar"],
+};
+
+function pickProfessionalsForCategory<T extends { specialty: string | null }>(pros: T[], category: string): T[] {
+  const keywords = CATEGORY_KEYWORDS[category.toLowerCase()] ?? [category.toLowerCase()];
+  const matching = pros.filter(p => {
+    const specialty = (p.specialty || "").toLowerCase();
+    return keywords.some(k => specialty.includes(k));
+  });
+  return matching.length > 0 ? matching : pros;
+}
 
 export interface SlotOption {
   date: string;
@@ -14,20 +35,11 @@ export interface SlotOption {
   professionalName: string;
 }
 
-function addMinutesToTime(time: string, minutes: number): string {
-  const [h, m] = time.split(":").map(Number);
-  const totalMins = h * 60 + m + minutes;
-  const newH = Math.floor(totalMins / 60);
-  const newM = totalMins % 60;
-  return `${String(newH).padStart(2, "0")}:${String(newM).padStart(2, "0")}`;
-}
-
 export function formatDateCatalan(dateStr: string): string {
-  const [y, m, d] = dateStr.split("-").map(Number);
-  const dateObj = new Date(y, m - 1, d);
+  const [, m, d] = dateStr.split("-").map(Number);
   const days = ["Diumenge", "Dilluns", "Dimarts", "Dimecres", "Dijous", "Divendres", "Dissabte"];
   const months = ["gener", "febrer", "març", "abril", "maig", "juny", "juliol", "agost", "setembre", "octubre", "novembre", "desembre"];
-  return `${days[dateObj.getDay()]}, ${d} de ${months[m - 1]}`;
+  return `${days[dayOfWeek(dateStr)]}, ${d} de ${months[m - 1]}`;
 }
 
 /**
@@ -62,49 +74,54 @@ export async function generateBotReply(params: { clientPhone: string; clientName
   }
 
   const targetRoom = allRooms.find(r => r.id === matchedService.defaultRoomId) || allRooms[0];
-  const targetProfessional = allProfessionals.find(p => {
-    if (matchedService.category === "Mans i Peus" || matchedService.category === "Mirada") {
-      return p.name.includes("Laia");
-    }
-    if (matchedService.category === "Corporal" || matchedService.category === "Depilació") {
-      return p.name.includes("Marta") || p.name.includes("Diana");
-    }
-    return p.name.includes("Diana") || p.name.includes("Marta");
-  }) || allProfessionals[0];
+  const candidatePros = pickProfessionalsForCategory(allProfessionals, matchedService.category);
 
-  const prefersMorning = lower.includes("matí") || lower.includes("mati") || lower.includes("pronto");
+  const prefersMorning = lower.includes("matí") || lower.includes("mati") || lower.includes("pronto") || lower.includes("mañana");
   const prefersAfternoon = lower.includes("tarda") || lower.includes("tarde") || lower.includes("vespre");
+
+  const [settingsForSlots] = await db.select().from(centerSettings).limit(1);
+  const step = settingsForSlots?.slotIntervalMinutes || 30;
 
   const foundSlots: SlotOption[] = [];
   const today = todayStr();
+  // No oferim hores que ja han passat ni que comencin d'aquí a menys d'una hora
+  const earliestToday = addMinutesToTime(nowTimeStr(), 60);
 
-  for (let dayOffset = 0; dayOffset < 8 && foundSlots.length < 3; dayOffset++) {
+  for (let dayOffset = 0; dayOffset < 14 && foundSlots.length < 3; dayOffset++) {
     const dateStr = addDays(today, dayOffset);
     const weekDay = dayOfWeek(dateStr);
 
     const daySchedule = allSchedules.find(s => s.dayOfWeek === weekDay);
     if (!daySchedule || !daySchedule.isOpen) continue;
 
-    const bookedAppointments = await db.select().from(appointments)
+    const dayAppointments = await db.select().from(appointments)
       .where(and(
-        eq(appointments.roomId, targetRoom.id),
         eq(appointments.date, dateStr),
         sql`${appointments.status} != 'cancel·lada'`
       ));
 
-    const candidateTimes: string[] = [];
-    if (!prefersAfternoon) candidateTimes.push("10:00", "11:00", "12:00");
-    if (!prefersMorning) candidateTimes.push("16:00", "17:00", "18:00", "19:00");
-    if (!prefersMorning && !prefersAfternoon) {
-      candidateTimes.length = 0;
-      candidateTimes.push("10:30", "12:00", "16:30", "17:30", "18:30");
+    const windows: [string, string][] = [];
+    if (!prefersAfternoon) windows.push([daySchedule.morningStart, daySchedule.morningEnd]);
+    if (!prefersMorning) windows.push([daySchedule.afternoonStart, daySchedule.afternoonEnd]);
+    if (prefersMorning && prefersAfternoon) {
+      windows.push([daySchedule.morningStart, daySchedule.morningEnd], [daySchedule.afternoonStart, daySchedule.afternoonEnd]);
     }
 
-    for (const time of candidateTimes) {
+    // Com a molt una opció per franja (matí / tarda) i dia, perquè la clienta tingui varietat
+    for (const [windowStart, windowEnd] of windows) {
       if (foundSlots.length >= 3) break;
-      const endTime = addMinutesToTime(time, matchedService.durationMinutes);
-      const hasConflict = bookedAppointments.some(apt => time < apt.endTime && endTime > apt.startTime);
-      if (!hasConflict) {
+
+      for (let time = windowStart; time < windowEnd; time = addMinutesToTime(time, step)) {
+        const endTime = addMinutesToTime(time, matchedService.durationMinutes);
+        if (endTime > windowEnd) break;
+        if (dayOffset === 0 && time < earliestToday) continue;
+
+        const overlapping = dayAppointments.filter(apt => time < apt.endTime && endTime > apt.startTime);
+        if (overlapping.some(apt => apt.roomId === targetRoom.id)) continue;
+
+        const freePro = candidatePros.find(p => !overlapping.some(apt => apt.professionalId === p.id));
+        if (!freePro) continue;
+
         foundSlots.push({
           date: dateStr,
           displayDate: formatDateCatalan(dateStr),
@@ -112,23 +129,29 @@ export async function generateBotReply(params: { clientPhone: string; clientName
           endTime,
           roomId: targetRoom.id,
           roomName: targetRoom.name,
-          professionalId: targetProfessional.id,
-          professionalName: targetProfessional.name,
+          professionalId: freePro.id,
+          professionalName: freePro.name,
         });
+        break;
       }
     }
   }
 
-  const [settings] = await db.select().from(centerSettings).limit(1);
+  const settings = settingsForSlots;
   const greeting = settings?.autoReplyGreeting || `Hola ${clientName.trim()}! ✨ Gràcies per contactar amb Estètica Diana.`;
 
-  let replyText = `${greeting}\n\nHe buscat a la nostra agenda per al servei de *${matchedService.name}* (${matchedService.durationMinutes} min - ${matchedService.price}€).\n\nAquestes són les 3 millors hores disponibles que et puc oferir a la *${targetRoom.name}* amb la *${targetProfessional.name}*:\n\n`;
+  let replyText = `${greeting}\n\nHe buscat a la nostra agenda per al servei de *${matchedService.name}* (${matchedService.durationMinutes} min - ${matchedService.price}€).\n\nAquestes són les millors hores disponibles que et puc oferir a la *${targetRoom.name}*:\n\n`;
 
   foundSlots.forEach((slot, idx) => {
-    replyText += `Opció ${idx + 1}️⃣: ${slot.displayDate} a les ${slot.time}h\n`;
+    replyText += `Opció ${idx + 1}️⃣: ${slot.displayDate} a les ${slot.time}h (amb ${slot.professionalName})\n`;
   });
 
-  replyText += `\nRespon amb el número de l'opció (1, 2 o 3) per triar la teva cita. La teva professional et confirmarà l'hora definitiva en breu ✅`;
+  if (foundSlots.length === 0) {
+    replyText = `${greeting}\n\nAra mateix no trobo cap hora lliure per a *${matchedService.name}* les properes dues setmanes 😔. Una professional del centre et contactarà per buscar-te una hora.`;
+  } else {
+    const options = foundSlots.map((_, idx) => idx + 1).join(", ").replace(/, (\d)$/, " o $1");
+    replyText += `\nRespon amb el número de l'opció (${options}) per triar la teva cita. La teva professional et confirmarà l'hora definitiva en breu ✅`;
+  }
 
   const [savedSimulation] = await db.insert(botSimulations).values({
     clientPhone,
@@ -138,8 +161,9 @@ export async function generateBotReply(params: { clientPhone: string; clientName
     detectedServiceId: matchedService.id,
     replyMessage: replyText,
     proposedSlots: JSON.stringify(foundSlots),
-    status: "opcions_enviades",
-    conversationStep: "esperant_seleccio",
+    // Si no hi ha opcions, tanquem la conversa perquè el següent missatge torni a començar
+    status: foundSlots.length > 0 ? "opcions_enviades" : "sense_opcions",
+    conversationStep: foundSlots.length > 0 ? "esperant_seleccio" : "tancada",
   }).returning();
 
   return {
