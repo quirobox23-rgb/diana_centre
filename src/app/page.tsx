@@ -12,10 +12,11 @@ import { ClientsManager } from "@/components/ClientsManager";
 import { AppointmentModal } from "@/components/AppointmentModal";
 import { Room, Professional, Service, Schedule, Appointment, Client } from "@/types";
 import { Sparkles, Calendar, Smartphone, RefreshCw, CheckCircle2 } from "lucide-react";
+import { addDays, todayStr } from "@/lib/dates";
 
 export default function EsteticaDianaApp() {
   const [activeTab, setActiveTab] = useState<"calendar" | "clients" | "bot" | "services" | "schedules" | "professionals" | "pending">("pending");
-  const [selectedDate, setSelectedDate] = useState<string>(() => new Date().toISOString().split("T")[0]);
+  const [selectedDate, setSelectedDate] = useState<string>(() => todayStr());
   const [pendingCount, setPendingCount] = useState(0);
 
   // Comptem les sol·licituds pendents (per al badge de la pestanya) cada 20s
@@ -94,15 +95,8 @@ export default function EsteticaDianaApp() {
     setRefreshing(true);
     try {
       // Carreguem tant per data concreta com un rang de +/- 15 dies per a la vista de setmana
-      const [y, m, d] = selectedDate.split("-").map(Number);
-      const curr = new Date(y, m - 1, d);
-      const startDateObj = new Date(curr);
-      startDateObj.setDate(curr.getDate() - 14);
-      const endDateObj = new Date(curr);
-      endDateObj.setDate(curr.getDate() + 14);
-
-      const startStr = startDateObj.toISOString().split("T")[0];
-      const endStr = endDateObj.toISOString().split("T")[0];
+      const startStr = addDays(selectedDate, -14);
+      const endStr = addDays(selectedDate, 14);
 
       const res = await fetch(`/api/appointments?startDate=${startStr}&endDate=${endStr}`);
       const data = await res.json();

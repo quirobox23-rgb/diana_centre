@@ -17,6 +17,7 @@ import {
   CalendarRange,
 } from "lucide-react";
 import { Room, Professional, Service, Appointment } from "@/types";
+import { addDays, dayOfWeek, todayStr } from "@/lib/dates";
 
 interface MultiRoomCalendarProps {
   rooms: Room[];
@@ -163,24 +164,20 @@ export function MultiRoomCalendar({
 
   // Càlcul de la setmana (Dilluns a Dissabte)
   const getWeekDays = (baseDateStr: string) => {
-    const [y, m, d] = baseDateStr.split("-").map(Number);
-    const curr = new Date(y, m - 1, d);
-    const day = curr.getDay(); // 0 is Sunday
-    const diffToMonday = curr.getDate() - day + (day === 0 ? -6 : 1);
-    const monday = new Date(curr.setDate(diffToMonday));
+    const day = dayOfWeek(baseDateStr); // 0 és diumenge
+    const mondayStr = addDays(baseDateStr, day === 0 ? -6 : 1 - day);
 
     const daysList: { dateStr: string; label: string; dayName: string; dayNumber: number }[] = [];
     const dayNames = ["Dilluns", "Dimarts", "Dimecres", "Dijous", "Divendres", "Dissabte"];
 
     for (let i = 0; i < 6; i++) {
-      const dayDate = new Date(monday);
-      dayDate.setDate(monday.getDate() + i);
-      const dateStr = dayDate.toISOString().split("T")[0];
+      const dateStr = addDays(mondayStr, i);
+      const dayNumber = Number(dateStr.slice(8, 10));
       daysList.push({
         dateStr,
-        label: `${dayNames[i]} ${dayDate.getDate()}`,
+        label: `${dayNames[i]} ${dayNumber}`,
         dayName: dayNames[i],
-        dayNumber: dayDate.getDate(),
+        dayNumber,
       });
     }
     return daysList;
@@ -189,29 +186,15 @@ export function MultiRoomCalendar({
   const weekDays = getWeekDays(selectedDate);
 
   const handlePrev = () => {
-    const [y, m, d] = selectedDate.split("-").map(Number);
-    const dateObj = new Date(y, m - 1, d);
-    if (calendarMode === "week") {
-      dateObj.setDate(dateObj.getDate() - 7);
-    } else {
-      dateObj.setDate(dateObj.getDate() - 1);
-    }
-    onDateChange(dateObj.toISOString().split("T")[0]);
+    onDateChange(addDays(selectedDate, calendarMode === "week" ? -7 : -1));
   };
 
   const handleNext = () => {
-    const [y, m, d] = selectedDate.split("-").map(Number);
-    const dateObj = new Date(y, m - 1, d);
-    if (calendarMode === "week") {
-      dateObj.setDate(dateObj.getDate() + 7);
-    } else {
-      dateObj.setDate(dateObj.getDate() + 1);
-    }
-    onDateChange(dateObj.toISOString().split("T")[0]);
+    onDateChange(addDays(selectedDate, calendarMode === "week" ? 7 : 1));
   };
 
   const handleToday = () => {
-    onDateChange(new Date().toISOString().split("T")[0]);
+    onDateChange(todayStr());
   };
 
   // Filtratge de cites
@@ -666,7 +649,7 @@ export function MultiRoomCalendar({
               <div className="grid grid-cols-[70px_repeat(6,1fr)] border-b border-gray-200 sticky top-0 bg-white z-20">
                 <div className="p-2 border-r border-gray-200" />
                 {weekDays.map((d) => {
-                  const isDayToday = d.dateStr === new Date().toISOString().split("T")[0];
+                  const isDayToday = d.dateStr === todayStr();
                   const dayApts = getFilteredAppointments(d.dateStr);
                   return (
                     <button
