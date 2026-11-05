@@ -25,7 +25,7 @@ export async function POST(request: Request) {
     const [newRoom] = await db.insert(rooms).values({
       name: name.trim(),
       description: description?.trim() || null,
-      color: color || "#ec4899",
+      color: color || "#c06a44",
       capacity: capacity ? Number(capacity) : 1,
       isActive: true,
     }).returning();

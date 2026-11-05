@@ -70,21 +70,21 @@ export async function seedDatabase() {
     {
       name: "Cabina 1 - Facial & Benestar",
       description: "Equipada amb llitera hidràulica, oxigenoteràpia, llum LED i ambient relaxant amb aromateràpia.",
-      color: "#ec4899", // Pink
+      color: "#c06a44",
       capacity: 1,
       isActive: true,
     },
     {
       name: "Cabina 2 - Làser & Corporal",
       description: "Aparell de làser díode d'última generació, radiofreqüència corporal i equip de maderoteràpia.",
-      color: "#8b5cf6", // Purple
+      color: "#866353",
       capacity: 1,
       isActive: true,
     },
     {
       name: "Cabina 3 - Mans, Peus & Mirada",
       description: "Estacions d'esmaltat semipermanent, silló de pedicura spa amb hidromassatge i llitera per a pestanyes.",
-      color: "#0ea5e9", // Sky blue
+      color: "#72845b",
       capacity: 1,
       isActive: true,
     },
@@ -97,7 +97,7 @@ export async function seedDatabase() {
       email: "diana@esteticadiana.cat",
       phone: "+34 689 34 52 10",
       specialty: "Directora & Estètica Avançada",
-      color: "#db2777",
+      color: "#a85436",
       isActive: true,
     },
     {
@@ -105,7 +105,7 @@ export async function seedDatabase() {
       email: "marta@esteticadiana.cat",
       phone: "+34 611 22 33 44",
       specialty: "Especialista Facial & Massatges",
-      color: "#7c3aed",
+      color: "#8e6042",
       isActive: true,
     },
     {
@@ -113,7 +113,7 @@ export async function seedDatabase() {
       email: "laia@esteticadiana.cat",
       phone: "+34 622 55 66 77",
       specialty: "Manicura, Pedicura & Mirada",
-      color: "#0284c7",
+      color: "#596846",
       isActive: true,
     },
   ]).returning();
@@ -185,7 +185,7 @@ export async function seedDatabase() {
       price: "55.00",
       description: "Higiene completa amb extracció de porus, peeling ultrasònic, màscara calmant i hidratació amb oxigen pur.",
       defaultRoomId: r1,
-      color: "#ec4899",
+      color: "#c06a44",
       isActive: true,
     },
     {
@@ -195,7 +195,7 @@ export async function seedDatabase() {
       price: "75.00",
       description: "Estimulació de col·lagen i elastina, reafirmant el rostre, coll i escot de forma no invasiva.",
       defaultRoomId: r1,
-      color: "#f43f5e",
+      color: "#cf825f",
       isActive: true,
     },
     {
@@ -205,7 +205,7 @@ export async function seedDatabase() {
       price: "60.00",
       description: "Tecnologia d'alta precisió indolora per a eliminació permanent del pèl corporal.",
       defaultRoomId: r2,
-      color: "#8b5cf6",
+      color: "#866353",
       isActive: true,
     },
     {
@@ -215,7 +215,7 @@ export async function seedDatabase() {
       price: "50.00",
       description: "Massatge suau corporal amb aromateràpia d'espígol i cítrics per desconnectar i alliberar tensions.",
       defaultRoomId: r1,
-      color: "#10b981",
+      color: "#8f9f78",
       isActive: true,
     },
     {
@@ -225,7 +225,7 @@ export async function seedDatabase() {
       price: "65.00",
       description: "Tècnica holística amb fustes naturals per modelar la silueta, drenar líquids i reduir cel·lulitis.",
       defaultRoomId: r2,
-      color: "#d97706",
+      color: "#b98a5a",
       isActive: true,
     },
     {
@@ -235,7 +235,7 @@ export async function seedDatabase() {
       price: "35.00",
       description: "Neteja de cutícules amb torn de precisió, anivellament d'ungla i esmaltat durador.",
       defaultRoomId: r3,
-      color: "#0ea5e9",
+      color: "#72845b",
       isActive: true,
     },
     {
@@ -245,7 +245,7 @@ export async function seedDatabase() {
       price: "42.00",
       description: "Bany d'hidromassatge, eliminació de dureses, exfoliació amb sals marines, massatge i esmaltat.",
       defaultRoomId: r3,
-      color: "#06b6d4",
+      color: "#c5a074",
       isActive: true,
     },
     {
@@ -255,7 +255,7 @@ export async function seedDatabase() {
       price: "45.00",
       description: "Corbatura natural des de l'arrel amb bany de color intens i tractament nutritiu de queratina.",
       defaultRoomId: r3,
-      color: "#6366f1",
+      color: "#71392b",
       isActive: true,
     },
   ]).returning();

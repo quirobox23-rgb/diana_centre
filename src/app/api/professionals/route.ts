@@ -27,7 +27,7 @@ export async function POST(request: Request) {
       email: email?.trim() || null,
       phone: phone?.trim() || null,
       specialty: specialty?.trim() || null,
-      color: color || "#8b5cf6",
+      color: color || "#866353",
       isActive: true,
     }).returning();
 

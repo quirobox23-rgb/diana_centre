@@ -168,7 +168,7 @@ export default function EsteticaDianaApp() {
   };
 
   return (
-    <div className="min-h-screen bg-[#faf8f6] text-gray-900 flex flex-col font-sans">
+    <div className="min-h-screen bg-sorra text-stone-900 flex flex-col font-sans">
       {/* Barra de navegació principal */}
       <Navbar
         activeTab={activeTab}
@@ -179,7 +179,7 @@ export default function EsteticaDianaApp() {
 
       {/* Toast Notificació */}
       {toastMessage && (
-        <div className="fixed bottom-5 right-5 z-50 bg-slate-900 text-white px-4 py-3 rounded-2xl shadow-2xl flex items-center space-x-2.5 text-xs font-semibold border border-slate-700 animate-in slide-in-from-bottom duration-200">
+        <div className="fixed bottom-5 right-5 z-50 bg-stone-900 text-white px-4 py-3 rounded-2xl shadow-2xl flex items-center space-x-2.5 text-xs font-semibold border border-stone-700 animate-in slide-in-from-bottom duration-200">
           <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
           <span>{toastMessage}</span>
         </div>
@@ -189,8 +189,8 @@ export default function EsteticaDianaApp() {
       <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6">
         {loadingInitial ? (
           <div className="min-h-[400px] flex flex-col items-center justify-center text-center space-y-3">
-            <div className="w-10 h-10 border-3 border-rose-600 border-t-transparent rounded-full animate-spin" />
-            <p className="text-sm font-semibold text-gray-600">
+            <div className="w-10 h-10 border-3 border-terra-600 border-t-transparent rounded-full animate-spin" />
+            <p className="text-sm font-semibold text-stone-600">
               Carregant l&apos;agenda i les 3 sales d&apos;Estètica Diana...
             </p>
           </div>
@@ -292,14 +292,14 @@ export default function EsteticaDianaApp() {
       />
 
       {/* Peu de Pàgina */}
-      <footer className="bg-white border-t border-rose-100 py-6 mt-12 text-xs text-gray-500">
+      <footer className="bg-white border-t border-terra-100 py-6 mt-12 text-xs text-stone-500">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row items-center justify-between gap-3">
           <div className="flex items-center space-x-2">
-            <span className="font-bold text-gray-800">Estètica Diana</span>
+            <span className="font-bold text-stone-800">Estètica Diana</span>
             <span>·</span>
             <span>Centre de Bellesa i Salut Integral</span>
             <span>·</span>
-            <span className="text-rose-600 font-medium">Tot en català</span>
+            <span className="text-terra-600 font-medium">Tot en català</span>
           </div>
           <div className="flex items-center space-x-4">
             <span>Tel: 689 34 52 10</span>

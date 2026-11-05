@@ -4,7 +4,7 @@ export const rooms = pgTable("rooms", {
   id: serial("id").primaryKey(),
   name: text("name").notNull(),
   description: text("description"),
-  color: text("color").notNull().default("#ec4899"),
+  color: text("color").notNull().default("#c06a44"),
   capacity: integer("capacity").notNull().default(1),
   isActive: boolean("is_active").notNull().default(true),
   createdAt: timestamp("created_at").defaultNow().notNull(),
@@ -16,7 +16,7 @@ export const professionals = pgTable("professionals", {
   email: text("email"),
   phone: text("phone"),
   specialty: text("specialty"),
-  color: text("color").notNull().default("#8b5cf6"),
+  color: text("color").notNull().default("#866353"),
   isActive: boolean("is_active").notNull().default(true),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
@@ -29,7 +29,7 @@ export const services = pgTable("services", {
   price: numeric("price", { precision: 10, scale: 2 }).notNull().default("45.00"),
   description: text("description"),
   defaultRoomId: integer("default_room_id").references(() => rooms.id),
-  color: text("color").notNull().default("#f43f5e"),
+  color: text("color").notNull().default("#a85436"),
   isActive: boolean("is_active").notNull().default(true),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
