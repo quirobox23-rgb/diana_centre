@@ -1,4 +1,4 @@
-import { pgTable, serial, text, integer, boolean, numeric, timestamp } from "drizzle-orm/pg-core";
+import { pgTable, serial, text, integer, boolean, numeric, timestamp, uniqueIndex } from "drizzle-orm/pg-core";
 
 export const rooms = pgTable("rooms", {
   id: serial("id").primaryKey(),
@@ -58,6 +58,18 @@ export const clients = pgTable("clients", {
   isActive: boolean("is_active").notNull().default(true),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
+
+// Tractaments habituals de cada clienta, amb la seva durada i professional preferida.
+// Ex.: la depilació a la Maria li porta 50 min i a l'Eva 30 min.
+export const clientTreatments = pgTable("client_treatments", {
+  id: serial("id").primaryKey(),
+  clientId: integer("client_id").notNull().references(() => clients.id, { onDelete: "cascade" }),
+  serviceId: integer("service_id").notNull().references(() => services.id, { onDelete: "cascade" }),
+  durationMinutes: integer("duration_minutes"),
+  professionalId: integer("professional_id").references(() => professionals.id, { onDelete: "set null" }),
+  notes: text("notes"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+}, (t) => [uniqueIndex("client_treatments_client_service_idx").on(t.clientId, t.serviceId)]);
 
 export const appointments = pgTable("appointments", {
   id: serial("id").primaryKey(),

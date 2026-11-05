@@ -3,6 +3,7 @@ import { rooms, services, professionals, schedules, appointments, botSimulations
 import { eq, and, sql } from "drizzle-orm";
 import { addDays, dayOfWeek, nowTimeStr, todayStr } from "@/lib/dates";
 import { addMinutesToTime } from "@/lib/availability";
+import { findClientByPhone, getClientStats, getClientTreatment, getClientTreatments } from "@/lib/client-profile";
 
 // Paraules clau per relacionar la categoria d'un servei amb l'especialitat de cada professional.
 // Si cap professional encaixa, es fa servir qualsevol professional activa.
@@ -55,7 +56,12 @@ export async function generateBotReply(params: { clientPhone: string; clientName
   const allProfessionals = await db.select().from(professionals).where(eq(professionals.isActive, true));
   const allSchedules = await db.select().from(schedules);
 
+  // Si la clienta ja és a la fitxa, fem servir els seus tractaments i costums
+  const knownClient = await findClientByPhone(clientPhone);
+  const clientStats = knownClient ? await getClientStats(knownClient) : null;
+
   let matchedService = allServices[0];
+  let serviceDetected = false;
   for (const s of allServices) {
     const sName = s.name.toLowerCase();
     const sCat = s.category.toLowerCase();
@@ -69,15 +75,40 @@ export async function generateBotReply(params: { clientPhone: string; clientName
       (sCat === "benestar" && (lower.includes("massatge") || lower.includes("relax")))
     ) {
       matchedService = s;
+      serviceDetected = true;
       break;
     }
   }
 
-  const targetRoom = allRooms.find(r => r.id === matchedService.defaultRoomId) || allRooms[0];
-  const candidatePros = pickProfessionalsForCategory(allProfessionals, matchedService.category);
+  // Si el missatge no diu quin servei vol, suposem el que més es fa (o el primer de la seva fitxa)
+  if (!serviceDetected && knownClient) {
+    const usualServiceId = clientStats?.topServices[0]?.serviceId
+      ?? (await getClientTreatments(knownClient.id))[0]?.serviceId;
+    const usual = allServices.find(s => s.id === usualServiceId);
+    if (usual) matchedService = usual;
+  }
 
-  const prefersMorning = lower.includes("matí") || lower.includes("mati") || lower.includes("pronto") || lower.includes("mañana");
-  const prefersAfternoon = lower.includes("tarda") || lower.includes("tarde") || lower.includes("vespre");
+  // Durada i professional propis de la clienta per a aquest tractament
+  const clientTreatment = knownClient ? await getClientTreatment(knownClient.id, matchedService.id) : null;
+  const durationMinutes = clientTreatment?.durationMinutes || matchedService.durationMinutes;
+  const preferredProId = clientTreatment?.professionalId ?? clientStats?.topProfessional?.professionalId ?? null;
+
+  const targetRoom = allRooms.find(r => r.id === matchedService.defaultRoomId) || allRooms[0];
+  let candidatePros = pickProfessionalsForCategory(allProfessionals, matchedService.category);
+  const preferredPro = allProfessionals.find(p => p.id === preferredProId);
+  if (preferredPro) candidatePros = [preferredPro, ...candidatePros.filter(p => p.id !== preferredPro.id)];
+
+  let prefersMorning = lower.includes("matí") || lower.includes("mati") || lower.includes("pronto") || lower.includes("mañana");
+  let prefersAfternoon = lower.includes("tarda") || lower.includes("tarde") || lower.includes("vespre");
+  // Si no ho diu, mirem si sempre ve de matí o de tarda (mínim 2 visites i un 75% en una franja)
+  if (!prefersMorning && !prefersAfternoon && clientStats && clientStats.totalVisits >= 2) {
+    const { morning, afternoon } = clientStats.timeOfDay;
+    if (morning / clientStats.totalVisits >= 0.75) prefersMorning = true;
+    else if (afternoon / clientStats.totalVisits >= 0.75) prefersAfternoon = true;
+  }
+  // Dies que sol triar (els que ha repetit almenys dues vegades)
+  const usualDays = new Set((clientStats?.weekdays ?? []).filter(d => d.count >= 2).map(d => d.day));
+  const MAX_CANDIDATES = usualDays.size > 0 ? 8 : 3;
 
   const [settingsForSlots] = await db.select().from(centerSettings).limit(1);
   const step = settingsForSlots?.slotIntervalMinutes || 30;
@@ -87,7 +118,7 @@ export async function generateBotReply(params: { clientPhone: string; clientName
   // No oferim hores que ja han passat ni que comencin d'aquí a menys d'una hora
   const earliestToday = addMinutesToTime(nowTimeStr(), 60);
 
-  for (let dayOffset = 0; dayOffset < 14 && foundSlots.length < 3; dayOffset++) {
+  for (let dayOffset = 0; dayOffset < 14 && foundSlots.length < MAX_CANDIDATES; dayOffset++) {
     const dateStr = addDays(today, dayOffset);
     const weekDay = dayOfWeek(dateStr);
 
@@ -109,10 +140,10 @@ export async function generateBotReply(params: { clientPhone: string; clientName
 
     // Com a molt una opció per franja (matí / tarda) i dia, perquè la clienta tingui varietat
     for (const [windowStart, windowEnd] of windows) {
-      if (foundSlots.length >= 3) break;
+      if (foundSlots.length >= MAX_CANDIDATES) break;
 
       for (let time = windowStart; time < windowEnd; time = addMinutesToTime(time, step)) {
-        const endTime = addMinutesToTime(time, matchedService.durationMinutes);
+        const endTime = addMinutesToTime(time, durationMinutes);
         if (endTime > windowEnd) break;
         if (dayOffset === 0 && time < earliestToday) continue;
 
@@ -137,10 +168,19 @@ export async function generateBotReply(params: { clientPhone: string; clientName
     }
   }
 
+  // Entre les opcions trobades, prioritzem els dies que la clienta sol triar i ens quedem amb 3
+  if (foundSlots.length > 3) {
+    const ranked = [...foundSlots].sort((a, b) =>
+      Number(usualDays.has(dayOfWeek(b.date))) - Number(usualDays.has(dayOfWeek(a.date))) || a.date.localeCompare(b.date) || a.time.localeCompare(b.time)
+    ).slice(0, 3);
+    ranked.sort((a, b) => a.date.localeCompare(b.date) || a.time.localeCompare(b.time));
+    foundSlots.splice(0, foundSlots.length, ...ranked);
+  }
+
   const settings = settingsForSlots;
   const greeting = settings?.autoReplyGreeting || `Hola ${clientName.trim()}! ✨ Gràcies per contactar amb Estètica Diana.`;
 
-  let replyText = `${greeting}\n\nHe buscat a la nostra agenda per al servei de *${matchedService.name}* (${matchedService.durationMinutes} min - ${matchedService.price}€).\n\nAquestes són les millors hores disponibles que et puc oferir a la *${targetRoom.name}*:\n\n`;
+  let replyText = `${greeting}\n\nHe buscat a la nostra agenda per al servei de *${matchedService.name}* (${durationMinutes} min - ${matchedService.price}€).\n\nAquestes són les millors hores disponibles que et puc oferir a la *${targetRoom.name}*:\n\n`;
 
   foundSlots.forEach((slot, idx) => {
     replyText += `Opció ${idx + 1}️⃣: ${slot.displayDate} a les ${slot.time}h (amb ${slot.professionalName})\n`;

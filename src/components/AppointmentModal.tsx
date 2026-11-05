@@ -18,6 +18,15 @@ interface AppointmentModalProps {
   professionals: Professional[];
   services: Service[];
   clients?: Client[];
+  initialClient?: Client | null;
+}
+
+interface ClientTreatmentInfo {
+  serviceId: number;
+  durationMinutes: number | null;
+  professionalId: number | null;
+  professionalName: string | null;
+  notes: string | null;
 }
 
 export function AppointmentModal({
@@ -33,6 +42,7 @@ export function AppointmentModal({
   professionals,
   services,
   clients = [],
+  initialClient = null,
 }: AppointmentModalProps) {
   const [clientName, setClientName] = useState("");
   const [clientPhone, setClientPhone] = useState("");
@@ -49,6 +59,50 @@ export function AppointmentModal({
   const [notes, setNotes] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [clientTreatments, setClientTreatments] = useState<ClientTreatmentInfo[]>([]);
+  const [treatmentHint, setTreatmentHint] = useState<string | null>(null);
+
+  // Aplica la durada i la professional pròpies de la clienta per al servei triat
+  const applyClientTreatment = (svcId: number, list: ClientTreatmentInfo[]) => {
+    const t = list.find((x) => x.serviceId === svcId);
+    if (!t) {
+      setTreatmentHint(null);
+      return;
+    }
+    if (t.durationMinutes) setDurationMinutes(t.durationMinutes);
+    if (t.professionalId) setProfessionalId(t.professionalId);
+    const parts = [
+      t.durationMinutes ? `${t.durationMinutes} min` : null,
+      t.professionalName ? `amb ${t.professionalName}` : null,
+      t.notes,
+    ].filter(Boolean);
+    setTreatmentHint(parts.length ? `Segons la seva fitxa: ${parts.join(" · ")}` : null);
+  };
+
+  const loadClientTreatments = async (clientId: number, svcId: number, pickUsualService = false) => {
+    try {
+      const res = await fetch(`/api/clients/${clientId}/profile`);
+      const data = await res.json();
+      const list: ClientTreatmentInfo[] = data.success ? data.data.treatments : [];
+      setClientTreatments(list);
+      // En obrir la cita des de la fitxa, proposem el seu tractament habitual
+      const usualId: number | undefined = pickUsualService
+        ? (list[0]?.serviceId ?? data.data?.stats?.topServices?.[0]?.serviceId)
+        : undefined;
+      const usual = usualId ? services.find((s) => s.id === usualId) : undefined;
+      if (usual) {
+        setServiceId(usual.id);
+        setDurationMinutes(usual.durationMinutes);
+        setPrice(usual.price);
+        if (usual.defaultRoomId) setRoomId(usual.defaultRoomId);
+        applyClientTreatment(usual.id, list);
+        return;
+      }
+      applyClientTreatment(svcId, list);
+    } catch {
+      setClientTreatments([]);
+    }
+  };
 
   // Quan canvia l'edició o les dades inicials
   useEffect(() => {
@@ -86,14 +140,26 @@ export function AppointmentModal({
       setStartTime(initialTime || "10:00");
       setStatus("confirmada");
       setNotes("");
+      setClientTreatments([]);
+      setTreatmentHint(null);
+      if (initialClient && isOpen) {
+        setSelectedClientId(initialClient.id);
+        setClientName(initialClient.name);
+        setClientPhone(initialClient.phone);
+        setClientEmail(initialClient.email || "");
+        loadClientTreatments(initialClient.id, services[0]?.id ?? 0, true);
+      }
     }
     setError(null);
-  }, [appointmentToEdit, initialRoomId, initialDate, initialTime, rooms, professionals, services, isOpen]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [appointmentToEdit, initialRoomId, initialDate, initialTime, rooms, professionals, services, isOpen, initialClient]);
 
   // Si l'usuari tria una clienta habitual del desplegable
   const handleSelectClient = (clientIdStr: string) => {
     if (!clientIdStr) {
       setSelectedClientId(null);
+      setClientTreatments([]);
+      setTreatmentHint(null);
       return;
     }
     const cId = Number(clientIdStr);
@@ -103,6 +169,7 @@ export function AppointmentModal({
       setClientName(found.name);
       setClientPhone(found.phone);
       setClientEmail(found.email || "");
+      if (!appointmentToEdit) loadClientTreatments(found.id, serviceId);
       if (found.allergies || found.preferences) {
         const extra = [found.allergies ? `Al·lèrgies: ${found.allergies}` : null, found.preferences ? `Preferències: ${found.preferences}` : null]
           .filter(Boolean)
@@ -122,6 +189,7 @@ export function AppointmentModal({
         setRoomId(svc.defaultRoomId);
       }
     }
+    if (!appointmentToEdit) applyClientTreatment(newServiceId, clientTreatments);
   };
 
   if (!isOpen) return null;
@@ -135,7 +203,10 @@ export function AppointmentModal({
     }
   }
 
-  const durationOptions = [15, 30, 45, 60, 75, 90, 120];
+  // Cada 5 minuts (fins a 3 hores), més la durada actual si és diferent
+  const durationOptions = Array.from({ length: 36 }, (_, i) => (i + 1) * 5);
+  if (!durationOptions.includes(durationMinutes)) durationOptions.push(durationMinutes);
+  durationOptions.sort((a, b) => a - b);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -260,6 +331,7 @@ export function AppointmentModal({
                   <Search className="w-3.5 h-3.5 text-terra-600" />
                   <span>Triar del fitxer:</span>
                   <select
+                    value={selectedClientId ?? ""}
                     onChange={(e) => handleSelectClient(e.target.value)}
                     className="border border-stone-300 rounded-lg px-2 py-0.5 text-xs text-stone-800 bg-white"
                   >
@@ -442,6 +514,9 @@ export function AppointmentModal({
                     </option>
                   ))}
                 </select>
+                {treatmentHint && (
+                  <p className="mt-1 text-[11px] font-semibold text-terra-700">{treatmentHint}</p>
+                )}
               </div>
 
               <div>

@@ -17,14 +17,38 @@ import {
   Trash2,
   Clock,
   Sparkles,
+  History,
 } from "lucide-react";
-import { Client } from "@/types";
+import { Client, ClientStats, ClientTreatment, Professional, Service } from "@/types";
 
 interface ClientsManagerProps {
   onSelectClientForBooking?: (client: Client) => void;
+  services?: Service[];
+  professionals?: Professional[];
 }
 
-export function ClientsManager({ onSelectClientForBooking }: ClientsManagerProps) {
+const MONTHS = ["gen", "febr", "març", "abr", "maig", "juny", "jul", "ag", "set", "oct", "nov", "des"];
+function shortDate(d: string) {
+  const [, m, day] = d.split("-").map(Number);
+  return `${day} ${MONTHS[m - 1]}`;
+}
+
+/** Frase curta amb els costums de la clienta: dies, franja i hora habitual. */
+function habitsText(stats: ClientStats): string | null {
+  if (!stats || stats.totalVisits === 0) return null;
+  const parts: string[] = [];
+  const days = stats.weekdays.filter((d) => d.count >= 2).slice(0, 2).map((d) => d.dayName.toLowerCase());
+  if (days.length) parts.push(`sol venir ${days.join(" i ")}`);
+  const { morning, afternoon } = stats.timeOfDay;
+  if (stats.totalVisits >= 2) {
+    if (morning / stats.totalVisits >= 0.75) parts.push("al matí");
+    else if (afternoon / stats.totalVisits >= 0.75) parts.push("a la tarda");
+  }
+  if (stats.usualTime) parts.push(`cap a les ${stats.usualTime}`);
+  return parts.length ? parts.join(", ") : null;
+}
+
+export function ClientsManager({ onSelectClientForBooking, services = [], professionals = [] }: ClientsManagerProps) {
   const [clientsList, setClientsList] = useState<Client[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
@@ -42,13 +66,14 @@ export function ClientsManager({ onSelectClientForBooking }: ClientsManagerProps
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
+  const [treatments, setTreatments] = useState<ClientTreatment[]>([]);
 
   const fetchClients = async (searchQuery = "") => {
     setLoading(true);
     try {
       const url = searchQuery
-        ? `/api/clients?search=${encodeURIComponent(searchQuery)}`
-        : `/api/clients`;
+        ? `/api/clients?summary=1&search=${encodeURIComponent(searchQuery)}`
+        : `/api/clients?summary=1`;
       const res = await fetch(url);
       const data = await res.json();
       if (data.success) {
@@ -79,6 +104,7 @@ export function ClientsManager({ onSelectClientForBooking }: ClientsManagerProps
     setAllergies("");
     setPreferences("");
     setBirthday("");
+    setTreatments([]);
     setError(null);
     setIsModalOpen(true);
   };
@@ -92,6 +118,7 @@ export function ClientsManager({ onSelectClientForBooking }: ClientsManagerProps
     setAllergies(cl.allergies || "");
     setPreferences(cl.preferences || "");
     setBirthday(cl.birthday || "");
+    setTreatments(cl.summary?.treatments ?? []);
     setError(null);
     setIsModalOpen(true);
   };
@@ -128,6 +155,22 @@ export function ClientsManager({ onSelectClientForBooking }: ClientsManagerProps
         setError(data.error || "Error al desar la clienta");
         setSaving(false);
         return;
+      }
+
+      // Desem també els tractaments propis (durada i professional)
+      const clientId = editingClient ? editingClient.id : data.data?.id;
+      if (clientId) {
+        const tRes = await fetch(`/api/clients/${clientId}/profile`, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ treatments: treatments.filter((t) => t.serviceId) }),
+        });
+        const tData = await tRes.json();
+        if (!tData.success) {
+          setError(tData.error || "Error al desar els tractaments");
+          setSaving(false);
+          return;
+        }
       }
 
       showToast(editingClient ? "Fitxa de la clienta modificada!" : "Nova clienta afegida amb èxit!");
@@ -297,6 +340,8 @@ export function ClientsManager({ onSelectClientForBooking }: ClientsManagerProps
                     &ldquo;{client.notes}&rdquo;
                   </div>
                 )}
+
+                <ClientHabits client={client} />
               </div>
 
               {/* Botó per agendar directament */}
@@ -321,7 +366,7 @@ export function ClientsManager({ onSelectClientForBooking }: ClientsManagerProps
       {/* Modal Crear o Modificar Clienta */}
       {isModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs overflow-y-auto">
-          <div className="relative w-full max-w-lg bg-white rounded-2xl shadow-2xl border border-terra-100 overflow-hidden my-8">
+          <div className="relative w-full max-w-2xl bg-white rounded-2xl shadow-2xl border border-terra-100 overflow-hidden my-8">
             <div className="bg-gradient-to-r from-terra-600 to-arcilla-600 p-5 text-white flex items-center justify-between">
               <div>
                 <h3 className="text-lg font-bold">
@@ -422,6 +467,14 @@ export function ClientsManager({ onSelectClientForBooking }: ClientsManagerProps
                 />
               </div>
 
+              <TreatmentsEditor
+                treatments={treatments}
+                onChange={setTreatments}
+                services={services}
+                professionals={professionals}
+                stats={editingClient?.summary?.stats}
+              />
+
               <div>
                 <label className="block font-medium text-stone-700 mb-1">Notes Generals</label>
                 <textarea
@@ -467,6 +520,186 @@ export function ClientsManager({ onSelectClientForBooking }: ClientsManagerProps
           </div>
         </div>
       )}
+    </div>
+  );
+}
+
+/** Tractaments habituals i costums a la targeta de la clienta. */
+function ClientHabits({ client }: { client: Client }) {
+  const summary = client.summary;
+  if (!summary) return null;
+  const { stats, treatments } = summary;
+
+  // Primer els tractaments de la fitxa (amb la seva durada), després els més repetits de l'historial
+  const chips: { key: string; label: string; detail: string }[] = treatments.map((t) => ({
+    key: `t${t.serviceId}`,
+    label: t.serviceName || "Servei",
+    detail: [t.durationMinutes ? `${t.durationMinutes} min` : null, t.professionalName].filter(Boolean).join(" · "),
+  }));
+  for (const s of stats.topServices.slice(0, 3)) {
+    if (treatments.some((t) => t.serviceId === s.serviceId)) continue;
+    chips.push({ key: `s${s.serviceId}`, label: s.serviceName, detail: `${s.count}× · ${s.avgDuration} min` });
+  }
+  const habits = habitsText(stats);
+  if (chips.length === 0 && !habits && stats.totalVisits === 0) return null;
+
+  return (
+    <div className="mt-3 space-y-2">
+      {chips.length > 0 && (
+        <div>
+          <p className="text-[10px] font-bold uppercase tracking-wide text-stone-400 mb-1">Tractaments habituals</p>
+          <div className="flex flex-wrap gap-1.5">
+            {chips.slice(0, 4).map((c) => (
+              <span key={c.key} className="inline-flex items-center gap-1 px-2 py-1 rounded-lg bg-arcilla-50 border border-arcilla-200 text-[11px] text-arcilla-900">
+                <Sparkles className="w-3 h-3 text-arcilla-600" />
+                <span className="font-semibold">{c.label}</span>
+                {c.detail && <span className="text-arcilla-700">· {c.detail}</span>}
+              </span>
+            ))}
+          </div>
+        </div>
+      )}
+      {(habits || stats.totalVisits > 0) && (
+        <p className="text-[11px] text-stone-600 flex items-start gap-1.5">
+          <History className="w-3.5 h-3.5 text-stone-400 shrink-0 mt-px" />
+          <span>
+            {stats.totalVisits} {stats.totalVisits === 1 ? "visita" : "visites"}
+            {stats.lastVisit && <> · última el {shortDate(stats.lastVisit)}</>}
+            {habits && <> · {habits}</>}
+          </span>
+        </p>
+      )}
+    </div>
+  );
+}
+
+/** Editor de tractaments propis de la clienta dins del formulari. */
+function TreatmentsEditor({
+  treatments,
+  onChange,
+  services,
+  professionals,
+  stats,
+}: {
+  treatments: ClientTreatment[];
+  onChange: (t: ClientTreatment[]) => void;
+  services: Service[];
+  professionals: Professional[];
+  stats?: ClientStats;
+}) {
+  const update = (idx: number, patch: Partial<ClientTreatment>) =>
+    onChange(treatments.map((t, i) => (i === idx ? { ...t, ...patch } : t)));
+  const remove = (idx: number) => onChange(treatments.filter((_, i) => i !== idx));
+  const add = () => {
+    const used = new Set(treatments.map((t) => t.serviceId));
+    const next = services.find((s) => !used.has(s.id));
+    onChange([...treatments, { serviceId: next?.id ?? 0, durationMinutes: null, professionalId: null, notes: null }]);
+  };
+  const fillFromHistory = () => {
+    if (!stats) return;
+    const used = new Set(treatments.map((t) => t.serviceId));
+    const extra = stats.topServices
+      .filter((s) => !used.has(s.serviceId))
+      .map((s) => ({ serviceId: s.serviceId, durationMinutes: s.avgDuration, professionalId: null, notes: null }));
+    onChange([...treatments, ...extra]);
+  };
+  const habits = stats ? habitsText(stats) : null;
+
+  return (
+    <div className="rounded-xl border border-arcilla-200 bg-arcilla-50/40 p-3 space-y-2">
+      <div className="flex items-center justify-between">
+        <label className="font-medium text-arcilla-900 flex items-center space-x-1">
+          <Clock className="w-3.5 h-3.5" />
+          <span>Tractaments i durades d&apos;aquesta clienta</span>
+        </label>
+        {stats && stats.topServices.length > 0 && (
+          <button type="button" onClick={fillFromHistory} className="text-[11px] font-semibold text-terra-700 hover:underline">
+            Omplir des de l&apos;historial
+          </button>
+        )}
+      </div>
+      <p className="text-[11px] text-stone-500">
+        Si a aquesta clienta un tractament li porta més o menys temps, posa-ho aquí. S&apos;aplicarà en crear-li cites i a les hores que li proposi el bot.
+      </p>
+
+      {stats && stats.totalVisits > 0 && (
+        <div className="text-[11px] text-stone-600 bg-white rounded-lg border border-stone-200 p-2 space-y-0.5">
+          <p>
+            <strong>{stats.totalVisits}</strong> {stats.totalVisits === 1 ? "visita" : "visites"}
+            {stats.lastVisit && <> · última el {shortDate(stats.lastVisit)}</>}
+            {stats.topProfessional && <> · sobretot amb {stats.topProfessional.professionalName}</>}
+          </p>
+          {stats.topServices.length > 0 && (
+            <p>Més freqüents: {stats.topServices.slice(0, 3).map((s) => `${s.serviceName} (${s.count}×)`).join(", ")}</p>
+          )}
+          {habits && <p>Costums: {habits}</p>}
+        </div>
+      )}
+
+      {treatments.map((t, idx) => {
+        const svc = services.find((s) => s.id === t.serviceId);
+        return (
+          <div key={idx} className="grid grid-cols-12 gap-1.5 items-center bg-white rounded-lg border border-stone-200 p-2">
+            <select
+              value={t.serviceId || ""}
+              onChange={(e) => update(idx, { serviceId: Number(e.target.value) })}
+              className="col-span-12 sm:col-span-5 px-2 py-1.5 border border-stone-300 rounded-lg bg-white"
+            >
+              <option value="">Tria el tractament…</option>
+              {services.map((s) => (
+                <option key={s.id} value={s.id}>{s.name}</option>
+              ))}
+            </select>
+            <div className="col-span-4 sm:col-span-2 flex items-center gap-1">
+              <input
+                type="number"
+                min={5}
+                max={600}
+                step={5}
+                placeholder={svc ? String(svc.durationMinutes) : "min"}
+                value={t.durationMinutes ?? ""}
+                onChange={(e) => update(idx, { durationMinutes: e.target.value ? Number(e.target.value) : null })}
+                className="w-full px-2 py-1.5 border border-stone-300 rounded-lg"
+                title="Durada en minuts"
+              />
+              <span className="text-stone-400">min</span>
+            </div>
+            <select
+              value={t.professionalId ?? ""}
+              onChange={(e) => update(idx, { professionalId: e.target.value ? Number(e.target.value) : null })}
+              className="col-span-7 sm:col-span-4 px-2 py-1.5 border border-stone-300 rounded-lg bg-white"
+            >
+              <option value="">Qualsevol professional</option>
+              {professionals.map((p) => (
+                <option key={p.id} value={p.id}>{p.name}</option>
+              ))}
+            </select>
+            <button
+              type="button"
+              onClick={() => remove(idx)}
+              className="col-span-1 p-1 text-stone-400 hover:text-red-600 justify-self-end"
+              title="Treure"
+            >
+              <Trash2 className="w-4 h-4" />
+            </button>
+            <input
+              type="text"
+              placeholder="Nota (opcional): ex. zona petita, només aixelles…"
+              value={t.notes ?? ""}
+              onChange={(e) => update(idx, { notes: e.target.value })}
+              className="col-span-12 px-2 py-1.5 border border-stone-200 rounded-lg text-[11px]"
+            />
+          </div>
+        );
+      })}
+
+      <button
+        type="button"
+        onClick={add}
+        className="w-full py-1.5 text-[11px] font-bold text-terra-700 bg-white border border-dashed border-terra-300 rounded-lg hover:bg-terra-50"
+      >
+        + Afegir tractament
+      </button>
     </div>
   );
 }
