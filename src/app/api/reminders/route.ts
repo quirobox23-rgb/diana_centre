@@ -5,11 +5,13 @@ import { eq, and } from "drizzle-orm";
 import { sendWhatsApp } from "@/lib/twilio";
 import { formatDateCatalan } from "@/lib/bot-engine";
 
-// Pensat per cridar-se cada hora des d'un cron (Vercel Cron, cron-job.org, etc.)
+// Es crida un cop al dia des de Vercel Cron (vercel.json).
 // Envia el recordatori a totes les cites confirmades per a l'endemà que encara no l'han rebut.
 export async function GET(request: Request) {
+  // Vercel Cron envia automàticament "Authorization: Bearer <CRON_SECRET>".
+  // Si la variable no està configurada, rebutgem la petició (abans quedava oberta a tothom).
   const authHeader = request.headers.get("authorization");
-  if (process.env.CRON_SECRET && authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
+  if (!process.env.CRON_SECRET || authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
     return NextResponse.json({ status: "unauthorized" }, { status: 401 });
   }
 
