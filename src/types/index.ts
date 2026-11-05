@@ -54,6 +54,34 @@ export interface Client {
   isActive: boolean;
   createdAt?: string;
   appointmentsCount?: number;
+  summary?: ClientSummary;
+}
+
+export interface ClientTreatment {
+  id?: number;
+  serviceId: number;
+  serviceName?: string | null;
+  serviceCategory?: string | null;
+  defaultDuration?: number | null;
+  durationMinutes: number | null;
+  professionalId: number | null;
+  professionalName?: string | null;
+  notes: string | null;
+}
+
+export interface ClientStats {
+  totalVisits: number;
+  lastVisit: string | null;
+  topServices: { serviceId: number; serviceName: string; count: number; avgDuration: number }[];
+  weekdays: { day: number; dayName: string; count: number }[];
+  timeOfDay: { morning: number; afternoon: number };
+  usualTime: string | null;
+  topProfessional: { professionalId: number; professionalName: string; count: number } | null;
+}
+
+export interface ClientSummary {
+  stats: ClientStats;
+  treatments: ClientTreatment[];
 }
 
 export interface Appointment {

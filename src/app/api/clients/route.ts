@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { db } from "@/db";
 import { clients, appointments } from "@/db/schema";
 import { eq, desc, ilike, or } from "drizzle-orm";
+import { getAllClientSummaries } from "@/lib/client-profile";
 
 export async function GET(request: Request) {
   try {
@@ -21,6 +22,16 @@ export async function GET(request: Request) {
     }
 
     const allClients = await query.orderBy(desc(clients.createdAt));
+
+    // Amb ?summary=1 afegim els tractaments habituals i els costums de cada clienta
+    if (searchParams.get("summary") === "1") {
+      const summaries = await getAllClientSummaries(allClients);
+      return NextResponse.json({
+        success: true,
+        data: allClients.map(c => ({ ...c, summary: summaries[c.id] })),
+      });
+    }
+
     return NextResponse.json({ success: true, data: allClients });
   } catch (error) {
     console.error("Error fetching clients:", error);

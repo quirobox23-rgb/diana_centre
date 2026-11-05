@@ -50,6 +50,7 @@ export default function EsteticaDianaApp() {
 
   // Modal de Cites
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [clientForModal, setClientForModal] = useState<Client | null>(null);
   const [appointmentToEdit, setAppointmentToEdit] = useState<Appointment | null>(null);
   const [initialRoomId, setInitialRoomId] = useState<number | undefined>(undefined);
   const [initialDateForModal, setInitialDateForModal] = useState<string | undefined>(undefined);
@@ -122,6 +123,7 @@ export default function EsteticaDianaApp() {
   // Gestió del modal de cita
   const handleOpenNewAppointment = (roomId?: number, time?: string, date?: string) => {
     setAppointmentToEdit(null);
+    setClientForModal(null);
     setInitialRoomId(roomId);
     setInitialTime(time || "10:00");
     setInitialDateForModal(date || selectedDate);
@@ -130,6 +132,7 @@ export default function EsteticaDianaApp() {
 
   const handleOpenEditAppointment = (apt: Appointment) => {
     setAppointmentToEdit(apt);
+    setClientForModal(null);
     setInitialRoomId(apt.roomId);
     setInitialTime(apt.startTime);
     setInitialDateForModal(apt.date);
@@ -154,6 +157,7 @@ export default function EsteticaDianaApp() {
   // Quan es tria agendar directament des de la fitxa de la clienta
   const handleBookForClient = (client: Client) => {
     setAppointmentToEdit(null);
+    setClientForModal(client);
     setInitialRoomId(rooms[0]?.id || 1);
     setInitialTime("10:00");
     setInitialDateForModal(selectedDate);
@@ -227,6 +231,8 @@ export default function EsteticaDianaApp() {
             {activeTab === "clients" && (
               <ClientsManager
                 onSelectClientForBooking={handleBookForClient}
+                services={services}
+                professionals={professionals}
               />
             )}
 
@@ -289,6 +295,7 @@ export default function EsteticaDianaApp() {
         professionals={professionals}
         services={services}
         clients={clients}
+        initialClient={clientForModal}
       />
 
       {/* Peu de Pàgina */}

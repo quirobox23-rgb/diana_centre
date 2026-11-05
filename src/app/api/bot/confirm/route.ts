@@ -4,6 +4,7 @@ import { appointments, botSimulations, services } from "@/db/schema";
 import { eq } from "drizzle-orm";
 import { sendWhatsApp } from "@/lib/twilio";
 import { CONFLICT_MESSAGES, findConflict } from "@/lib/availability";
+import { findClientByPhone } from "@/lib/client-profile";
 
 export async function POST(request: Request) {
   try {
@@ -52,6 +53,15 @@ export async function POST(request: Request) {
       }
     }
 
+    // La durada real és la de la franja oferta (pot ser la personalitzada de la clienta)
+    const [sh, sm] = String(targetSlot.time).split(":").map(Number);
+    const [eh, em] = String(targetSlot.endTime).split(":").map(Number);
+    const slotMinutes = (eh * 60 + em) - (sh * 60 + sm);
+    if (slotMinutes > 0) durationMinutes = slotMinutes;
+
+    // Vinculem la cita amb la fitxa de la clienta si la trobem pel telèfon
+    const knownClient = targetClientPhone ? await findClientByPhone(targetClientPhone) : null;
+
     // L'hora es va oferir fa una estona: comprovem que encara estigui lliure abans de reservar-la
     const conflict = await findConflict({
       date: targetSlot.date,
@@ -71,6 +81,7 @@ export async function POST(request: Request) {
     const [newAppointment] = await db.insert(appointments).values({
       clientName: targetClientName || "Clienta WhatsApp",
       clientPhone: targetClientPhone || "+34 600 00 00 00",
+      clientId: knownClient?.id ?? null,
       roomId: targetSlot.roomId,
       serviceId: serviceId || 1,
       professionalId: targetSlot.professionalId,
