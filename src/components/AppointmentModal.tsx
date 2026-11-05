@@ -214,9 +214,9 @@ export function AppointmentModal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs overflow-y-auto">
-      <div className="relative w-full max-w-2xl bg-white rounded-2xl shadow-2xl border border-rose-100 overflow-hidden my-8">
+      <div className="relative w-full max-w-2xl bg-white rounded-2xl shadow-2xl border border-terra-100 overflow-hidden my-8">
         {/* Capçalera */}
-        <div className="bg-gradient-to-r from-rose-600 via-pink-600 to-rose-700 p-5 text-white flex items-center justify-between">
+        <div className="bg-gradient-to-r from-terra-600 via-arcilla-600 to-terra-700 p-5 text-white flex items-center justify-between">
           <div className="flex items-center space-x-3">
             <div className="w-10 h-10 rounded-full bg-white/20 flex items-center justify-center backdrop-blur-xs">
               <Calendar className="w-5 h-5 text-white" />
@@ -225,7 +225,7 @@ export function AppointmentModal({
               <h3 className="text-xl font-bold">
                 {appointmentToEdit ? "Modificar Cita d'Estètica" : "Nova Cita a l'Agenda"}
               </h3>
-              <p className="text-xs text-rose-100">
+              <p className="text-xs text-terra-100">
                 Estètica Diana · Gestió de sales i professionals
               </p>
             </div>
@@ -250,18 +250,18 @@ export function AppointmentModal({
           {/* Secció Clienta habitual o nova */}
           <div>
             <div className="flex items-center justify-between mb-2">
-              <h4 className="text-xs font-semibold uppercase tracking-wider text-rose-800 flex items-center space-x-1.5">
+              <h4 className="text-xs font-semibold uppercase tracking-wider text-terra-800 flex items-center space-x-1.5">
                 <User className="w-3.5 h-3.5" />
                 <span>Dades de la Clienta</span>
               </h4>
 
               {clients.length > 0 && !appointmentToEdit && (
-                <div className="flex items-center space-x-1.5 text-xs text-gray-500">
-                  <Search className="w-3.5 h-3.5 text-rose-600" />
+                <div className="flex items-center space-x-1.5 text-xs text-stone-500">
+                  <Search className="w-3.5 h-3.5 text-terra-600" />
                   <span>Triar del fitxer:</span>
                   <select
                     onChange={(e) => handleSelectClient(e.target.value)}
-                    className="border border-gray-300 rounded-lg px-2 py-0.5 text-xs text-gray-800 bg-white"
+                    className="border border-stone-300 rounded-lg px-2 py-0.5 text-xs text-stone-800 bg-white"
                   >
                     <option value="">-- Clienta Registrada --</option>
                     {clients.map((c) => (
@@ -276,57 +276,57 @@ export function AppointmentModal({
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
               <div>
-                <label className="block text-xs font-medium text-gray-700 mb-1">
+                <label className="block text-xs font-medium text-stone-700 mb-1">
                   Nom de la Clienta *
                 </label>
                 <div className="relative">
-                  <User className="w-4 h-4 text-gray-400 absolute left-3 top-2.5" />
+                  <User className="w-4 h-4 text-stone-400 absolute left-3 top-2.5" />
                   <input
                     type="text"
                     required
                     placeholder="Ex: Núria Soler"
                     value={clientName}
                     onChange={(e) => setClientName(e.target.value)}
-                    className="w-full pl-9 pr-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-rose-500 outline-hidden"
+                    className="w-full pl-9 pr-3 py-2 text-sm border border-stone-300 rounded-lg focus:ring-2 focus:ring-terra-500 outline-hidden"
                   />
                 </div>
               </div>
               <div>
-                <label className="block text-xs font-medium text-gray-700 mb-1">
+                <label className="block text-xs font-medium text-stone-700 mb-1">
                   Telèfon Mòbil *
                 </label>
                 <div className="relative">
-                  <Phone className="w-4 h-4 text-gray-400 absolute left-3 top-2.5" />
+                  <Phone className="w-4 h-4 text-stone-400 absolute left-3 top-2.5" />
                   <input
                     type="tel"
                     required
                     placeholder="Ex: 654 11 22 33"
                     value={clientPhone}
                     onChange={(e) => setClientPhone(e.target.value)}
-                    className="w-full pl-9 pr-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-rose-500 outline-hidden"
+                    className="w-full pl-9 pr-3 py-2 text-sm border border-stone-300 rounded-lg focus:ring-2 focus:ring-terra-500 outline-hidden"
                   />
                 </div>
               </div>
               <div>
-                <label className="block text-xs font-medium text-gray-700 mb-1">
+                <label className="block text-xs font-medium text-stone-700 mb-1">
                   Correu Electrònic (opcional)
                 </label>
                 <div className="relative">
-                  <Mail className="w-4 h-4 text-gray-400 absolute left-3 top-2.5" />
+                  <Mail className="w-4 h-4 text-stone-400 absolute left-3 top-2.5" />
                   <input
                     type="email"
                     placeholder="nuria@exemple.cat"
                     value={clientEmail}
                     onChange={(e) => setClientEmail(e.target.value)}
-                    className="w-full pl-9 pr-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-rose-500 outline-hidden"
+                    className="w-full pl-9 pr-3 py-2 text-sm border border-stone-300 rounded-lg focus:ring-2 focus:ring-terra-500 outline-hidden"
                   />
                 </div>
               </div>
             </div>
           </div>
 
-          <div className="border-t border-gray-100 pt-3">
-            <h4 className="text-xs font-semibold uppercase tracking-wider text-rose-800 mb-2 flex items-center space-x-1.5">
+          <div className="border-t border-stone-100 pt-3">
+            <h4 className="text-xs font-semibold uppercase tracking-wider text-terra-800 mb-2 flex items-center space-x-1.5">
               <Scissors className="w-3.5 h-3.5" />
               <span>Desplegables de Servei, Sala i Professional</span>
             </h4>
@@ -334,13 +334,13 @@ export function AppointmentModal({
             <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
               {/* Desplegable de Serveis */}
               <div>
-                <label className="block text-xs font-medium text-gray-700 mb-1">
+                <label className="block text-xs font-medium text-stone-700 mb-1">
                   Servei d&apos;Estètica *
                 </label>
                 <select
                   value={serviceId}
                   onChange={(e) => handleServiceChange(Number(e.target.value))}
-                  className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-rose-500 bg-white"
+                  className="w-full px-3 py-2 text-sm border border-stone-300 rounded-lg focus:ring-2 focus:ring-terra-500 bg-white"
                 >
                   {services.map((svc) => (
                     <option key={svc.id} value={svc.id}>
@@ -352,13 +352,13 @@ export function AppointmentModal({
 
               {/* Desplegable de Sales */}
               <div>
-                <label className="block text-xs font-medium text-gray-700 mb-1">
+                <label className="block text-xs font-medium text-stone-700 mb-1">
                   Sala / Cabina de Tractament *
                 </label>
                 <select
                   value={roomId}
                   onChange={(e) => setRoomId(Number(e.target.value))}
-                  className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-rose-500 bg-white font-medium"
+                  className="w-full px-3 py-2 text-sm border border-stone-300 rounded-lg focus:ring-2 focus:ring-terra-500 bg-white font-medium"
                 >
                   {rooms.map((room) => (
                     <option key={room.id} value={room.id}>
@@ -370,13 +370,13 @@ export function AppointmentModal({
 
               {/* Desplegable de Professional que atén */}
               <div>
-                <label className="block text-xs font-medium text-gray-700 mb-1">
+                <label className="block text-xs font-medium text-stone-700 mb-1">
                   Professional que Atén *
                 </label>
                 <select
                   value={professionalId}
                   onChange={(e) => setProfessionalId(Number(e.target.value))}
-                  className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-rose-500 bg-white font-medium"
+                  className="w-full px-3 py-2 text-sm border border-stone-300 rounded-lg focus:ring-2 focus:ring-terra-500 bg-white font-medium"
                 >
                   {professionals.map((prof) => (
                     <option key={prof.id} value={prof.id}>
@@ -389,15 +389,15 @@ export function AppointmentModal({
           </div>
 
           {/* Secció Data i Desplegable d'Hores */}
-          <div className="border-t border-gray-100 pt-3">
-            <h4 className="text-xs font-semibold uppercase tracking-wider text-rose-800 mb-2 flex items-center space-x-1.5">
+          <div className="border-t border-stone-100 pt-3">
+            <h4 className="text-xs font-semibold uppercase tracking-wider text-terra-800 mb-2 flex items-center space-x-1.5">
               <Clock className="w-3.5 h-3.5" />
               <span>Horari i Preu</span>
             </h4>
 
             <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
               <div>
-                <label className="block text-xs font-medium text-gray-700 mb-1">
+                <label className="block text-xs font-medium text-stone-700 mb-1">
                   Data de la Cita *
                 </label>
                 <input
@@ -405,19 +405,19 @@ export function AppointmentModal({
                   required
                   value={date}
                   onChange={(e) => setDate(e.target.value)}
-                  className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-rose-500"
+                  className="w-full px-3 py-2 text-sm border border-stone-300 rounded-lg focus:ring-2 focus:ring-terra-500"
                 />
               </div>
 
               {/* Desplegable d'Hores */}
               <div>
-                <label className="block text-xs font-medium text-gray-700 mb-1">
+                <label className="block text-xs font-medium text-stone-700 mb-1">
                   Hora d&apos;Inici (Desplegable) *
                 </label>
                 <select
                   value={startTime}
                   onChange={(e) => setStartTime(e.target.value)}
-                  className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-rose-500 bg-white font-semibold text-rose-900"
+                  className="w-full px-3 py-2 text-sm border border-stone-300 rounded-lg focus:ring-2 focus:ring-terra-500 bg-white font-semibold text-terra-900"
                 >
                   {timeOptions.map((t) => (
                     <option key={t} value={t}>
@@ -428,13 +428,13 @@ export function AppointmentModal({
               </div>
 
               <div>
-                <label className="block text-xs font-medium text-gray-700 mb-1">
+                <label className="block text-xs font-medium text-stone-700 mb-1">
                   Durada (Minuts)
                 </label>
                 <select
                   value={durationMinutes}
                   onChange={(e) => setDurationMinutes(Number(e.target.value))}
-                  className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-rose-500 bg-white"
+                  className="w-full px-3 py-2 text-sm border border-stone-300 rounded-lg focus:ring-2 focus:ring-terra-500 bg-white"
                 >
                   {durationOptions.map((d) => (
                     <option key={d} value={d}>
@@ -445,7 +445,7 @@ export function AppointmentModal({
               </div>
 
               <div>
-                <label className="block text-xs font-medium text-gray-700 mb-1">
+                <label className="block text-xs font-medium text-stone-700 mb-1">
                   Preu (€)
                 </label>
                 <input
@@ -453,7 +453,7 @@ export function AppointmentModal({
                   step="0.50"
                   value={price}
                   onChange={(e) => setPrice(e.target.value)}
-                  className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-rose-500 font-semibold text-gray-800"
+                  className="w-full px-3 py-2 text-sm border border-stone-300 rounded-lg focus:ring-2 focus:ring-terra-500 font-semibold text-stone-800"
                 />
               </div>
             </div>
@@ -462,13 +462,13 @@ export function AppointmentModal({
           {/* Estat i Notes */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-3 pt-2">
             <div>
-              <label className="block text-xs font-medium text-gray-700 mb-1">
+              <label className="block text-xs font-medium text-stone-700 mb-1">
                 Estat de la Cita
               </label>
               <select
                 value={status}
                 onChange={(e) => setStatus(e.target.value as "confirmada" | "pendent" | "completada" | "cancel·lada")}
-                className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-rose-500 bg-white"
+                className="w-full px-3 py-2 text-sm border border-stone-300 rounded-lg focus:ring-2 focus:ring-terra-500 bg-white"
               >
                 <option value="confirmada">✅ Confirmada</option>
                 <option value="pendent">⏳ Pendent</option>
@@ -478,24 +478,24 @@ export function AppointmentModal({
             </div>
 
             <div className="md:col-span-2">
-              <label className="block text-xs font-medium text-gray-700 mb-1">
+              <label className="block text-xs font-medium text-stone-700 mb-1">
                 Notes / Observacions de la Clienta
               </label>
               <div className="relative">
-                <FileText className="w-4 h-4 text-gray-400 absolute left-3 top-2.5" />
+                <FileText className="w-4 h-4 text-stone-400 absolute left-3 top-2.5" />
                 <input
                   type="text"
                   placeholder="Ex: Al·lèrgica a certs olis, primera vegada, etc."
                   value={notes}
                   onChange={(e) => setNotes(e.target.value)}
-                  className="w-full pl-9 pr-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-rose-500"
+                  className="w-full pl-9 pr-3 py-2 text-sm border border-stone-300 rounded-lg focus:ring-2 focus:ring-terra-500"
                 />
               </div>
             </div>
           </div>
 
           {/* Botons Accions */}
-          <div className="border-t border-gray-100 pt-4 flex items-center justify-between">
+          <div className="border-t border-stone-100 pt-4 flex items-center justify-between">
             {appointmentToEdit && onDelete ? (
               <button
                 type="button"
@@ -515,14 +515,14 @@ export function AppointmentModal({
                 type="button"
                 onClick={onClose}
                 disabled={loading}
-                className="px-4 py-2 text-sm font-medium text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
+                className="px-4 py-2 text-sm font-medium text-stone-600 hover:bg-stone-100 rounded-lg transition-colors"
               >
                 Cancel·lar
               </button>
               <button
                 type="submit"
                 disabled={loading}
-                className="inline-flex items-center space-x-2 px-5 py-2 text-sm font-semibold text-white bg-gradient-to-r from-rose-600 to-pink-600 hover:from-rose-700 hover:to-pink-700 rounded-lg shadow-md hover:shadow-lg transition-all"
+                className="inline-flex items-center space-x-2 px-5 py-2 text-sm font-semibold text-white bg-gradient-to-r from-terra-600 to-arcilla-600 hover:from-terra-700 hover:to-arcilla-700 rounded-lg shadow-md hover:shadow-lg transition-all"
               >
                 <CheckCircle2 className="w-4 h-4" />
                 <span>{loading ? "Desant..." : appointmentToEdit ? "Desar Canvis" : "Confirmar Cita"}</span>

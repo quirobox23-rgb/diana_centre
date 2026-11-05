@@ -158,20 +158,20 @@ export function ClientsManager({ onSelectClientForBooking }: ClientsManagerProps
     <div className="space-y-6">
       {/* Toast */}
       {toastMessage && (
-        <div className="fixed bottom-5 right-5 z-50 bg-slate-900 text-white px-4 py-3 rounded-2xl shadow-xl flex items-center space-x-2 text-xs font-semibold">
+        <div className="fixed bottom-5 right-5 z-50 bg-stone-900 text-white px-4 py-3 rounded-2xl shadow-xl flex items-center space-x-2 text-xs font-semibold">
           <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
           <span>{toastMessage}</span>
         </div>
       )}
 
       {/* Capçalera */}
-      <div className="bg-white rounded-2xl shadow-xs border border-rose-100 p-5 flex flex-col md:flex-row md:items-center justify-between gap-4">
+      <div className="bg-white rounded-2xl shadow-xs border border-terra-100 p-5 flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h2 className="text-lg font-bold text-gray-900 flex items-center space-x-2">
-            <Users className="w-5 h-5 text-rose-600" />
+          <h2 className="text-lg font-bold text-stone-900 flex items-center space-x-2">
+            <Users className="w-5 h-5 text-terra-600" />
             <span>Fitxer de Clientes d&apos;Estètica Diana</span>
           </h2>
-          <p className="text-xs text-gray-500 mt-0.5">
+          <p className="text-xs text-stone-500 mt-0.5">
             Afegeix, cerca i modifica clientes, al·lèrgies a productes cosmètics i preferències de tractament.
           </p>
         </div>
@@ -179,7 +179,7 @@ export function ClientsManager({ onSelectClientForBooking }: ClientsManagerProps
         <div className="flex items-center space-x-3">
           <button
             onClick={openCreateModal}
-            className="inline-flex items-center space-x-2 px-4 py-2.5 text-xs font-bold text-white bg-gradient-to-r from-rose-600 to-pink-600 hover:from-rose-700 hover:to-pink-700 rounded-xl shadow-xs transition-all shrink-0"
+            className="inline-flex items-center space-x-2 px-4 py-2.5 text-xs font-bold text-white bg-gradient-to-r from-terra-600 to-arcilla-600 hover:from-terra-700 hover:to-arcilla-700 rounded-xl shadow-xs transition-all shrink-0"
           >
             <Plus className="w-4 h-4" />
             <span>Afegir Nova Clienta</span>
@@ -188,18 +188,18 @@ export function ClientsManager({ onSelectClientForBooking }: ClientsManagerProps
       </div>
 
       {/* Barra de cerca */}
-      <div className="bg-white rounded-2xl p-3 border border-gray-200 shadow-xs flex items-center space-x-3">
+      <div className="bg-white rounded-2xl p-3 border border-stone-200 shadow-xs flex items-center space-x-3">
         <div className="relative flex-1">
-          <Search className="w-4 h-4 text-gray-400 absolute left-3 top-2.5" />
+          <Search className="w-4 h-4 text-stone-400 absolute left-3 top-2.5" />
           <input
             type="text"
             placeholder="Cercar clienta per nom, telèfon o correu electrònic..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full pl-9 pr-4 py-1.5 text-xs border border-gray-200 rounded-xl focus:ring-2 focus:ring-rose-500 focus:outline-hidden"
+            className="w-full pl-9 pr-4 py-1.5 text-xs border border-stone-200 rounded-xl focus:ring-2 focus:ring-terra-500 focus:outline-hidden"
           />
         </div>
-        <div className="text-xs font-medium text-gray-500 whitespace-nowrap px-2">
+        <div className="text-xs font-medium text-stone-500 whitespace-nowrap px-2">
           {clientsList.length} clientes trobades
         </div>
       </div>
@@ -207,21 +207,21 @@ export function ClientsManager({ onSelectClientForBooking }: ClientsManagerProps
       {/* Llistat de Clientes */}
       {loading ? (
         <div className="py-16 text-center">
-          <div className="w-8 h-8 border-2 border-rose-600 border-t-transparent rounded-full animate-spin mx-auto mb-2" />
-          <p className="text-xs text-gray-500">Carregant fitxes de clientes...</p>
+          <div className="w-8 h-8 border-2 border-terra-600 border-t-transparent rounded-full animate-spin mx-auto mb-2" />
+          <p className="text-xs text-stone-500">Carregant fitxes de clientes...</p>
         </div>
       ) : clientsList.length === 0 ? (
-        <div className="bg-white rounded-2xl p-12 text-center border border-dashed border-gray-300">
-          <Users className="w-10 h-10 text-gray-300 mx-auto mb-2" />
-          <h3 className="font-bold text-gray-800 text-sm">Cap clienta trobada</h3>
-          <p className="text-xs text-gray-500 mt-1">
+        <div className="bg-white rounded-2xl p-12 text-center border border-dashed border-stone-300">
+          <Users className="w-10 h-10 text-stone-300 mx-auto mb-2" />
+          <h3 className="font-bold text-stone-800 text-sm">Cap clienta trobada</h3>
+          <p className="text-xs text-stone-500 mt-1">
             {searchTerm
               ? "No hi ha coincidències amb el text cercat."
               : "Comença afegint la primera clienta d'Estètica Diana."}
           </p>
           <button
             onClick={openCreateModal}
-            className="mt-4 px-4 py-2 text-xs font-bold text-white bg-rose-600 rounded-xl hover:bg-rose-700 transition-colors"
+            className="mt-4 px-4 py-2 text-xs font-bold text-white bg-terra-600 rounded-xl hover:bg-terra-700 transition-colors"
           >
             + Afegir Nova Clienta
           </button>
@@ -231,12 +231,12 @@ export function ClientsManager({ onSelectClientForBooking }: ClientsManagerProps
           {clientsList.map((client) => (
             <div
               key={client.id}
-              className="bg-white rounded-2xl p-5 border border-gray-200 shadow-xs hover:border-rose-200 hover:shadow-md transition-all flex flex-col justify-between space-y-3"
+              className="bg-white rounded-2xl p-5 border border-stone-200 shadow-xs hover:border-terra-200 hover:shadow-md transition-all flex flex-col justify-between space-y-3"
             >
               <div>
                 <div className="flex items-start justify-between">
                   <div className="flex items-center space-x-3">
-                    <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-rose-100 to-pink-100 text-rose-700 flex items-center justify-center font-black text-sm">
+                    <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-terra-100 to-arcilla-100 text-terra-700 flex items-center justify-center font-black text-sm">
                       {client.name
                         .split(" ")
                         .map((n) => n[0])
@@ -244,19 +244,19 @@ export function ClientsManager({ onSelectClientForBooking }: ClientsManagerProps
                         .join("")}
                     </div>
                     <div>
-                      <h4 className="font-bold text-sm text-gray-900 leading-tight">
+                      <h4 className="font-bold text-sm text-stone-900 leading-tight">
                         {client.name}
                       </h4>
-                      <p className="text-xs text-gray-500 flex items-center space-x-1 mt-0.5">
-                        <Phone className="w-3 h-3 text-rose-500" />
-                        <span className="font-medium text-gray-700">{client.phone}</span>
+                      <p className="text-xs text-stone-500 flex items-center space-x-1 mt-0.5">
+                        <Phone className="w-3 h-3 text-terra-500" />
+                        <span className="font-medium text-stone-700">{client.phone}</span>
                       </p>
                     </div>
                   </div>
 
                   <button
                     onClick={() => openEditModal(client)}
-                    className="p-1.5 text-gray-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors"
+                    className="p-1.5 text-stone-400 hover:text-terra-600 hover:bg-terra-50 rounded-lg transition-colors"
                     title="Modificar dades"
                   >
                     <Edit2 className="w-4 h-4" />
@@ -264,8 +264,8 @@ export function ClientsManager({ onSelectClientForBooking }: ClientsManagerProps
                 </div>
 
                 {client.email && (
-                  <p className="text-xs text-gray-500 flex items-center space-x-1 mt-2.5">
-                    <Mail className="w-3 h-3 text-gray-400" />
+                  <p className="text-xs text-stone-500 flex items-center space-x-1 mt-2.5">
+                    <Mail className="w-3 h-3 text-stone-400" />
                     <span>{client.email}</span>
                   </p>
                 )}
@@ -282,8 +282,8 @@ export function ClientsManager({ onSelectClientForBooking }: ClientsManagerProps
                       </div>
                     )}
                     {client.preferences && (
-                      <div className="flex items-start space-x-1.5 bg-rose-50 text-rose-800 p-2 rounded-lg border border-rose-100">
-                        <Heart className="w-3.5 h-3.5 text-rose-600 shrink-0 mt-0.5" />
+                      <div className="flex items-start space-x-1.5 bg-terra-50 text-terra-800 p-2 rounded-lg border border-terra-100">
+                        <Heart className="w-3.5 h-3.5 text-terra-600 shrink-0 mt-0.5" />
                         <span className="text-[11px] font-medium leading-tight">
                           <strong>Preferències:</strong> {client.preferences}
                         </span>
@@ -293,24 +293,24 @@ export function ClientsManager({ onSelectClientForBooking }: ClientsManagerProps
                 )}
 
                 {client.notes && (
-                  <div className="mt-2.5 text-xs text-gray-600 italic bg-stone-50 p-2 rounded-lg border border-stone-100">
+                  <div className="mt-2.5 text-xs text-stone-600 italic bg-stone-50 p-2 rounded-lg border border-stone-100">
                     &ldquo;{client.notes}&rdquo;
                   </div>
                 )}
               </div>
 
               {/* Botó per agendar directament */}
-              <div className="border-t border-gray-100 pt-3 flex items-center justify-between text-xs">
+              <div className="border-t border-stone-100 pt-3 flex items-center justify-between text-xs">
                 {onSelectClientForBooking ? (
                   <button
                     onClick={() => onSelectClientForBooking(client)}
-                    className="w-full py-1.5 text-xs font-bold text-rose-700 bg-rose-50 hover:bg-rose-100 rounded-lg transition-colors flex items-center justify-center space-x-1.5"
+                    className="w-full py-1.5 text-xs font-bold text-terra-700 bg-terra-50 hover:bg-terra-100 rounded-lg transition-colors flex items-center justify-center space-x-1.5"
                   >
                     <Calendar className="w-3.5 h-3.5" />
                     <span>Agendar Cita per a {client.name.split(" ")[0]}</span>
                   </button>
                 ) : (
-                  <span className="text-[11px] text-gray-400">Clienta habitual</span>
+                  <span className="text-[11px] text-stone-400">Clienta habitual</span>
                 )}
               </div>
             </div>
@@ -321,13 +321,13 @@ export function ClientsManager({ onSelectClientForBooking }: ClientsManagerProps
       {/* Modal Crear o Modificar Clienta */}
       {isModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs overflow-y-auto">
-          <div className="relative w-full max-w-lg bg-white rounded-2xl shadow-2xl border border-rose-100 overflow-hidden my-8">
-            <div className="bg-gradient-to-r from-rose-600 to-pink-600 p-5 text-white flex items-center justify-between">
+          <div className="relative w-full max-w-lg bg-white rounded-2xl shadow-2xl border border-terra-100 overflow-hidden my-8">
+            <div className="bg-gradient-to-r from-terra-600 to-arcilla-600 p-5 text-white flex items-center justify-between">
               <div>
                 <h3 className="text-lg font-bold">
                   {editingClient ? "Modificar Clienta" : "Nova Fitxa de Clienta"}
                 </h3>
-                <p className="text-xs text-rose-100">
+                <p className="text-xs text-terra-100">
                   Estètica Diana · Base de dades de clientes
                 </p>
               </div>
@@ -349,47 +349,47 @@ export function ClientsManager({ onSelectClientForBooking }: ClientsManagerProps
             <form onSubmit={handleSubmit} className="p-5 space-y-4 text-xs">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
-                  <label className="block font-medium text-gray-700 mb-1">Nom i Cognoms *</label>
+                  <label className="block font-medium text-stone-700 mb-1">Nom i Cognoms *</label>
                   <input
                     type="text"
                     required
                     placeholder="Ex: Núria Soler i Vidal"
                     value={name}
                     onChange={(e) => setName(e.target.value)}
-                    className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-rose-500"
+                    className="w-full px-3 py-2 text-sm border border-stone-300 rounded-lg focus:ring-2 focus:ring-terra-500"
                   />
                 </div>
                 <div>
-                  <label className="block font-medium text-gray-700 mb-1">Telèfon Mòbil *</label>
+                  <label className="block font-medium text-stone-700 mb-1">Telèfon Mòbil *</label>
                   <input
                     type="tel"
                     required
                     placeholder="Ex: 654 11 22 33"
                     value={phone}
                     onChange={(e) => setPhone(e.target.value)}
-                    className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-rose-500"
+                    className="w-full px-3 py-2 text-sm border border-stone-300 rounded-lg focus:ring-2 focus:ring-terra-500"
                   />
                 </div>
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
-                  <label className="block font-medium text-gray-700 mb-1">Correu Electrònic</label>
+                  <label className="block font-medium text-stone-700 mb-1">Correu Electrònic</label>
                   <input
                     type="email"
                     placeholder="nuria@exemple.cat"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
-                    className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-rose-500"
+                    className="w-full px-3 py-2 text-sm border border-stone-300 rounded-lg focus:ring-2 focus:ring-terra-500"
                   />
                 </div>
                 <div>
-                  <label className="block font-medium text-gray-700 mb-1">Data d&apos;Aniversari</label>
+                  <label className="block font-medium text-stone-700 mb-1">Data d&apos;Aniversari</label>
                   <input
                     type="date"
                     value={birthday}
                     onChange={(e) => setBirthday(e.target.value)}
-                    className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-rose-500"
+                    className="w-full px-3 py-2 text-sm border border-stone-300 rounded-lg focus:ring-2 focus:ring-terra-500"
                   />
                 </div>
               </div>
@@ -409,7 +409,7 @@ export function ClientsManager({ onSelectClientForBooking }: ClientsManagerProps
               </div>
 
               <div>
-                <label className="block font-medium text-rose-800 mb-1 flex items-center space-x-1">
+                <label className="block font-medium text-terra-800 mb-1 flex items-center space-x-1">
                   <Heart className="w-3.5 h-3.5" />
                   <span>Preferències de Tractament</span>
                 </label>
@@ -418,22 +418,22 @@ export function ClientsManager({ onSelectClientForBooking }: ClientsManagerProps
                   placeholder="Ex: Prefereix cabina amb música suau, colors neutres en ungles..."
                   value={preferences}
                   onChange={(e) => setPreferences(e.target.value)}
-                  className="w-full px-3 py-2 text-sm border border-rose-200 bg-rose-50/30 rounded-lg focus:ring-2 focus:ring-rose-400"
+                  className="w-full px-3 py-2 text-sm border border-terra-200 bg-terra-50/30 rounded-lg focus:ring-2 focus:ring-terra-400"
                 />
               </div>
 
               <div>
-                <label className="block font-medium text-gray-700 mb-1">Notes Generals</label>
+                <label className="block font-medium text-stone-700 mb-1">Notes Generals</label>
                 <textarea
                   rows={2}
                   placeholder="Comentaris interns o recomanacions per a les esteticistes..."
                   value={notes}
                   onChange={(e) => setNotes(e.target.value)}
-                  className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-rose-500"
+                  className="w-full px-3 py-2 text-sm border border-stone-300 rounded-lg focus:ring-2 focus:ring-terra-500"
                 />
               </div>
 
-              <div className="border-t border-gray-100 pt-3 flex items-center justify-between">
+              <div className="border-t border-stone-100 pt-3 flex items-center justify-between">
                 {editingClient ? (
                   <button
                     type="button"
@@ -450,14 +450,14 @@ export function ClientsManager({ onSelectClientForBooking }: ClientsManagerProps
                   <button
                     type="button"
                     onClick={() => setIsModalOpen(false)}
-                    className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg"
+                    className="px-4 py-2 text-stone-600 hover:bg-stone-100 rounded-lg"
                   >
                     Cancel·lar
                   </button>
                   <button
                     type="submit"
                     disabled={saving}
-                    className="px-5 py-2 text-white bg-rose-600 hover:bg-rose-700 rounded-lg font-bold shadow-xs"
+                    className="px-5 py-2 text-white bg-terra-600 hover:bg-terra-700 rounded-lg font-bold shadow-xs"
                   >
                     {saving ? "Desant..." : editingClient ? "Desar Canvis" : "Crear Clienta"}
                   </button>

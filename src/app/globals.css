@@ -1,1 +1,61 @@
 @import "tailwindcss";
+
+/*
+ * Paleta Estètica Diana: tons terra i sorra.
+ *  - terra   → terracota (color principal, botons i accents)
+ *  - arcilla → argila / sorra daurada (accents suaus)
+ *  - moka    → marró fosc (degradats i detalls)
+ *  - salvia  → verd sàlvia (informació)
+ *  - els grisos de l'app fan servir "stone", el gris càlid de Tailwind
+ */
+@theme {
+  --color-terra-50: #fbf5f1;
+  --color-terra-100: #f5e6dc;
+  --color-terra-200: #ebcbb7;
+  --color-terra-300: #dea88b;
+  --color-terra-400: #cf825f;
+  --color-terra-500: #c06a44;
+  --color-terra-600: #a85436;
+  --color-terra-700: #8b432e;
+  --color-terra-800: #71392b;
+  --color-terra-900: #5d3126;
+  --color-terra-950: #321712;
+
+  --color-arcilla-50: #faf7f2;
+  --color-arcilla-100: #f3ece0;
+  --color-arcilla-200: #e6d7c0;
+  --color-arcilla-300: #d6bd99;
+  --color-arcilla-400: #c5a074;
+  --color-arcilla-500: #b98a5a;
+  --color-arcilla-600: #ab774e;
+  --color-arcilla-700: #8e6042;
+  --color-arcilla-800: #744f3a;
+  --color-arcilla-900: #5f4231;
+  --color-arcilla-950: #322119;
+
+  --color-moka-50: #f7f4f2;
+  --color-moka-100: #ede6e1;
+  --color-moka-200: #dacdc3;
+  --color-moka-300: #c2ac9e;
+  --color-moka-400: #a88a78;
+  --color-moka-500: #94725f;
+  --color-moka-600: #866353;
+  --color-moka-700: #6f5146;
+  --color-moka-800: #5d453d;
+  --color-moka-900: #4d3b35;
+  --color-moka-950: #29201c;
+
+  --color-salvia-50: #f4f6f1;
+  --color-salvia-100: #e6eadf;
+  --color-salvia-200: #ced6c2;
+  --color-salvia-300: #aebb9c;
+  --color-salvia-400: #8f9f78;
+  --color-salvia-500: #72845b;
+  --color-salvia-600: #596846;
+  --color-salvia-700: #46523a;
+  --color-salvia-800: #3a4331;
+  --color-salvia-900: #32392b;
+  --color-salvia-950: #191e14;
+
+  --color-sorra: #f7f2ea;
+}

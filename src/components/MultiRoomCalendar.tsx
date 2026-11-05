@@ -224,25 +224,25 @@ export function MultiRoomCalendar({
   const getRoomColorClasses = (idx: number) => {
     if (idx === 0) {
       return {
-        badge: "bg-pink-100 text-pink-800 border-pink-200",
-        pill: "bg-rose-50 border-rose-300 text-rose-950",
-        border: "border-pink-500",
-        header: "from-rose-500 to-pink-600",
+        badge: "bg-arcilla-100 text-arcilla-800 border-arcilla-200",
+        pill: "bg-terra-50 border-terra-300 text-terra-950",
+        border: "border-arcilla-500",
+        header: "from-terra-500 to-arcilla-600",
       };
     }
     if (idx === 1) {
       return {
-        badge: "bg-purple-100 text-purple-800 border-purple-200",
-        pill: "bg-purple-50 border-purple-300 text-purple-950",
-        border: "border-purple-500",
-        header: "from-purple-600 to-violet-700",
+        badge: "bg-moka-100 text-moka-800 border-moka-200",
+        pill: "bg-moka-50 border-moka-300 text-moka-950",
+        border: "border-moka-500",
+        header: "from-moka-600 to-moka-700",
       };
     }
     return {
-      badge: "bg-sky-100 text-sky-800 border-sky-200",
-      pill: "bg-sky-50 border-sky-300 text-sky-950",
-      border: "border-sky-500",
-      header: "from-sky-600 to-cyan-600",
+      badge: "bg-salvia-100 text-salvia-800 border-salvia-200",
+      pill: "bg-salvia-50 border-salvia-300 text-salvia-950",
+      border: "border-salvia-500",
+      header: "from-salvia-600 to-salvia-600",
     };
   };
 
@@ -253,27 +253,27 @@ export function MultiRoomCalendar({
   return (
     <div className="space-y-4">
       {/* Barra Superior de Data i Controls */}
-      <div className="bg-white rounded-2xl shadow-xs border border-rose-100 p-4">
+      <div className="bg-white rounded-2xl shadow-xs border border-terra-100 p-4">
         <div className="flex flex-col lg:flex-row items-center justify-between gap-4">
           {/* Navegació de dates */}
           <div className="flex items-center space-x-2 w-full lg:w-auto">
             <button
               onClick={handleToday}
-              className="px-3 py-1.5 text-xs font-bold uppercase tracking-wider text-rose-700 bg-rose-50 hover:bg-rose-100 rounded-lg border border-rose-200 transition-colors"
+              className="px-3 py-1.5 text-xs font-bold uppercase tracking-wider text-terra-700 bg-terra-50 hover:bg-terra-100 rounded-lg border border-terra-200 transition-colors"
             >
               Avui
             </button>
-            <div className="flex items-center bg-gray-50 rounded-xl border border-gray-200 p-1">
+            <div className="flex items-center bg-stone-50 rounded-xl border border-stone-200 p-1">
               <button
                 onClick={handlePrev}
-                className="p-1.5 rounded-lg hover:bg-white hover:shadow-xs text-gray-700 transition-colors"
+                className="p-1.5 rounded-lg hover:bg-white hover:shadow-xs text-stone-700 transition-colors"
                 title={calendarMode === "week" ? "Setmana anterior" : "Dia anterior"}
               >
                 <ChevronLeft className="w-5 h-5" />
               </button>
               <div className="px-3 flex items-center space-x-2 min-w-[200px] justify-center">
-                <CalendarIcon className="w-4 h-4 text-rose-600 shrink-0" />
-                <span className="text-sm font-bold text-gray-900 capitalize text-center">
+                <CalendarIcon className="w-4 h-4 text-terra-600 shrink-0" />
+                <span className="text-sm font-bold text-stone-900 capitalize text-center">
                   {calendarMode === "week"
                     ? `Setmana del ${formatShortDay(weekDays[0].dateStr)} al ${formatShortDay(weekDays[5].dateStr)}`
                     : formatCatalanDate(selectedDate)}
@@ -281,7 +281,7 @@ export function MultiRoomCalendar({
               </div>
               <button
                 onClick={handleNext}
-                className="p-1.5 rounded-lg hover:bg-white hover:shadow-xs text-gray-700 transition-colors"
+                className="p-1.5 rounded-lg hover:bg-white hover:shadow-xs text-stone-700 transition-colors"
                 title={calendarMode === "week" ? "Setmana següent" : "Dia següent"}
               >
                 <ChevronRight className="w-5 h-5" />
@@ -291,32 +291,32 @@ export function MultiRoomCalendar({
               type="date"
               value={selectedDate}
               onChange={(e) => onDateChange(e.target.value)}
-              className="px-2.5 py-1.5 text-xs border border-gray-200 rounded-lg text-gray-700 focus:ring-2 focus:ring-rose-500"
+              className="px-2.5 py-1.5 text-xs border border-stone-200 rounded-lg text-stone-700 focus:ring-2 focus:ring-terra-500"
             />
           </div>
 
           {/* Selector de Mode de Calendari (DIA / SETMANA) */}
-          <div className="flex items-center bg-gray-100 rounded-xl p-1 border border-gray-200">
+          <div className="flex items-center bg-stone-100 rounded-xl p-1 border border-stone-200">
             <button
               onClick={() => setCalendarMode("day")}
               className={`px-3.5 py-1.5 text-xs font-bold rounded-lg transition-all flex items-center space-x-1.5 ${
                 calendarMode === "day"
-                  ? "bg-white text-rose-700 shadow-xs"
-                  : "text-gray-600 hover:text-gray-900"
+                  ? "bg-white text-terra-700 shadow-xs"
+                  : "text-stone-600 hover:text-stone-900"
               }`}
             >
-              <CalendarDays className="w-4 h-4 text-rose-600" />
+              <CalendarDays className="w-4 h-4 text-terra-600" />
               <span>Graella Calendari Dia (3 Sales)</span>
             </button>
             <button
               onClick={() => setCalendarMode("week")}
               className={`px-3.5 py-1.5 text-xs font-bold rounded-lg transition-all flex items-center space-x-1.5 ${
                 calendarMode === "week"
-                  ? "bg-white text-rose-700 shadow-xs"
-                  : "text-gray-600 hover:text-gray-900"
+                  ? "bg-white text-terra-700 shadow-xs"
+                  : "text-stone-600 hover:text-stone-900"
               }`}
             >
-              <CalendarRange className="w-4 h-4 text-purple-600" />
+              <CalendarRange className="w-4 h-4 text-moka-600" />
               <span>Graella Calendari Setmana</span>
             </button>
           </div>
@@ -324,13 +324,13 @@ export function MultiRoomCalendar({
           {/* Desplegables de Filtratge */}
           <div className="flex flex-wrap items-center gap-2 w-full lg:w-auto justify-end">
             {/* Desplegable de Sales */}
-            <div className="flex items-center space-x-1.5 bg-gray-50 px-2.5 py-1 rounded-xl border border-gray-200 text-xs">
-              <Layers className="w-3.5 h-3.5 text-rose-600" />
-              <label className="text-gray-500 font-medium hidden sm:inline">Sala:</label>
+            <div className="flex items-center space-x-1.5 bg-stone-50 px-2.5 py-1 rounded-xl border border-stone-200 text-xs">
+              <Layers className="w-3.5 h-3.5 text-terra-600" />
+              <label className="text-stone-500 font-medium hidden sm:inline">Sala:</label>
               <select
                 value={selectedRoomFilter}
                 onChange={(e) => setSelectedRoomFilter(e.target.value)}
-                className="bg-transparent font-medium text-gray-800 focus:outline-hidden"
+                className="bg-transparent font-medium text-stone-800 focus:outline-hidden"
               >
                 <option value="all">🏢 Les 3 Sales alhora</option>
                 {rooms.map((r) => (
@@ -342,13 +342,13 @@ export function MultiRoomCalendar({
             </div>
 
             {/* Desplegable de Professional */}
-            <div className="flex items-center space-x-1.5 bg-gray-50 px-2.5 py-1 rounded-xl border border-gray-200 text-xs">
-              <User className="w-3.5 h-3.5 text-purple-600" />
-              <label className="text-gray-500 font-medium hidden sm:inline">Professional:</label>
+            <div className="flex items-center space-x-1.5 bg-stone-50 px-2.5 py-1 rounded-xl border border-stone-200 text-xs">
+              <User className="w-3.5 h-3.5 text-moka-600" />
+              <label className="text-stone-500 font-medium hidden sm:inline">Professional:</label>
               <select
                 value={selectedProfFilter}
                 onChange={(e) => setSelectedProfFilter(e.target.value)}
-                className="bg-transparent font-medium text-gray-800 focus:outline-hidden"
+                className="bg-transparent font-medium text-stone-800 focus:outline-hidden"
               >
                 <option value="all">Totes les professionals</option>
                 {professionals.map((p) => (
@@ -362,7 +362,7 @@ export function MultiRoomCalendar({
             {/* Botó Nova Cita */}
             <button
               onClick={() => onNewAppointment()}
-              className="inline-flex items-center space-x-1.5 px-4 py-2 text-xs font-bold text-white bg-gradient-to-r from-rose-600 to-pink-600 hover:from-rose-700 hover:to-pink-700 rounded-xl shadow-xs transition-all shrink-0"
+              className="inline-flex items-center space-x-1.5 px-4 py-2 text-xs font-bold text-white bg-gradient-to-r from-terra-600 to-arcilla-600 hover:from-terra-700 hover:to-arcilla-700 rounded-xl shadow-xs transition-all shrink-0"
             >
               <Plus className="w-4 h-4" />
               <span>Nova Cita</span>
@@ -371,14 +371,14 @@ export function MultiRoomCalendar({
         </div>
 
         {/* Resum ràpid de la jornada */}
-        <div className="mt-3 pt-3 border-t border-rose-50 grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
-          <div className="bg-rose-50/50 rounded-xl p-2 border border-rose-100 flex items-center space-x-2">
-            <div className="w-6 h-6 rounded-lg bg-rose-500 text-white flex items-center justify-center font-bold text-xs">
+        <div className="mt-3 pt-3 border-t border-terra-50 grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
+          <div className="bg-terra-50/50 rounded-xl p-2 border border-terra-100 flex items-center space-x-2">
+            <div className="w-6 h-6 rounded-lg bg-terra-500 text-white flex items-center justify-center font-bold text-xs">
               {todayAppointments.length}
             </div>
             <div>
-              <p className="text-gray-500 text-[11px]">Cites avui</p>
-              <p className="font-semibold text-gray-900 text-xs">{confirmedCount} confirmades</p>
+              <p className="text-stone-500 text-[11px]">Cites avui</p>
+              <p className="font-semibold text-stone-900 text-xs">{confirmedCount} confirmades</p>
             </div>
           </div>
 
@@ -387,28 +387,28 @@ export function MultiRoomCalendar({
               <DollarSign className="w-3.5 h-3.5" />
             </div>
             <div>
-              <p className="text-gray-500 text-[11px]">Previst avui</p>
+              <p className="text-stone-500 text-[11px]">Previst avui</p>
               <p className="font-semibold text-emerald-800 text-xs">{todayRevenue.toFixed(2)} €</p>
             </div>
           </div>
 
-          <div className="bg-purple-50/50 rounded-xl p-2 border border-purple-100 flex items-center space-x-2">
-            <div className="w-6 h-6 rounded-lg bg-purple-500 text-white flex items-center justify-center">
+          <div className="bg-moka-50/50 rounded-xl p-2 border border-moka-100 flex items-center space-x-2">
+            <div className="w-6 h-6 rounded-lg bg-moka-500 text-white flex items-center justify-center">
               <Layers className="w-3.5 h-3.5" />
             </div>
             <div>
-              <p className="text-gray-500 text-[11px]">Sales actives</p>
-              <p className="font-semibold text-purple-900 text-xs">3 Cabines</p>
+              <p className="text-stone-500 text-[11px]">Sales actives</p>
+              <p className="font-semibold text-moka-900 text-xs">3 Cabines</p>
             </div>
           </div>
 
-          <div className="bg-sky-50/50 rounded-xl p-2 border border-sky-100 flex items-center space-x-2">
-            <div className="w-6 h-6 rounded-lg bg-sky-500 text-white flex items-center justify-center">
+          <div className="bg-salvia-50/50 rounded-xl p-2 border border-salvia-100 flex items-center space-x-2">
+            <div className="w-6 h-6 rounded-lg bg-salvia-500 text-white flex items-center justify-center">
               <Smartphone className="w-3.5 h-3.5" />
             </div>
             <div>
-              <p className="text-gray-500 text-[11px]">Bot Mòbil</p>
-              <p className="font-semibold text-sky-900 text-xs">
+              <p className="text-stone-500 text-[11px]">Bot Mòbil</p>
+              <p className="font-semibold text-salvia-900 text-xs">
                 {appointments.filter((a) => a.source === "whatsapp_bot" || a.source === "bot_simulador").length} reserves
               </p>
             </div>
@@ -418,14 +418,14 @@ export function MultiRoomCalendar({
 
       {/* 1. GRAELLA VISUAL DE CALENDARI DE DIA (EIX HORARI 09:00 - 20:30 AMB LES 3 SALES EN COLUMNES) */}
       {calendarMode === "day" && (
-        <div className="bg-white rounded-2xl shadow-xs border border-gray-200 overflow-hidden flex flex-col">
+        <div className="bg-white rounded-2xl shadow-xs border border-stone-200 overflow-hidden flex flex-col">
         <div className="overflow-x-auto">
         <div style={{ minWidth: displayedRooms.length > 1 ? `${80 + displayedRooms.length * 150}px` : undefined }}>
           {/* Capçalera de les Sales de la graella */}
-          <div className="grid grid-cols-[80px_1fr] sm:grid-cols-[90px_1fr] border-b border-gray-200 bg-stone-50 sticky top-0 z-20">
+          <div className="grid grid-cols-[80px_1fr] sm:grid-cols-[90px_1fr] border-b border-stone-200 bg-stone-50 sticky top-0 z-20">
             {/* Cantonada de l'hora */}
-            <div className="p-3 text-center text-xs font-bold text-gray-500 border-r border-gray-200 flex items-center justify-center space-x-1">
-              <Clock className="w-3.5 h-3.5 text-gray-400" />
+            <div className="p-3 text-center text-xs font-bold text-stone-500 border-r border-stone-200 flex items-center justify-center space-x-1">
+              <Clock className="w-3.5 h-3.5 text-stone-400" />
               <span>Hora</span>
             </div>
 
@@ -437,7 +437,7 @@ export function MultiRoomCalendar({
                   : displayedRooms.length === 2
                   ? "grid-cols-2"
                   : "grid-cols-3"
-              } divide-x divide-gray-200`}
+              } divide-x divide-stone-200`}
             >
               {displayedRooms.map((room, idx) => {
                 const styles = getRoomColorClasses(idx);
@@ -449,14 +449,14 @@ export function MultiRoomCalendar({
                       <span className={`w-3 h-3 rounded-full shrink-0 ${styles.border.replace("border-", "bg-")}`} />
                       <div className="truncate">
                         <div className="flex items-center space-x-1.5">
-                          <span className="text-[10px] uppercase font-bold text-gray-500">
+                          <span className="text-[10px] uppercase font-bold text-stone-500">
                             Sala {idx + 1}
                           </span>
                           <span className={`text-[10px] font-bold px-1.5 py-0.2 rounded-full ${styles.badge}`}>
                             {roomApts.length} {roomApts.length === 1 ? "cita" : "cites"}
                           </span>
                         </div>
-                        <h4 className="font-bold text-xs sm:text-sm text-gray-900 truncate">
+                        <h4 className="font-bold text-xs sm:text-sm text-stone-900 truncate">
                           {room.name}
                         </h4>
                       </div>
@@ -464,7 +464,7 @@ export function MultiRoomCalendar({
 
                     <button
                       onClick={() => onNewAppointment(room.id, "10:00", selectedDate)}
-                      className="p-1 rounded-lg text-gray-400 hover:text-rose-600 hover:bg-rose-50 transition-colors shrink-0 ml-1"
+                      className="p-1 rounded-lg text-stone-400 hover:text-terra-600 hover:bg-terra-50 transition-colors shrink-0 ml-1"
                       title={`Afegir cita a ${room.name}`}
                     >
                       <Plus className="w-4 h-4" />
@@ -482,7 +482,7 @@ export function MultiRoomCalendar({
               style={{ height: `${TOTAL_MINUTES * PIXELS_PER_MINUTE}px` }}
             >
               {/* Eix d'Hores a l'esquerra */}
-              <div className="border-r border-gray-200 bg-stone-50/70 select-none relative">
+              <div className="border-r border-stone-200 bg-stone-50/70 select-none relative">
                 {TIME_SLOTS.map((time) => {
                   const mins = timeToMinutes(time) - START_MINUTES;
                   const topPos = mins * PIXELS_PER_MINUTE;
@@ -496,7 +496,7 @@ export function MultiRoomCalendar({
                     >
                       <span
                         className={`font-mono text-xs ${
-                          isHour ? "font-bold text-gray-800 text-[11px]" : "text-gray-400 text-[10px]"
+                          isHour ? "font-bold text-stone-800 text-[11px]" : "text-stone-400 text-[10px]"
                         }`}
                       >
                         {time}
@@ -514,7 +514,7 @@ export function MultiRoomCalendar({
                     : displayedRooms.length === 2
                     ? "grid-cols-2"
                     : "grid-cols-3"
-                } divide-x divide-gray-200 bg-white`}
+                } divide-x divide-stone-200 bg-white`}
               >
                 {/* Línies horitzontals de fons per a cada franja */}
                 <div className="absolute inset-0 pointer-events-none">
@@ -527,7 +527,7 @@ export function MultiRoomCalendar({
                       <div
                         key={time}
                         className={`absolute w-full border-b ${
-                          isHour ? "border-gray-200" : "border-dashed border-gray-100"
+                          isHour ? "border-stone-200" : "border-dashed border-stone-100"
                         }`}
                         style={{ top: `${topPos}px` }}
                       />
@@ -569,7 +569,7 @@ export function MultiRoomCalendar({
                         const isCancelled = apt.status === "cancel·lada";
                         const isPending = apt.status === "pendent";
 
-                        const accentColor = apt.serviceColor || "#ec4899";
+                        const accentColor = apt.serviceColor || "#c06a44";
 
                         return (
                           <div
@@ -578,39 +578,39 @@ export function MultiRoomCalendar({
                               e.stopPropagation();
                               onEditAppointment(apt);
                             }}
-                            className={`absolute left-1.5 right-1.5 rounded-xl p-2.5 shadow-sm border border-gray-200 bg-white transition-all hover:shadow-md hover:scale-[1.01] cursor-pointer z-10 flex flex-col justify-between overflow-hidden ${
-                              isCancelled ? "opacity-50 line-through bg-gray-100 border-gray-300" : ""
+                            className={`absolute left-1.5 right-1.5 rounded-xl p-2.5 shadow-sm border border-stone-200 bg-white transition-all hover:shadow-md hover:scale-[1.01] cursor-pointer z-10 flex flex-col justify-between overflow-hidden ${
+                              isCancelled ? "opacity-50 line-through bg-stone-100 border-stone-300" : ""
                             }`}
                             style={{
                               top: `${topOffset}px`,
                               height: `${blockHeight - 3}px`,
-                              borderLeft: `4px solid ${isCancelled ? "#9ca3af" : accentColor}`,
+                              borderLeft: `4px solid ${isCancelled ? "#a8a29e" : accentColor}`,
                             }}
                           >
                             <div className="overflow-hidden">
                               <div className="flex items-center justify-between text-[11px] font-bold">
-                                <span className="flex items-center space-x-1 text-gray-700">
-                                  <Clock className="w-3 h-3 text-gray-400" />
+                                <span className="flex items-center space-x-1 text-stone-700">
+                                  <Clock className="w-3 h-3 text-stone-400" />
                                   <span>
                                     {apt.startTime} - {apt.endTime}
                                   </span>
                                 </span>
-                                <span className="font-extrabold text-gray-900">
+                                <span className="font-extrabold text-stone-900">
                                   {apt.price}€
                                 </span>
                               </div>
 
-                              <div className="font-bold text-xs text-gray-900 truncate mt-1">
+                              <div className="font-bold text-xs text-stone-900 truncate mt-1">
                                 {apt.clientName}
                               </div>
 
-                              <div className="text-[11px] text-gray-600 font-medium truncate mt-0.5">
+                              <div className="text-[11px] text-stone-600 font-medium truncate mt-0.5">
                                 {apt.serviceName}
                               </div>
                             </div>
 
                             {/* Peu de la targeta de calendari */}
-                            <div className="flex items-center justify-between text-[10px] text-gray-500 mt-1 pt-1 border-t border-gray-100">
+                            <div className="flex items-center justify-between text-[10px] text-stone-500 mt-1 pt-1 border-t border-stone-100">
                               <span className="truncate">
                                 {apt.professionalName?.split(" ")[0]}
                               </span>
@@ -620,7 +620,7 @@ export function MultiRoomCalendar({
                                     ? "bg-emerald-100 text-emerald-800"
                                     : isPending
                                     ? "bg-amber-100 text-amber-800"
-                                    : "bg-blue-100 text-blue-800"
+                                    : "bg-salvia-100 text-salvia-800"
                                 }`}
                               >
                                 {apt.status}
@@ -642,12 +642,12 @@ export function MultiRoomCalendar({
 
       {/* 2. CALENDARI SETMANAL REAL: eix horari a l'esquerra, els 6 dies com a columnes */}
       {calendarMode === "week" && (
-        <div className="bg-white rounded-2xl shadow-xs border border-gray-200 overflow-hidden">
+        <div className="bg-white rounded-2xl shadow-xs border border-stone-200 overflow-hidden">
           <div className="overflow-x-auto">
             <div className="min-w-[900px]">
               {/* Capçalera amb els 6 dies */}
-              <div className="grid grid-cols-[70px_repeat(6,1fr)] border-b border-gray-200 sticky top-0 bg-white z-20">
-                <div className="p-2 border-r border-gray-200" />
+              <div className="grid grid-cols-[70px_repeat(6,1fr)] border-b border-stone-200 sticky top-0 bg-white z-20">
+                <div className="p-2 border-r border-stone-200" />
                 {weekDays.map((d) => {
                   const isDayToday = d.dateStr === todayStr();
                   const dayApts = getFilteredAppointments(d.dateStr);
@@ -655,23 +655,23 @@ export function MultiRoomCalendar({
                     <button
                       key={d.dateStr}
                       onClick={() => onDateChange(d.dateStr)}
-                      className={`p-2 text-center border-r border-gray-100 last:border-r-0 hover:bg-gray-50 transition-colors ${
-                        d.dateStr === selectedDate ? "bg-rose-50" : ""
+                      className={`p-2 text-center border-r border-stone-100 last:border-r-0 hover:bg-stone-50 transition-colors ${
+                        d.dateStr === selectedDate ? "bg-terra-50" : ""
                       }`}
                     >
-                      <div className="text-[10px] uppercase tracking-wider text-gray-500 font-semibold">
+                      <div className="text-[10px] uppercase tracking-wider text-stone-500 font-semibold">
                         {d.dayName}
                       </div>
                       <div
                         className={`text-sm font-extrabold ${
                           isDayToday
-                            ? "inline-flex items-center justify-center w-6 h-6 rounded-full bg-rose-600 text-white"
-                            : "text-gray-900"
+                            ? "inline-flex items-center justify-center w-6 h-6 rounded-full bg-terra-600 text-white"
+                            : "text-stone-900"
                         }`}
                       >
                         {d.dayNumber}
                       </div>
-                      <div className="text-[9px] text-gray-400 mt-0.5">
+                      <div className="text-[9px] text-stone-400 mt-0.5">
                         {dayApts.length > 0 ? `${dayApts.length} cites` : ""}
                       </div>
                     </button>
@@ -685,7 +685,7 @@ export function MultiRoomCalendar({
                 style={{ height: `${TOTAL_MINUTES * PIXELS_PER_MINUTE}px` }}
               >
                 {/* Eix d'hores */}
-                <div className="border-r border-gray-200 bg-stone-50/70 relative">
+                <div className="border-r border-stone-200 bg-stone-50/70 relative">
                   {TIME_SLOTS.map((time) => {
                     const mins = timeToMinutes(time) - START_MINUTES;
                     const isHour = time.endsWith(":00");
@@ -696,7 +696,7 @@ export function MultiRoomCalendar({
                         style={{ top: `${mins * PIXELS_PER_MINUTE}px` }}
                       >
                         {isHour && (
-                          <span className="font-mono text-[10px] font-bold text-gray-700">{time}</span>
+                          <span className="font-mono text-[10px] font-bold text-stone-700">{time}</span>
                         )}
                       </div>
                     );
@@ -711,7 +711,7 @@ export function MultiRoomCalendar({
                   return (
                     <div
                       key={d.dateStr}
-                      className="relative border-r border-gray-100 last:border-r-0 hover:bg-stone-50/30 transition-colors"
+                      className="relative border-r border-stone-100 last:border-r-0 hover:bg-stone-50/30 transition-colors"
                       onClick={(e) => {
                         const rect = e.currentTarget.getBoundingClientRect();
                         const clickY = e.clientY - rect.top;
@@ -729,7 +729,7 @@ export function MultiRoomCalendar({
                           <div
                             key={time}
                             className={`absolute w-full border-b pointer-events-none ${
-                              isHour ? "border-gray-200" : "border-dashed border-gray-100"
+                              isHour ? "border-stone-200" : "border-dashed border-stone-100"
                             }`}
                             style={{ top: `${mins * PIXELS_PER_MINUTE}px` }}
                           />
@@ -738,7 +738,7 @@ export function MultiRoomCalendar({
 
                       {/* Cites del dia, separades en columnes quan coincideixen en horari */}
                       {laidOut.map(({ apt, top, height, col, colCount }) => {
-                        const accentColor = apt.serviceColor || "#ec4899";
+                        const accentColor = apt.serviceColor || "#c06a44";
                         const isCancelled = apt.status === "cancel·lada";
                         const widthPct = 100 / colCount;
 
@@ -749,27 +749,27 @@ export function MultiRoomCalendar({
                               e.stopPropagation();
                               onEditAppointment(apt);
                             }}
-                            className={`absolute rounded-lg px-1.5 py-1 border border-gray-200 bg-white shadow-sm cursor-pointer hover:shadow-md hover:z-30 transition-all overflow-hidden ${
-                              isCancelled ? "opacity-50 line-through bg-gray-100" : ""
+                            className={`absolute rounded-lg px-1.5 py-1 border border-stone-200 bg-white shadow-sm cursor-pointer hover:shadow-md hover:z-30 transition-all overflow-hidden ${
+                              isCancelled ? "opacity-50 line-through bg-stone-100" : ""
                             }`}
                             style={{
                               top: `${top}px`,
                               height: `${height - 2}px`,
                               left: `calc(${col * widthPct}% + 1px)`,
                               width: `calc(${widthPct}% - 2px)`,
-                              borderLeft: `3px solid ${isCancelled ? "#9ca3af" : accentColor}`,
+                              borderLeft: `3px solid ${isCancelled ? "#a8a29e" : accentColor}`,
                               zIndex: 10 + col,
                             }}
                             title={`${apt.startTime}-${apt.endTime} · ${apt.clientName} · ${apt.serviceName}`}
                           >
-                            <div className="text-[9px] font-bold text-gray-700 truncate leading-tight">
+                            <div className="text-[9px] font-bold text-stone-700 truncate leading-tight">
                               {apt.startTime}
                             </div>
-                            <div className="text-[10px] font-bold text-gray-900 truncate leading-tight">
+                            <div className="text-[10px] font-bold text-stone-900 truncate leading-tight">
                               {apt.clientName}
                             </div>
                             {height > 34 && (
-                              <div className="text-[9px] text-gray-500 truncate leading-tight">
+                              <div className="text-[9px] text-stone-500 truncate leading-tight">
                                 {apt.serviceName}
                               </div>
                             )}

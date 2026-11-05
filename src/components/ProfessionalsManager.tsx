@@ -17,7 +17,7 @@ export function ProfessionalsManager({ professionals, onProfessionalsUpdated }: 
   const [specialty, setSpecialty] = useState("");
   const [phone, setPhone] = useState("");
   const [email, setEmail] = useState("");
-  const [color, setColor] = useState("#8b5cf6");
+  const [color, setColor] = useState("#866353");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
@@ -28,7 +28,7 @@ export function ProfessionalsManager({ professionals, onProfessionalsUpdated }: 
     setSpecialty("Esteticista & Benestar");
     setPhone("+34 600 00 00 00");
     setEmail("");
-    setColor("#8b5cf6");
+    setColor("#866353");
     setError(null);
     setIsModalOpen(true);
   };
@@ -39,7 +39,7 @@ export function ProfessionalsManager({ professionals, onProfessionalsUpdated }: 
     setSpecialty(prof.specialty || "");
     setPhone(prof.phone || "");
     setEmail(prof.email || "");
-    setColor(prof.color || "#8b5cf6");
+    setColor(prof.color || "#866353");
     setError(null);
     setIsModalOpen(true);
   };
@@ -89,20 +89,20 @@ export function ProfessionalsManager({ professionals, onProfessionalsUpdated }: 
   return (
     <div className="space-y-6">
       {/* Capçalera */}
-      <div className="bg-white rounded-2xl shadow-xs border border-rose-100 p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      <div className="bg-white rounded-2xl shadow-xs border border-terra-100 p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h2 className="text-lg font-bold text-gray-900 flex items-center space-x-2">
-            <Sparkles className="w-5 h-5 text-purple-600" />
+          <h2 className="text-lg font-bold text-stone-900 flex items-center space-x-2">
+            <Sparkles className="w-5 h-5 text-moka-600" />
             <span>Equip de Professionals d&apos;Estètica Diana</span>
           </h2>
-          <p className="text-xs text-gray-500 mt-0.5">
+          <p className="text-xs text-stone-500 mt-0.5">
             Gestiona les esteticistes i terapeutes disponibles als desplegables de l&apos;agenda i de les cites.
           </p>
         </div>
 
         <button
           onClick={openCreateModal}
-          className="inline-flex items-center space-x-2 px-4 py-2.5 text-xs font-bold text-white bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 rounded-xl shadow-xs transition-all shrink-0"
+          className="inline-flex items-center space-x-2 px-4 py-2.5 text-xs font-bold text-white bg-gradient-to-r from-moka-600 to-moka-600 hover:from-moka-700 hover:to-moka-700 rounded-xl shadow-xs transition-all shrink-0"
         >
           <Plus className="w-4 h-4" />
           <span>Afegir Professional</span>
@@ -121,47 +121,47 @@ export function ProfessionalsManager({ professionals, onProfessionalsUpdated }: 
         {professionals.map((prof) => (
           <div
             key={prof.id}
-            className="bg-white rounded-2xl p-5 border border-gray-200 shadow-xs hover:border-purple-200 hover:shadow-md transition-all flex flex-col justify-between"
+            className="bg-white rounded-2xl p-5 border border-stone-200 shadow-xs hover:border-moka-200 hover:shadow-md transition-all flex flex-col justify-between"
           >
             <div>
               <div className="flex items-center justify-between mb-4">
-                <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-purple-500 to-indigo-600 text-white flex items-center justify-center font-extrabold text-base shadow-sm">
+                <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-moka-500 to-moka-600 text-white flex items-center justify-center font-extrabold text-base shadow-sm">
                   {prof.name
                     .split(" ")
                     .map((n) => n[0])
                     .join("")}
                 </div>
-                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider bg-purple-50 text-purple-700 border border-purple-100">
+                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider bg-moka-50 text-moka-700 border border-moka-100">
                   Activa
                 </span>
               </div>
 
-              <h3 className="font-bold text-base text-gray-900">{prof.name}</h3>
-              <p className="text-xs text-purple-700 font-semibold mt-0.5 flex items-center space-x-1">
+              <h3 className="font-bold text-base text-stone-900">{prof.name}</h3>
+              <p className="text-xs text-moka-700 font-semibold mt-0.5 flex items-center space-x-1">
                 <Award className="w-3.5 h-3.5" />
                 <span>{prof.specialty || "Estètica Integral"}</span>
               </p>
 
-              <div className="mt-4 pt-3 border-t border-gray-100 space-y-1.5 text-xs text-gray-600">
+              <div className="mt-4 pt-3 border-t border-stone-100 space-y-1.5 text-xs text-stone-600">
                 {prof.phone && (
                   <div className="flex items-center space-x-2">
-                    <Phone className="w-3.5 h-3.5 text-gray-400" />
+                    <Phone className="w-3.5 h-3.5 text-stone-400" />
                     <span>{prof.phone}</span>
                   </div>
                 )}
                 {prof.email && (
                   <div className="flex items-center space-x-2">
-                    <Mail className="w-3.5 h-3.5 text-gray-400" />
+                    <Mail className="w-3.5 h-3.5 text-stone-400" />
                     <span className="truncate">{prof.email}</span>
                   </div>
                 )}
               </div>
             </div>
 
-            <div className="mt-5 pt-3 border-t border-gray-100 flex items-center justify-end">
+            <div className="mt-5 pt-3 border-t border-stone-100 flex items-center justify-end">
               <button
                 onClick={() => openEditModal(prof)}
-                className="px-3 py-1.5 text-xs font-semibold text-purple-700 bg-purple-50 hover:bg-purple-100 rounded-lg transition-colors flex items-center space-x-1"
+                className="px-3 py-1.5 text-xs font-semibold text-moka-700 bg-moka-50 hover:bg-moka-100 rounded-lg transition-colors flex items-center space-x-1"
               >
                 <Edit2 className="w-3.5 h-3.5" />
                 <span>Modificar Dades</span>
@@ -174,13 +174,13 @@ export function ProfessionalsManager({ professionals, onProfessionalsUpdated }: 
       {/* Modal */}
       {isModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs">
-          <div className="relative w-full max-w-md bg-white rounded-2xl shadow-2xl border border-purple-100 overflow-hidden">
-            <div className="bg-gradient-to-r from-purple-600 to-indigo-600 p-5 text-white flex items-center justify-between">
+          <div className="relative w-full max-w-md bg-white rounded-2xl shadow-2xl border border-moka-100 overflow-hidden">
+            <div className="bg-gradient-to-r from-moka-600 to-moka-600 p-5 text-white flex items-center justify-between">
               <div>
                 <h3 className="text-lg font-bold">
                   {editingProf ? "Modificar Professional" : "Nova Professional"}
                 </h3>
-                <p className="text-xs text-purple-100">
+                <p className="text-xs text-moka-100">
                   Estètica Diana · Gestió de l&apos;equip
                 </p>
               </div>
@@ -201,61 +201,61 @@ export function ProfessionalsManager({ professionals, onProfessionalsUpdated }: 
 
             <form onSubmit={handleSubmit} className="p-5 space-y-4 text-xs">
               <div>
-                <label className="block font-medium text-gray-700 mb-1">Nom i Cognoms *</label>
+                <label className="block font-medium text-stone-700 mb-1">Nom i Cognoms *</label>
                 <input
                   type="text"
                   required
                   placeholder="Ex: Diana Gómez"
                   value={name}
                   onChange={(e) => setName(e.target.value)}
-                  className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500"
+                  className="w-full px-3 py-2 text-sm border border-stone-300 rounded-lg focus:ring-2 focus:ring-moka-500"
                 />
               </div>
 
               <div>
-                <label className="block font-medium text-gray-700 mb-1">Especialitat</label>
+                <label className="block font-medium text-stone-700 mb-1">Especialitat</label>
                 <input
                   type="text"
                   placeholder="Ex: Estètica Avançada i Làser"
                   value={specialty}
                   onChange={(e) => setSpecialty(e.target.value)}
-                  className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500"
+                  className="w-full px-3 py-2 text-sm border border-stone-300 rounded-lg focus:ring-2 focus:ring-moka-500"
                 />
               </div>
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block font-medium text-gray-700 mb-1">Telèfon</label>
+                  <label className="block font-medium text-stone-700 mb-1">Telèfon</label>
                   <input
                     type="text"
                     value={phone}
                     onChange={(e) => setPhone(e.target.value)}
-                    className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500"
+                    className="w-full px-3 py-2 text-sm border border-stone-300 rounded-lg focus:ring-2 focus:ring-moka-500"
                   />
                 </div>
                 <div>
-                  <label className="block font-medium text-gray-700 mb-1">Email</label>
+                  <label className="block font-medium text-stone-700 mb-1">Email</label>
                   <input
                     type="email"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
-                    className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500"
+                    className="w-full px-3 py-2 text-sm border border-stone-300 rounded-lg focus:ring-2 focus:ring-moka-500"
                   />
                 </div>
               </div>
 
-              <div className="border-t border-gray-100 pt-3 flex items-center justify-end space-x-2">
+              <div className="border-t border-stone-100 pt-3 flex items-center justify-end space-x-2">
                 <button
                   type="button"
                   onClick={() => setIsModalOpen(false)}
-                  className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg"
+                  className="px-4 py-2 text-stone-600 hover:bg-stone-100 rounded-lg"
                 >
                   Cancel·lar
                 </button>
                 <button
                   type="submit"
                   disabled={loading}
-                  className="px-5 py-2 text-white bg-purple-600 hover:bg-purple-700 rounded-lg font-bold"
+                  className="px-5 py-2 text-white bg-moka-600 hover:bg-moka-700 rounded-lg font-bold"
                 >
                   {loading ? "Desant..." : "Desar Professional"}
                 </button>

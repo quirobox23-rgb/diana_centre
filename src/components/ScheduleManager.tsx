@@ -110,20 +110,20 @@ export function ScheduleManager({ schedules, onSchedulesUpdated }: ScheduleManag
   return (
     <div className="space-y-6">
       {/* Capçalera */}
-      <div className="bg-white rounded-2xl shadow-xs border border-rose-100 p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      <div className="bg-white rounded-2xl shadow-xs border border-terra-100 p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h2 className="text-lg font-bold text-gray-900 flex items-center space-x-2">
-            <Clock className="w-5 h-5 text-rose-600" />
+          <h2 className="text-lg font-bold text-stone-900 flex items-center space-x-2">
+            <Clock className="w-5 h-5 text-terra-600" />
             <span>Gestió d&apos;Horaris d&apos;Obertura i Disponibilitat</span>
           </h2>
-          <p className="text-xs text-gray-500 mt-0.5">
+          <p className="text-xs text-stone-500 mt-0.5">
             Configura els torns de matí i tarda per a cada dia de la setmana. El bot utilitza aquests intervals per oferir les 3 opcions.
           </p>
         </div>
 
         <button
           onClick={() => setIsAddSpecialOpen(!isAddSpecialOpen)}
-          className="inline-flex items-center space-x-2 px-4 py-2.5 text-xs font-bold text-white bg-gradient-to-r from-rose-600 to-pink-600 hover:from-rose-700 hover:to-pink-700 rounded-xl shadow-xs transition-all shrink-0"
+          className="inline-flex items-center space-x-2 px-4 py-2.5 text-xs font-bold text-white bg-gradient-to-r from-terra-600 to-arcilla-600 hover:from-terra-700 hover:to-arcilla-700 rounded-xl shadow-xs transition-all shrink-0"
         >
           <Plus className="w-4 h-4" />
           <span>Afegir Horari Especial</span>
@@ -148,27 +148,27 @@ export function ScheduleManager({ schedules, onSchedulesUpdated }: ScheduleManag
       {isAddSpecialOpen && (
         <form
           onSubmit={handleAddSpecial}
-          className="bg-white rounded-2xl p-5 border border-rose-200 shadow-md space-y-4"
+          className="bg-white rounded-2xl p-5 border border-terra-200 shadow-md space-y-4"
         >
-          <h3 className="font-bold text-sm text-gray-900 flex items-center space-x-2">
-            <Calendar className="w-4 h-4 text-rose-600" />
+          <h3 className="font-bold text-sm text-stone-900 flex items-center space-x-2">
+            <Calendar className="w-4 h-4 text-terra-600" />
             <span>Afegir Dia Especial o Festiu Obert</span>
           </h3>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-5 gap-3 text-xs">
             <div className="md:col-span-2">
-              <label className="block text-gray-700 font-medium mb-1">Nom del dia / Data especial:</label>
+              <label className="block text-stone-700 font-medium mb-1">Nom del dia / Data especial:</label>
               <input
                 type="text"
                 required
                 placeholder="Ex: Festiu de Sant Jordi (23 d'abril)"
                 value={specialDayName}
                 onChange={(e) => setSpecialDayName(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-rose-500"
+                className="w-full px-3 py-2 border border-stone-300 rounded-lg focus:ring-2 focus:ring-terra-500"
               />
             </div>
             <div>
-              <label className="block text-gray-700 font-medium mb-1">Torn Matí:</label>
+              <label className="block text-stone-700 font-medium mb-1">Torn Matí:</label>
               <div className="flex items-center space-x-1">
                 <input
                   type="text"
@@ -186,7 +186,7 @@ export function ScheduleManager({ schedules, onSchedulesUpdated }: ScheduleManag
               </div>
             </div>
             <div>
-              <label className="block text-gray-700 font-medium mb-1">Torn Tarda:</label>
+              <label className="block text-stone-700 font-medium mb-1">Torn Tarda:</label>
               <div className="flex items-center space-x-1">
                 <input
                   type="text"
@@ -207,7 +207,7 @@ export function ScheduleManager({ schedules, onSchedulesUpdated }: ScheduleManag
               <button
                 type="submit"
                 disabled={addingSpecial}
-                className="w-full py-2 bg-rose-600 hover:bg-rose-700 text-white font-bold rounded-lg transition-colors text-xs"
+                className="w-full py-2 bg-terra-600 hover:bg-terra-700 text-white font-bold rounded-lg transition-colors text-xs"
               >
                 {addingSpecial ? "Afegint..." : "Guardar Dia Especial"}
               </button>
@@ -217,7 +217,7 @@ export function ScheduleManager({ schedules, onSchedulesUpdated }: ScheduleManag
       )}
 
       {/* Llista dels 7 dies de la setmana */}
-      <div className="bg-white rounded-2xl border border-gray-200 shadow-xs divide-y divide-gray-100 overflow-hidden">
+      <div className="bg-white rounded-2xl border border-stone-200 shadow-xs divide-y divide-stone-100 overflow-hidden">
         {localSchedules.map((sch) => {
           const isSaving = savingId === sch.id;
 
@@ -225,7 +225,7 @@ export function ScheduleManager({ schedules, onSchedulesUpdated }: ScheduleManag
             <div
               key={sch.id}
               className={`p-4 transition-colors ${
-                !sch.isOpen ? "bg-stone-50/70 opacity-75" : "hover:bg-rose-50/20"
+                !sch.isOpen ? "bg-stone-50/70 opacity-75" : "hover:bg-terra-50/20"
               }`}
             >
               <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
@@ -233,19 +233,19 @@ export function ScheduleManager({ schedules, onSchedulesUpdated }: ScheduleManag
                 <div className="flex items-center space-x-3 w-48 shrink-0">
                   <div
                     className={`w-3 h-3 rounded-full ${
-                      sch.isOpen ? "bg-emerald-500" : "bg-gray-300"
+                      sch.isOpen ? "bg-emerald-500" : "bg-stone-300"
                     }`}
                   />
                   <div>
-                    <h4 className="font-bold text-sm text-gray-900">{sch.dayName}</h4>
+                    <h4 className="font-bold text-sm text-stone-900">{sch.dayName}</h4>
                     <label className="flex items-center space-x-1.5 mt-0.5 cursor-pointer">
                       <input
                         type="checkbox"
                         checked={sch.isOpen}
                         onChange={(e) => handleFieldChange(sch.id, "isOpen", e.target.checked)}
-                        className="rounded-sm text-rose-600 focus:ring-rose-500 w-3.5 h-3.5"
+                        className="rounded-sm text-terra-600 focus:ring-terra-500 w-3.5 h-3.5"
                       />
-                      <span className="text-[11px] font-medium text-gray-500">
+                      <span className="text-[11px] font-medium text-stone-500">
                         {sch.isOpen ? "Obert al públic" : "Tancat (Descans)"}
                       </span>
                     </label>
@@ -269,26 +269,26 @@ export function ScheduleManager({ schedules, onSchedulesUpdated }: ScheduleManag
                             onChange={(e) =>
                               handleFieldChange(sch.id, "morningStart", e.target.value)
                             }
-                            className="bg-white px-2 py-0.5 border border-amber-200 rounded-md font-semibold text-gray-800 text-xs"
+                            className="bg-white px-2 py-0.5 border border-amber-200 rounded-md font-semibold text-stone-800 text-xs"
                           />
-                          <span className="text-gray-400">fins a</span>
+                          <span className="text-stone-400">fins a</span>
                           <input
                             type="time"
                             value={sch.morningEnd}
                             onChange={(e) =>
                               handleFieldChange(sch.id, "morningEnd", e.target.value)
                             }
-                            className="bg-white px-2 py-0.5 border border-amber-200 rounded-md font-semibold text-gray-800 text-xs"
+                            className="bg-white px-2 py-0.5 border border-amber-200 rounded-md font-semibold text-stone-800 text-xs"
                           />
                         </div>
                       </div>
                     </div>
 
                     {/* Torn de Tarda */}
-                    <div className="flex items-center space-x-2 bg-indigo-50/60 p-2.5 rounded-xl border border-indigo-100">
-                      <Moon className="w-4 h-4 text-indigo-600 shrink-0" />
+                    <div className="flex items-center space-x-2 bg-moka-50/60 p-2.5 rounded-xl border border-moka-100">
+                      <Moon className="w-4 h-4 text-moka-600 shrink-0" />
                       <div>
-                        <span className="font-semibold text-indigo-900 block text-[11px]">
+                        <span className="font-semibold text-moka-900 block text-[11px]">
                           Tarda
                         </span>
                         <div className="flex items-center space-x-1 mt-0.5">
@@ -298,16 +298,16 @@ export function ScheduleManager({ schedules, onSchedulesUpdated }: ScheduleManag
                             onChange={(e) =>
                               handleFieldChange(sch.id, "afternoonStart", e.target.value)
                             }
-                            className="bg-white px-2 py-0.5 border border-indigo-200 rounded-md font-semibold text-gray-800 text-xs"
+                            className="bg-white px-2 py-0.5 border border-moka-200 rounded-md font-semibold text-stone-800 text-xs"
                           />
-                          <span className="text-gray-400">fins a</span>
+                          <span className="text-stone-400">fins a</span>
                           <input
                             type="time"
                             value={sch.afternoonEnd}
                             onChange={(e) =>
                               handleFieldChange(sch.id, "afternoonEnd", e.target.value)
                             }
-                            className="bg-white px-2 py-0.5 border border-indigo-200 rounded-md font-semibold text-gray-800 text-xs"
+                            className="bg-white px-2 py-0.5 border border-moka-200 rounded-md font-semibold text-stone-800 text-xs"
                           />
                         </div>
                       </div>
@@ -320,12 +320,12 @@ export function ScheduleManager({ schedules, onSchedulesUpdated }: ScheduleManag
                         placeholder="Observacions (ex: Cita prèvia)"
                         value={sch.notes || ""}
                         onChange={(e) => handleFieldChange(sch.id, "notes", e.target.value)}
-                        className="w-full px-3 py-2 text-xs border border-gray-200 rounded-lg text-gray-700"
+                        className="w-full px-3 py-2 text-xs border border-stone-200 rounded-lg text-stone-700"
                       />
                     </div>
                   </div>
                 ) : (
-                  <div className="flex-1 text-xs text-gray-400 italic py-2">
+                  <div className="flex-1 text-xs text-stone-400 italic py-2">
                     Aquest dia el centre roman tancat per descans del personal.
                   </div>
                 )}
@@ -335,7 +335,7 @@ export function ScheduleManager({ schedules, onSchedulesUpdated }: ScheduleManag
                   <button
                     onClick={() => handleSaveDay(sch)}
                     disabled={isSaving}
-                    className="inline-flex items-center space-x-1.5 px-3.5 py-2 text-xs font-bold text-rose-700 bg-rose-50 hover:bg-rose-100 rounded-xl border border-rose-200 transition-colors"
+                    className="inline-flex items-center space-x-1.5 px-3.5 py-2 text-xs font-bold text-terra-700 bg-terra-50 hover:bg-terra-100 rounded-xl border border-terra-200 transition-colors"
                   >
                     <Save className="w-3.5 h-3.5" />
                     <span>{isSaving ? "Desant..." : "Desar Canvis"}</span>
