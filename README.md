@@ -14,6 +14,7 @@ configurar a **Settings → Environment Variables**.
 | --- | --- |
 | `DATABASE_URL` | Connexió a Postgres (Neon). **No la posis mai al codi**: el repositori és públic. |
 | `ADMIN_PASSWORD` | Contrasenya per entrar al panell. |
+| `STAFF_PASSWORD` | Contrasenya de l'equip: entra al panell però no veu imports ni anul·la xecs regal (opcional). |
 | `SESSION_SECRET` | Cadena aleatòria llarga (mínim 16 caràcters) per signar la sessió. |
 | `CRON_SECRET` | Clau que Vercel Cron envia a `/api/reminders`. Sense ella els recordatoris no s'envien. |
 | `NEXT_PUBLIC_APP_URL` | URL pública de l'app (per validar la firma de Twilio). |

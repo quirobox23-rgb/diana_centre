@@ -117,3 +117,34 @@ export const centerSettings = pgTable("center_settings", {
   autoReplyConfirmation: text("auto_reply_confirmation").notNull().default("Perfecte! La teva cita ha quedat reservada a la nostra agenda. T'esperem a Estètica Diana ✨"),
   slotIntervalMinutes: integer("slot_interval_minutes").notNull().default(30),
 });
+
+// Xecs regal (bons regal). Poden ser d'un import (es gasta a poc a poc) o d'un servei concret.
+export const giftVouchers = pgTable("gift_vouchers", {
+  id: serial("id").primaryKey(),
+  code: text("code").notNull().unique(),
+  kind: text("kind").notNull().default("import"), // "import" | "servei"
+  amount: numeric("amount", { precision: 10, scale: 2 }).notNull().default("0.00"),
+  remaining: numeric("remaining", { precision: 10, scale: 2 }).notNull().default("0.00"),
+  serviceId: integer("service_id").references(() => services.id, { onDelete: "set null" }),
+  serviceText: text("service_text"),
+  buyerName: text("buyer_name").notNull(),
+  buyerPhone: text("buyer_phone"),
+  recipientName: text("recipient_name").notNull(),
+  recipientPhone: text("recipient_phone"),
+  issueDate: text("issue_date").notNull(), // YYYY-MM-DD
+  expiryDate: text("expiry_date"), // YYYY-MM-DD
+  paymentMethod: text("payment_method"), // "efectiu", "targeta", "bizum", "transferència"
+  status: text("status").notNull().default("actiu"), // "actiu", "bescanviat", "anul·lat"
+  notes: text("notes"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+// Cada vegada que es fa servir un xec (total o parcialment)
+export const giftVoucherUses = pgTable("gift_voucher_uses", {
+  id: serial("id").primaryKey(),
+  voucherId: integer("voucher_id").notNull().references(() => giftVouchers.id, { onDelete: "cascade" }),
+  date: text("date").notNull(), // YYYY-MM-DD
+  amount: numeric("amount", { precision: 10, scale: 2 }).notNull().default("0.00"),
+  note: text("note"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
