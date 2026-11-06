@@ -62,12 +62,14 @@ interface ProStats {
   services: { name: string; count: number }[];
 }
 
-export function ProfessionalSummary({ professionals }: { professionals: Professional[] }) {
+export function ProfessionalSummary({ professionals, canSeeMoney = true }: { professionals: Professional[]; canSeeMoney?: boolean }) {
   const [mode, setMode] = useState<Mode>("week");
   const [anchor, setAnchor] = useState<string>(() => todayStr());
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [loading, setLoading] = useState(true);
-  const [showMoney, setShowMoney] = useState(false);
+  const [moneyToggle, setShowMoney] = useState(false);
+  // L'equip (contrasenya d'empleada) mai veu els imports
+  const showMoney = canSeeMoney && moneyToggle;
 
   // Recordem en aquest navegador si es volen veure els imports (per defecte, ocults)
   useEffect(() => {
@@ -221,7 +223,7 @@ export function ProfessionalSummary({ professionals }: { professionals: Professi
             Avui
           </button>
 
-          <button
+          {canSeeMoney && <button
             onClick={toggleMoney}
             className={`inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold rounded-lg border ${
               showMoney ? "bg-stone-900 text-white border-stone-900" : "bg-white text-stone-600 border-stone-200 hover:bg-stone-50"
@@ -230,7 +232,7 @@ export function ProfessionalSummary({ professionals }: { professionals: Professi
           >
             {showMoney ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
             {showMoney ? "Amagar imports" : "Mostrar imports"}
-          </button>
+          </button>}
         </div>
       </div>
 
