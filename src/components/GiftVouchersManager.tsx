@@ -26,9 +26,10 @@ function displayStatus(v: GiftVoucher, today: string) {
 interface Props {
   services: Service[];
   isAdmin: boolean;
+  onRequestUnlock?: (then?: () => void) => void;
 }
 
-export function GiftVouchersManager({ services, isAdmin }: Props) {
+export function GiftVouchersManager({ services, isAdmin, onRequestUnlock }: Props) {
   const [vouchers, setVouchers] = useState<GiftVoucher[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
@@ -190,9 +191,9 @@ export function GiftVouchersManager({ services, isAdmin }: Props) {
                         Fer servir
                       </button>
                     )}
-                    {isAdmin && v.status === "actiu" && (
+                    {v.status === "actiu" && (
                       <button
-                        onClick={() => cancelVoucher(v)}
+                        onClick={() => (isAdmin ? cancelVoucher(v) : onRequestUnlock?.(() => cancelVoucher(v)))}
                         title="Anul·lar"
                         className="p-1.5 text-stone-400 hover:text-red-600 hover:bg-red-50 rounded-lg"
                       >

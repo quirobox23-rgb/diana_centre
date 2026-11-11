@@ -4,6 +4,7 @@ import { giftVouchers, giftVoucherUses } from "@/db/schema";
 import { desc, eq, inArray } from "drizzle-orm";
 import { ensureSchema } from "@/db/ensure-schema";
 import { todayStr } from "@/lib/dates";
+import { isOwnerUnlocked } from "@/lib/owner-lock";
 
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
 const KINDS = ["import", "servei"];
@@ -109,6 +110,9 @@ export async function PUT(request: Request) {
     if (!id) return NextResponse.json({ success: false, error: "Falta l'identificador" }, { status: 400 });
     if (body.status !== undefined && !STATUSES.includes(body.status)) {
       return NextResponse.json({ success: false, error: "Estat no vàlid" }, { status: 400 });
+    }
+    if (body.status === "anul·lat" && !(await isOwnerUnlocked())) {
+      return NextResponse.json({ success: false, error: "Per anul·lar un xec cal obrir el candado" }, { status: 403 });
     }
     const expiryDate = body.expiryDate === undefined ? undefined : clean(body.expiryDate);
     if (expiryDate && !DATE_RE.test(expiryDate)) {

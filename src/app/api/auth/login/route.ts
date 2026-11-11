@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { roleForPassword, createSessionToken, SESSION_COOKIE, SESSION_MAX_AGE } from "@/lib/auth";
+import { checkPassword, createSessionToken, SESSION_COOKIE, SESSION_MAX_AGE } from "@/lib/auth";
 
 export async function POST(request: Request) {
   if (!process.env.ADMIN_PASSWORD || !process.env.SESSION_SECRET) {
@@ -17,15 +17,14 @@ export async function POST(request: Request) {
     // cos buit o invàlid
   }
 
-  const role = await roleForPassword(password);
-  if (!role) {
+  if (!(await checkPassword(password))) {
     // Petita espera per fer més lents els intents a l'atzar
     await new Promise(r => setTimeout(r, 800));
     return NextResponse.json({ success: false, error: "Contrasenya incorrecta" }, { status: 401 });
   }
 
-  const res = NextResponse.json({ success: true, role });
-  res.cookies.set(SESSION_COOKIE, await createSessionToken(role), {
+  const res = NextResponse.json({ success: true });
+  res.cookies.set(SESSION_COOKIE, await createSessionToken(), {
     httpOnly: true,
     secure: process.env.NODE_ENV === "production",
     sameSite: "lax",

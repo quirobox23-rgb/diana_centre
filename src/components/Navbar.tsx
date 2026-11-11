@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import { Sparkles, Calendar, Smartphone, Scissors, Clock, Users, Plus, UserCheck, MessageCircle, LogOut, BarChart3, Gift } from "lucide-react";
+import { Sparkles, Calendar, Smartphone, Scissors, Clock, Users, Plus, UserCheck, MessageCircle, LogOut, BarChart3, Gift, Lock, LockOpen, KeyRound } from "lucide-react";
 
 type TabId = "calendar" | "clients" | "bot" | "services" | "schedules" | "professionals" | "pending" | "summary" | "vouchers";
 
@@ -10,9 +10,13 @@ interface NavbarProps {
   onTabChange: (tab: TabId) => void;
   onNewAppointmentClick: () => void;
   pendingCount?: number;
+  ownerUnlocked?: boolean;
+  lockedTabs?: TabId[];
+  onLockClick?: () => void;
+  onChangeKey?: () => void;
 }
 
-export function Navbar({ activeTab, onTabChange, onNewAppointmentClick, pendingCount = 0 }: NavbarProps) {
+export function Navbar({ activeTab, onTabChange, onNewAppointmentClick, pendingCount = 0, ownerUnlocked = false, lockedTabs = [], onLockClick, onChangeKey }: NavbarProps) {
   interface TabItem {
     id: TabId;
     label: string;
@@ -57,6 +61,26 @@ export function Navbar({ activeTab, onTabChange, onNewAppointmentClick, pendingC
               <Plus className="w-4 h-4" />
               <span>Nova Cita</span>
             </button>
+            {ownerUnlocked && onChangeKey && (
+              <button
+                onClick={onChangeKey}
+                title="Canviar la clau del candado"
+                className="hidden sm:inline-flex items-center p-2 text-stone-400 hover:text-terra-700 hover:bg-terra-50 rounded-xl transition-all"
+              >
+                <KeyRound className="w-4 h-4" />
+              </button>
+            )}
+            {onLockClick && (
+              <button
+                onClick={onLockClick}
+                title={ownerUnlocked ? "Tancar el candado" : "Obrir el candado (dueña)"}
+                className={`inline-flex items-center p-2 rounded-xl transition-all ${
+                  ownerUnlocked ? "text-terra-700 bg-terra-50 border border-terra-200" : "text-stone-500 hover:text-terra-700 hover:bg-terra-50"
+                }`}
+              >
+                {ownerUnlocked ? <LockOpen className="w-4 h-4" /> : <Lock className="w-4 h-4" />}
+              </button>
+            )}
             <button
               onClick={async () => {
                 await fetch("/api/auth/logout", { method: "POST" });
@@ -88,6 +112,7 @@ export function Navbar({ activeTab, onTabChange, onNewAppointmentClick, pendingC
               >
                 <Icon className={`w-4 h-4 ${isActive ? "text-terra-600" : "text-stone-400"}`} />
                 <span>{tab.label}</span>
+                {lockedTabs.includes(tab.id) && <Lock className="w-3 h-3 text-stone-400" />}
                 {!!tab.badge && (
                   <span className="flex items-center justify-center min-w-[18px] h-[18px] px-1 rounded-full bg-red-500 text-white text-[10px] font-bold ">
                     {tab.badge}

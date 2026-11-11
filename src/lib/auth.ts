@@ -32,50 +32,28 @@ function safeEqual(a: string, b: string): boolean {
   return diff === 0;
 }
 
-export type Role = "admin" | "staff";
-
-// La galeta porta la caducitat i el rol, signats: "caducitat.rol.firma"
-export async function createSessionToken(role: Role = "admin"): Promise<string> {
+export async function createSessionToken(): Promise<string> {
   const secret = getSecret();
   if (!secret) throw new Error("Falta SESSION_SECRET (mínim 16 caràcters)");
   const expires = Math.floor(Date.now() / 1000) + SESSION_MAX_AGE;
-  const payload = `${expires}.${role}`;
+  const payload = String(expires);
   return `${payload}.${await hmac(secret, payload)}`;
 }
 
-/** Retorna el rol de la sessió, o null si la galeta no és vàlida. */
-export async function getSessionRole(token: string | undefined): Promise<Role | null> {
-  const secret = getSecret();
-  if (!secret || !token) return null;
-  const parts = token.split(".");
-  // Galetes antigues (abans dels rols): "caducitat.firma" → eren de la dueña
-  const [expiresStr, role, sig] =
-    parts.length === 2 ? [parts[0], "admin", parts[1]] : parts.length === 3 ? parts : [];
-  if (!expiresStr || !sig || (role !== "admin" && role !== "staff")) return null;
-  const expires = Number(expiresStr);
-  if (!Number.isFinite(expires) || expires < Date.now() / 1000) return null;
-  const payload = parts.length === 2 ? expiresStr : `${expiresStr}.${role}`;
-  return safeEqual(sig, await hmac(secret, payload)) ? (role as Role) : null;
-}
-
 export async function verifySessionToken(token: string | undefined): Promise<boolean> {
-  return (await getSessionRole(token)) !== null;
+  const secret = getSecret();
+  if (!secret || !token) return false;
+  const [payload, sig] = token.split(".");
+  if (!payload || !sig) return false;
+  const expires = Number(payload);
+  if (!Number.isFinite(expires) || expires < Date.now() / 1000) return false;
+  return safeEqual(sig, await hmac(secret, payload));
 }
 
-async function matches(input: string, expected: string | undefined): Promise<boolean> {
+export async function checkPassword(input: string): Promise<boolean> {
+  const expected = process.env.ADMIN_PASSWORD;
   if (!expected) return false;
   // Comparem els hash per no filtrar la longitud ni fer comparacions amb temps variable
   const secret = getSecret() ?? "diana";
   return safeEqual(await hmac(secret, input), await hmac(secret, expected));
-}
-
-/** Contrasenya de la dueña (ADMIN_PASSWORD) o de l'equip (STAFF_PASSWORD). */
-export async function roleForPassword(input: string): Promise<Role | null> {
-  if (await matches(input, process.env.ADMIN_PASSWORD)) return "admin";
-  if (await matches(input, process.env.STAFF_PASSWORD)) return "staff";
-  return null;
-}
-
-export async function checkPassword(input: string): Promise<boolean> {
-  return (await roleForPassword(input)) !== null;
 }

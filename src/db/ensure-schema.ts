@@ -19,6 +19,11 @@ export function ensureSchema(): Promise<void> {
       CREATE UNIQUE INDEX IF NOT EXISTS client_treatments_client_service_idx
         ON client_treatments (client_id, service_id);
 
+      CREATE TABLE IF NOT EXISTS app_settings (
+        key text PRIMARY KEY,
+        value text NOT NULL
+      );
+
       CREATE TABLE IF NOT EXISTS gift_vouchers (
         id serial PRIMARY KEY,
         code text NOT NULL UNIQUE,
