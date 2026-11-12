@@ -21,6 +21,7 @@ import {
   Upload,
 } from "lucide-react";
 import { ImportClientsModal } from "@/components/ImportClientsModal";
+import { groupBySection } from "@/lib/service-catalog";
 
 const PAGE_SIZE = 60;
 import { Client, ClientStats, ClientTreatment, Professional, Service } from "@/types";
@@ -687,8 +688,12 @@ function TreatmentsEditor({
               className="col-span-12 sm:col-span-5 px-2 py-1.5 border border-stone-300 rounded-lg bg-white"
             >
               <option value="">Tria el tractament…</option>
-              {services.map((s) => (
-                <option key={s.id} value={s.id}>{s.name}</option>
+              {groupBySection(services.filter((s) => s.isActive || s.id === t.serviceId)).map(({ section, items }) => (
+                <optgroup key={section.id} label={section.label}>
+                  {items.map((s) => (
+                    <option key={s.id} value={s.id}>{s.name}</option>
+                  ))}
+                </optgroup>
               ))}
             </select>
             <div className="col-span-4 sm:col-span-2 flex items-center gap-1">

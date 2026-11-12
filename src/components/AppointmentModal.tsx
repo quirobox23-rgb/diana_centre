@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
+import { groupBySection } from "@/lib/service-catalog";
 import { X, Calendar, Clock, User, Scissors, Phone, Mail, FileText, CheckCircle2, AlertCircle, Trash2, Search } from "lucide-react";
 import { Room, Professional, Service, Appointment, Client } from "@/types";
 import { todayStr } from "@/lib/dates";
@@ -414,10 +415,14 @@ export function AppointmentModal({
                   onChange={(e) => handleServiceChange(Number(e.target.value))}
                   className="w-full px-3 py-2 text-sm border border-stone-300 rounded-lg focus:ring-2 focus:ring-terra-500 bg-white"
                 >
-                  {services.map((svc) => (
-                    <option key={svc.id} value={svc.id}>
-                      [{svc.category}] {svc.name} ({svc.price}€)
-                    </option>
+                  {groupBySection(services.filter((svc) => svc.isActive || svc.id === serviceId)).map(({ section, items }) => (
+                    <optgroup key={section.id} label={section.label}>
+                      {items.map((svc) => (
+                        <option key={svc.id} value={svc.id}>
+                          {svc.name} · {svc.durationMinutes} min{Number(svc.price) > 0 ? ` · ${Number(svc.price)} €` : ""}
+                        </option>
+                      ))}
+                    </optgroup>
                   ))}
                 </select>
               </div>

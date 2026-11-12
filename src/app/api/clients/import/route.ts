@@ -9,8 +9,8 @@ function str(v: unknown, max = 500): string | null {
   return typeof v === "string" && v.trim() ? v.trim().slice(0, max) : null;
 }
 
-// Importa moltes clientes de cop. No duplica: si el telèfon (o, sense telèfon, el nom)
-// ja existeix, la fila es salta.
+// Importa moltes clientes de cop. No duplica: si ja hi ha una clienta amb el mateix nom
+// i telèfon, la fila es salta.
 export async function POST(request: Request) {
   try {
     const body = await request.json();
@@ -24,10 +24,10 @@ export async function POST(request: Request) {
 
     const existing = await db.select({ name: clients.name, phone: clients.phone }).from(clients);
     const seen = new Set<string>();
-    const keyOf = (name: string, phone: string) => {
-      const p = phoneKey(phone);
-      return p.length >= 6 ? `t:${p}` : `n:${name.toLowerCase().replace(/\s+/g, " ")}`;
-    };
+    // Mateixa persona = mateix nom i mateix telèfon. Hi ha famílies que comparteixen
+    // el fix de casa, així que el telèfon sol no n'hi ha prou.
+    const keyOf = (name: string, phone: string) =>
+      `${name.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/\s+/g, " ").trim()}|${phoneKey(phone)}`;
     for (const c of existing) seen.add(keyOf(c.name, c.phone));
 
     const toInsert: (typeof clients.$inferInsert)[] = [];

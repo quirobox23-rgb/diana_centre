@@ -88,7 +88,7 @@ export function ImportClientsModal({ onClose, onImported }: Props) {
           {result ? (
             <div className="space-y-3 text-sm text-stone-700">
               <p className="text-base font-bold text-stone-900">{result.created} clientes importades</p>
-              {result.duplicates > 0 && <p>{result.duplicates} ja hi eren (mateix telèfon o nom) i no s&apos;han duplicat.</p>}
+              {result.duplicates > 0 && <p>{result.duplicates} ja hi eren (mateix nom i telèfon) i no s&apos;han duplicat.</p>}
               {result.invalid > 0 && <p>{result.invalid} files sense nom s&apos;han saltat.</p>}
               <button
                 onClick={() => onImported(result.created)}
@@ -160,7 +160,7 @@ export function ImportClientsModal({ onClose, onImported }: Props) {
                   </div>
 
                   <p className="text-[11px] text-stone-500">
-                    Les clientes que ja tens (mateix telèfon) no es duplicaran, així que el pots tornar a importar sense por.
+                    Les clientes que ja tens (mateix nom i telèfon) no es duplicaran, així que el pots tornar a importar sense por.
                   </p>
 
                   <button

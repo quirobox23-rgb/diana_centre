@@ -4,6 +4,7 @@ import React, { useEffect, useMemo, useState } from "react";
 import { Gift, Plus, Search, X, CheckCircle2, Ban, ChevronDown, ChevronUp } from "lucide-react";
 import { GiftVoucher, Service } from "@/types";
 import { addDays, todayStr } from "@/lib/dates";
+import { groupBySection } from "@/lib/service-catalog";
 
 const MONTHS = ["gen", "febr", "març", "abr", "maig", "juny", "jul", "ag", "set", "oct", "nov", "des"];
 function niceDate(d: string | null) {
@@ -356,8 +357,12 @@ function CreateVoucherModal({ services, onClose, onCreated }: { services: Servic
           <Field label="Servei regalat">
             <select value={serviceId} onChange={e => pickService(e.target.value)} className={inputCls} required>
               <option value="">Tria un servei</option>
-              {services.filter(s => s.isActive).map(s => (
-                <option key={s.id} value={s.id}>{s.name}</option>
+              {groupBySection(services.filter(s => s.isActive)).map(({ section, items }) => (
+                <optgroup key={section.id} label={section.label}>
+                  {items.map(s => (
+                    <option key={s.id} value={s.id}>{s.name}</option>
+                  ))}
+                </optgroup>
               ))}
             </select>
           </Field>
