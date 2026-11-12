@@ -59,6 +59,7 @@ interface ProStats {
   cancelled: number;
   minutes: number;
   revenue: number;
+  cash: number;
   services: { name: string; count: number }[];
 }
 
@@ -115,13 +116,13 @@ export function ProfessionalSummary({ professionals, canSeeMoney = true }: { pro
   const stats: ProStats[] = useMemo(() => {
     const map = new Map<number, ProStats>();
     for (const p of professionals) {
-      map.set(p.id, { id: p.id, name: p.name, color: p.color, count: 0, pending: 0, cancelled: 0, minutes: 0, revenue: 0, services: [] });
+      map.set(p.id, { id: p.id, name: p.name, color: p.color, count: 0, pending: 0, cancelled: 0, minutes: 0, revenue: 0, cash: 0, services: [] });
     }
     const svcCounts = new Map<number, Map<string, number>>();
     for (const a of appointments) {
       let s = map.get(a.professionalId);
       if (!s) {
-        s = { id: a.professionalId, name: a.professionalName || "Sense professional", color: a.professionalColor || "#a8a29e", count: 0, pending: 0, cancelled: 0, minutes: 0, revenue: 0, services: [] };
+        s = { id: a.professionalId, name: a.professionalName || "Sense professional", color: a.professionalColor || "#a8a29e", count: 0, pending: 0, cancelled: 0, minutes: 0, revenue: 0, cash: 0, services: [] };
         map.set(a.professionalId, s);
       }
       if (a.status === "cancel·lada") { s.cancelled++; continue; }
@@ -129,6 +130,7 @@ export function ProfessionalSummary({ professionals, canSeeMoney = true }: { pro
       s.count++;
       s.minutes += a.durationMinutes;
       s.revenue += parseFloat(a.price) || 0;
+      if (a.paidCash) s.cash += parseFloat(a.price) || 0;
       const sc = svcCounts.get(s.id) ?? new Map<string, number>();
       const name = a.serviceName || "Servei";
       sc.set(name, (sc.get(name) ?? 0) + 1);
@@ -143,8 +145,8 @@ export function ProfessionalSummary({ professionals, canSeeMoney = true }: { pro
   }, [appointments, professionals]);
 
   const totals = stats.reduce(
-    (t, s) => ({ count: t.count + s.count, minutes: t.minutes + s.minutes, revenue: t.revenue + s.revenue, pending: t.pending + s.pending }),
-    { count: 0, minutes: 0, revenue: 0, pending: 0 }
+    (t, s) => ({ count: t.count + s.count, minutes: t.minutes + s.minutes, revenue: t.revenue + s.revenue, cash: t.cash + s.cash, pending: t.pending + s.pending }),
+    { count: 0, minutes: 0, revenue: 0, cash: 0, pending: 0 }
   );
   const maxCount = Math.max(1, ...stats.map((s) => s.count));
 
@@ -240,8 +242,23 @@ export function ProfessionalSummary({ professionals, canSeeMoney = true }: { pro
       <p className="text-xs text-stone-500 px-1">
         <span className="font-semibold text-stone-800">{totals.count}</span> cites fetes o confirmades · {hours(totals.minutes)} de feina
         {totals.pending > 0 && <> · {totals.pending} {totals.pending === 1 ? "pendent" : "pendents"}</>}
-        {showMoney && <> · <span className="font-semibold text-stone-800">{money(totals.revenue)}</span></>}
       </p>
+
+      {/* Caixa: el que no està marcat com a efectiu es compta com a targeta */}
+      {showMoney && (
+        <div className="grid grid-cols-3 gap-3">
+          {[
+            { label: "Total", value: totals.revenue, cls: "text-stone-900" },
+            { label: "Efectiu", value: totals.cash, cls: "text-salvia-700" },
+            { label: "Targeta", value: totals.revenue - totals.cash, cls: "text-stone-700" },
+          ].map((b) => (
+            <div key={b.label} className="bg-white rounded-2xl border border-stone-200 px-4 py-3">
+              <p className="text-[11px] font-bold uppercase tracking-wider text-stone-400">{b.label}</p>
+              <p className={`text-xl font-bold ${b.cls}`}>{money(b.value)}</p>
+            </div>
+          ))}
+        </div>
+      )}
 
       {/* Targetes per professional */}
       {loading ? (
@@ -263,7 +280,9 @@ export function ProfessionalSummary({ professionals, canSeeMoney = true }: { pro
                 {showMoney && (
                   <div className="text-right">
                     <p className="text-lg font-bold text-stone-900 leading-none">{money(s.revenue)}</p>
-                    <p className="text-[11px] text-stone-500 mt-1">generat</p>
+                    <p className="text-[11px] text-stone-500 mt-1">
+                      {s.cash > 0 ? `${money(s.cash)} en efectiu` : "generat"}
+                    </p>
                   </div>
                 )}
               </div>

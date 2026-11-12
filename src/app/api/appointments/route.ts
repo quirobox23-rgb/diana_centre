@@ -3,6 +3,7 @@ import { db } from "@/db";
 import { appointments, rooms, services, professionals } from "@/db/schema";
 import { eq, and, asc, gte, lte } from "drizzle-orm";
 import { addMinutesToTime, CONFLICT_MESSAGES, findConflict } from "@/lib/availability";
+import { ensureSchema } from "@/db/ensure-schema";
 
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
 const TIME_RE = /^([01]\d|2[0-3]):[0-5]\d$/;
@@ -17,6 +18,7 @@ function invalidDateOrTime(date?: unknown, startTime?: unknown, duration?: unkno
 
 export async function GET(request: Request) {
   try {
+    await ensureSchema();
     const { searchParams } = new URL(request.url);
     const date = searchParams.get("date");
     const startDate = searchParams.get("startDate");
@@ -39,6 +41,7 @@ export async function GET(request: Request) {
       durationMinutes: appointments.durationMinutes,
       status: appointments.status,
       price: appointments.price,
+      paidCash: appointments.paidCash,
       notes: appointments.notes,
       source: appointments.source,
       createdAt: appointments.createdAt,
@@ -83,6 +86,7 @@ export async function GET(request: Request) {
 
 export async function POST(request: Request) {
   try {
+    await ensureSchema();
     const body = await request.json();
     const {
       clientName,
@@ -97,6 +101,7 @@ export async function POST(request: Request) {
       durationMinutes,
       status,
       price,
+      paidCash,
       notes,
       source,
     } = body;
@@ -143,6 +148,7 @@ export async function POST(request: Request) {
       durationMinutes: duration,
       status: status || "confirmada",
       price: price ? String(price) : "0.00",
+      paidCash: Boolean(paidCash),
       notes: notes?.trim() || null,
       source: source || "manual",
     }).returning();
@@ -156,6 +162,7 @@ export async function POST(request: Request) {
 
 export async function PUT(request: Request) {
   try {
+    await ensureSchema();
     const body = await request.json();
     const {
       id,
@@ -171,6 +178,7 @@ export async function PUT(request: Request) {
       durationMinutes,
       status,
       price,
+      paidCash,
       notes,
     } = body;
 
@@ -196,6 +204,7 @@ export async function PUT(request: Request) {
     if (notes !== undefined) updateData.notes = notes?.trim() || null;
     if (status !== undefined) updateData.status = status;
     if (price !== undefined) updateData.price = String(price);
+    if (paidCash !== undefined) updateData.paidCash = Boolean(paidCash);
 
     const [existing] = await db.select().from(appointments).where(eq(appointments.id, Number(id)));
     if (!existing) {
@@ -241,6 +250,7 @@ export async function PUT(request: Request) {
 
 export async function DELETE(request: Request) {
   try {
+    await ensureSchema();
     const { searchParams } = new URL(request.url);
     const id = searchParams.get("id");
 

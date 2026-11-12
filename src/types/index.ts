@@ -99,6 +99,7 @@ export interface Appointment {
   durationMinutes: number;
   status: "confirmada" | "pendent" | "completada" | "cancel·lada";
   price: string;
+  paidCash?: boolean;
   notes?: string | null;
   source: string;
   createdAt?: string;

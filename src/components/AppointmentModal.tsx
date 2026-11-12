@@ -56,6 +56,7 @@ export function AppointmentModal({
   const [startTime, setStartTime] = useState<string>(initialTime || "10:00");
   const [durationMinutes, setDurationMinutes] = useState<number>(60);
   const [price, setPrice] = useState<string>("45.00");
+  const [paidCash, setPaidCash] = useState(false);
   const [status, setStatus] = useState<"confirmada" | "pendent" | "completada" | "cancel·lada">("confirmada");
   const [notes, setNotes] = useState("");
   const [loading, setLoading] = useState(false);
@@ -119,9 +120,11 @@ export function AppointmentModal({
       setStartTime(appointmentToEdit.startTime);
       setDurationMinutes(appointmentToEdit.durationMinutes);
       setPrice(appointmentToEdit.price);
+      setPaidCash(Boolean(appointmentToEdit.paidCash));
       setStatus(appointmentToEdit.status);
       setNotes(appointmentToEdit.notes || "");
     } else {
+      setPaidCash(false);
       setClientName("");
       setClientPhone("");
       setClientEmail("");
@@ -233,6 +236,7 @@ export function AppointmentModal({
         startTime,
         durationMinutes: Number(durationMinutes),
         price,
+        paidCash,
         status,
         notes: notes.trim() || null,
         source: appointmentToEdit?.source || "manual",
@@ -535,6 +539,26 @@ export function AppointmentModal({
                   onChange={(e) => setPrice(e.target.value)}
                   className="w-full px-3 py-2 text-sm border border-stone-300 rounded-lg focus:ring-2 focus:ring-terra-500 font-semibold text-stone-800"
                 />
+                {/* Per defecte és targeta; només cal marcar quan paga en efectiu */}
+                <div className="mt-1.5 flex bg-stone-100 rounded-lg p-0.5 text-[11px] font-bold">
+                  {[
+                    { cash: false, label: "Targeta" },
+                    { cash: true, label: "Efectiu" },
+                  ].map((o) => (
+                    <button
+                      key={o.label}
+                      type="button"
+                      onClick={() => setPaidCash(o.cash)}
+                      className={`flex-1 py-1 rounded-md ${
+                        paidCash === o.cash
+                          ? o.cash ? "bg-salvia-600 text-white" : "bg-white text-stone-800 shadow-xs"
+                          : "text-stone-500"
+                      }`}
+                    >
+                      {o.label}
+                    </button>
+                  ))}
+                </div>
               </div>
             </div>
           </div>
