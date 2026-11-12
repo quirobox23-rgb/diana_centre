@@ -18,7 +18,12 @@ import {
   Clock,
   Sparkles,
   History,
+  Upload,
 } from "lucide-react";
+import { ImportClientsModal } from "@/components/ImportClientsModal";
+import { groupBySection } from "@/lib/service-catalog";
+
+const PAGE_SIZE = 60;
 import { Client, ClientStats, ClientTreatment, Professional, Service } from "@/types";
 
 interface ClientsManagerProps {
@@ -67,6 +72,9 @@ export function ClientsManager({ onSelectClientForBooking, services = [], profes
   const [error, setError] = useState<string | null>(null);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const [treatments, setTreatments] = useState<ClientTreatment[]>([]);
+  const [importOpen, setImportOpen] = useState(false);
+  // Amb ~2000 fitxes només en pintem unes quantes; la resta amb «Mostrar-ne més»
+  const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
 
   const fetchClients = async (searchQuery = "") => {
     setLoading(true);
@@ -86,8 +94,13 @@ export function ClientsManager({ onSelectClientForBooking, services = [], profes
     }
   };
 
+  // Esperem que s'acabi d'escriure abans de cercar
   useEffect(() => {
-    fetchClients(searchTerm);
+    const t = setTimeout(() => {
+      setVisibleCount(PAGE_SIZE);
+      fetchClients(searchTerm);
+    }, searchTerm ? 300 : 0);
+    return () => clearTimeout(t);
   }, [searchTerm]);
 
   const showToast = (msg: string) => {
@@ -221,6 +234,13 @@ export function ClientsManager({ onSelectClientForBooking, services = [], profes
 
         <div className="flex items-center space-x-3">
           <button
+            onClick={() => setImportOpen(true)}
+            className="inline-flex items-center space-x-2 px-4 py-2.5 text-xs font-bold text-terra-700 bg-terra-50 hover:bg-terra-100 border border-terra-200 rounded-xl transition-all shrink-0"
+          >
+            <Upload className="w-4 h-4" />
+            <span>Importar llistat</span>
+          </button>
+          <button
             onClick={openCreateModal}
             className="inline-flex items-center space-x-2 px-4 py-2.5 text-xs font-bold text-white bg-gradient-to-r from-terra-600 to-arcilla-600 hover:from-terra-700 hover:to-arcilla-700 rounded-xl shadow-xs transition-all shrink-0"
           >
@@ -271,7 +291,7 @@ export function ClientsManager({ onSelectClientForBooking, services = [], profes
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {clientsList.map((client) => (
+          {clientsList.slice(0, visibleCount).map((client) => (
             <div
               key={client.id}
               className="bg-white rounded-2xl p-5 border border-stone-200 shadow-xs hover:border-terra-200 hover:shadow-md transition-all flex flex-col justify-between space-y-3"
@@ -361,6 +381,28 @@ export function ClientsManager({ onSelectClientForBooking, services = [], profes
             </div>
           ))}
         </div>
+      )}
+
+      {!loading && clientsList.length > visibleCount && (
+        <div className="text-center">
+          <button
+            onClick={() => setVisibleCount((n) => n + PAGE_SIZE * 2)}
+            className="px-4 py-2 text-xs font-bold text-terra-700 bg-white border border-terra-200 hover:bg-terra-50 rounded-xl"
+          >
+            Mostrar-ne més ({clientsList.length - visibleCount} restants)
+          </button>
+        </div>
+      )}
+
+      {importOpen && (
+        <ImportClientsModal
+          onClose={() => setImportOpen(false)}
+          onImported={(created) => {
+            setImportOpen(false);
+            fetchClients(searchTerm);
+            showToast(`${created} clientes importades!`);
+          }}
+        />
       )}
 
       {/* Modal Crear o Modificar Clienta */}
@@ -646,8 +688,12 @@ function TreatmentsEditor({
               className="col-span-12 sm:col-span-5 px-2 py-1.5 border border-stone-300 rounded-lg bg-white"
             >
               <option value="">Tria el tractament…</option>
-              {services.map((s) => (
-                <option key={s.id} value={s.id}>{s.name}</option>
+              {groupBySection(services.filter((s) => s.isActive || s.id === t.serviceId)).map(({ section, items }) => (
+                <optgroup key={section.id} label={section.label}>
+                  {items.map((s) => (
+                    <option key={s.id} value={s.id}>{s.name}</option>
+                  ))}
+                </optgroup>
               ))}
             </select>
             <div className="col-span-4 sm:col-span-2 flex items-center gap-1">

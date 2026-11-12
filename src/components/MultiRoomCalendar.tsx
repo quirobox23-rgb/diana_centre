@@ -29,6 +29,7 @@ interface MultiRoomCalendarProps {
   onNewAppointment: (roomId?: number, time?: string, date?: string) => void;
   onEditAppointment: (appointment: Appointment) => void;
   onRefresh: () => void;
+  canSeeMoney?: boolean;
 }
 
 // Horaris de la graella de temps (de 09:00 a 20:30 cada 30 minuts)
@@ -116,6 +117,7 @@ export function MultiRoomCalendar({
   onNewAppointment,
   onEditAppointment,
   onRefresh,
+  canSeeMoney = true,
 }: MultiRoomCalendarProps) {
   // Mode de visualització: "day" (graella horària de 3 sales) o "week" (graella 6 dies amb les 3 sales sub-columnes)
   const [calendarMode, setCalendarMode] = useState<"day" | "week">("day");
@@ -378,8 +380,12 @@ export function MultiRoomCalendar({
           <span className="font-semibold text-stone-800">{todayAppointments.filter((a) => a.status !== "cancel·lada").length}</span> cites
           {" · "}
           {confirmedCount} confirmades
-          {" · "}
-          <span className="font-semibold text-stone-800">{todayRevenue.toFixed(0)} €</span> previstos
+          {canSeeMoney && (
+            <>
+              {" · "}
+              <span className="font-semibold text-stone-800">{todayRevenue.toFixed(0)} €</span> previstos
+            </>
+          )}
         </p>
       </div>
 

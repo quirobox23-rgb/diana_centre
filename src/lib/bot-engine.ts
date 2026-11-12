@@ -4,6 +4,17 @@ import { eq, and, sql } from "drizzle-orm";
 import { addDays, dayOfWeek, nowTimeStr, todayStr } from "@/lib/dates";
 import { addMinutesToTime } from "@/lib/availability";
 import { findClientByPhone, getClientStats, getClientTreatment, getClientTreatments } from "@/lib/client-profile";
+import { sectionOf } from "@/lib/service-catalog";
+
+// Paraules (sense accents) que fan pensar en cada secció de la carta
+const SECTION_WORDS: Record<string, string[]> = {
+  "Ulls": ["pestany", "cella", "celles", "mirada", "ulls", "lifting de pest"],
+  "Depilació": ["depila", "laser", "cera", "llavi", "aixell", "engonal", "cames", "cama", "bigoti"],
+  "Mans i Peus": ["ungles", "ungla", "manicur", "pedicur", "peus", "mans", "esmalt", "shellac", "semiperman", "acril", "gel"],
+  "Facial": ["facial", "cara", "neteja", "cutis", "pell", "golden"],
+  "Corporal": ["corporal", "massatge", "massat", "relax", "reductor", "cel·lul", "cellul", "ritual", "pindes", "radiofreq"],
+  "Altres": ["maquillatge", "maquilla", "pressoter", "solarium", "micropigment", "dietetic", "assessorament"],
+};
 
 // Paraules clau per relacionar la categoria d'un servei amb l'especialitat de cada professional.
 // Si cap professional encaixa, es fa servir qualsevol professional activa.
@@ -13,6 +24,7 @@ const CATEGORY_KEYWORDS: Record<string, string[]> = {
   "depilació": ["depila", "làser", "laser"],
   "mans i peus": ["manicura", "pedicura", "mans", "peus", "ungles"],
   "mirada": ["mirada", "pestany", "cella"],
+  "ulls": ["ulls", "mirada", "pestany", "cella"],
   "benestar": ["massatge", "benestar"],
 };
 
@@ -62,22 +74,28 @@ export async function generateBotReply(params: { clientPhone: string; clientName
 
   let matchedService = allServices[0];
   let serviceDetected = false;
-  for (const s of allServices) {
-    const sName = s.name.toLowerCase();
-    const sCat = s.category.toLowerCase();
-    if (
-      lower.includes(sName) ||
-      (sCat === "facial" && (lower.includes("facial") || lower.includes("neteja") || lower.includes("oxigen") || lower.includes("lifting") || lower.includes("pell"))) ||
-      (sCat === "corporal" && (lower.includes("corporal") || lower.includes("madero") || lower.includes("reductor"))) ||
-      (sCat === "depilació" && (lower.includes("laser") || lower.includes("làser") || lower.includes("depila") || lower.includes("cames"))) ||
-      (sCat === "mans i peus" && (lower.includes("ungles") || lower.includes("manicur") || lower.includes("pedicur") || lower.includes("peus") || lower.includes("esmalt"))) ||
-      (sCat === "mirada" && (lower.includes("pestany") || lower.includes("mirada") || lower.includes("pestanyes"))) ||
-      (sCat === "benestar" && (lower.includes("massatge") || lower.includes("relax")))
-    ) {
-      matchedService = s;
-      serviceDetected = true;
-      break;
+  const plain = (t: string) => t.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+  const msg = plain(lower);
+
+  // 1) El nom exacte d'un servei (el més llarg guanya: "cama sencera + aixelles" abans que "cama sencera")
+  const byName = allServices
+    .filter(s => msg.includes(plain(s.name)))
+    .sort((a, b) => b.name.length - a.name.length)[0];
+
+  // 2) Si no, la secció per paraules clau i, dins, el servei que comparteixi més paraules amb el missatge
+  let bySection: typeof allServices[number] | undefined;
+  if (!byName) {
+    const section = Object.entries(SECTION_WORDS).find(([, words]) => words.some(w => msg.includes(w)))?.[0];
+    if (section) {
+      const candidates = allServices.filter(s => sectionOf(s.category) === section);
+      const score = (name: string) => plain(name).split(/[^a-z0-9]+/).filter(w => w.length > 3 && msg.includes(w)).length;
+      bySection = candidates.sort((a, b) => score(b.name) - score(a.name))[0];
     }
+  }
+
+  if (byName || bySection) {
+    matchedService = (byName || bySection)!;
+    serviceDetected = true;
   }
 
   // Si el missatge no diu quin servei vol, suposem el que més es fa (o el primer de la seva fitxa)

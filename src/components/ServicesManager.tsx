@@ -1,8 +1,9 @@
 "use client";
 
 import React, { useState } from "react";
-import { Plus, Edit2, Trash2, Scissors, Clock, DollarSign, Layers, CheckCircle2, AlertCircle, X, Sparkles } from "lucide-react";
+import { Plus, Edit2, Trash2, Clock, CheckCircle2, AlertCircle, X, Sparkles, BookOpen } from "lucide-react";
 import { Service, Room } from "@/types";
+import { CENTRE_CATALOG, SERVICE_SECTIONS, groupBySection, sectionLabel, sectionOf } from "@/lib/service-catalog";
 
 interface ServicesManagerProps {
   services: Service[];
@@ -27,7 +28,10 @@ export function ServicesManager({ services, rooms, onServicesUpdated }: Services
   const [error, setError] = useState<string | null>(null);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
 
-  const categories = ["Tots", "Facial", "Corporal", "Depilació", "Mans i Peus", "Benestar", "Mirada"];
+  const [showInactive, setShowInactive] = useState(false);
+  const [loadingCatalog, setLoadingCatalog] = useState(false);
+  const categories = ["Tots", ...SERVICE_SECTIONS.map((s) => s.id)];
+  const inactiveCount = services.filter((s) => !s.isActive).length;
 
   const openCreateModal = () => {
     setEditingService(null);
@@ -45,7 +49,7 @@ export function ServicesManager({ services, rooms, onServicesUpdated }: Services
   const openEditModal = (svc: Service) => {
     setEditingService(svc);
     setName(svc.name);
-    setCategory(svc.category);
+    setCategory(sectionOf(svc.category));
     setDurationMinutes(svc.durationMinutes);
     setPrice(svc.price);
     setDescription(svc.description || "");
@@ -116,9 +120,40 @@ export function ServicesManager({ services, rooms, onServicesUpdated }: Services
   };
 
   const filteredServices = services.filter((s) => {
+    if (!showInactive && !s.isActive) return false;
     if (selectedCategory === "Tots") return true;
-    return s.category.toLowerCase() === selectedCategory.toLowerCase();
+    return sectionOf(s.category) === selectedCategory;
   });
+  const grouped = groupBySection(filteredServices);
+
+  // Carrega la carta del centre (amb les durades apuntades) sense duplicar el que ja hi ha
+  const loadCatalog = async () => {
+    if (!confirm(`Afegir els tractaments de la carta del centre (${CENTRE_CATALOG.length}) amb les seves durades? Els que ja tinguis no es dupliquen.`)) return;
+    const deactivateOthers = confirm("Vols desactivar també els serveis que no són a la carta (els d'exemple)? Les cites que ja tenen no es perden.");
+    setLoadingCatalog(true);
+    try {
+      const res = await fetch("/api/services/catalog", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ deactivateOthers }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        const d = data.data;
+        setSuccessMsg(
+          `Carta carregada: ${d.added} tractaments nous` +
+            (d.alreadyThere ? `, ${d.alreadyThere} ja hi eren` : "") +
+            (d.deactivated ? `, ${d.deactivated} d'exemple desactivats` : "") +
+            ". Recorda posar-hi els preus."
+        );
+        onServicesUpdated();
+      } else {
+        setError(data.error || "No s'ha pogut carregar la carta");
+      }
+    } finally {
+      setLoadingCatalog(false);
+    }
+  };
 
   return (
     <div className="space-y-6">
@@ -134,6 +169,15 @@ export function ServicesManager({ services, rooms, onServicesUpdated }: Services
           </p>
         </div>
 
+        <div className="flex items-center gap-2">
+        <button
+          onClick={loadCatalog}
+          disabled={loadingCatalog}
+          className="inline-flex items-center space-x-2 px-4 py-2.5 text-xs font-bold text-terra-700 bg-terra-50 hover:bg-terra-100 border border-terra-200 rounded-xl transition-all shrink-0 disabled:opacity-50"
+        >
+          <BookOpen className="w-4 h-4" />
+          <span>{loadingCatalog ? "Carregant..." : "Carregar la carta"}</span>
+        </button>
         <button
           onClick={openCreateModal}
           className="inline-flex items-center space-x-2 px-4 py-2.5 text-xs font-bold text-white bg-gradient-to-r from-terra-600 to-arcilla-600 hover:from-terra-700 hover:to-arcilla-700 rounded-xl shadow-xs transition-all shrink-0"
@@ -141,6 +185,7 @@ export function ServicesManager({ services, rooms, onServicesUpdated }: Services
           <Plus className="w-4 h-4" />
           <span>Afegir Nou Servei</span>
         </button>
+        </div>
       </div>
 
       {successMsg && (
@@ -150,7 +195,7 @@ export function ServicesManager({ services, rooms, onServicesUpdated }: Services
         </div>
       )}
 
-      {/* Filtre per categories */}
+      {/* Filtre per seccions */}
       <div className="flex flex-wrap items-center gap-2">
         {categories.map((cat) => (
           <button
@@ -162,69 +207,73 @@ export function ServicesManager({ services, rooms, onServicesUpdated }: Services
                 : "bg-white text-stone-600 hover:bg-stone-100 border border-stone-200"
             }`}
           >
-            {cat}
+            {cat === "Tots" ? "Tots" : sectionLabel(cat)}
           </button>
         ))}
-      </div>
-
-      {/* Graella de Serveis */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {filteredServices.map((svc) => (
-          <div
-            key={svc.id}
-            className="bg-white rounded-2xl p-5 border border-stone-200 shadow-xs hover:border-terra-200 hover:shadow-md transition-all flex flex-col justify-between space-y-4"
+        {inactiveCount > 0 && (
+          <button
+            onClick={() => setShowInactive((v) => !v)}
+            className="ml-auto text-[11px] font-semibold text-stone-500 hover:text-stone-800"
           >
-            <div>
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider bg-terra-50 text-terra-700 border border-terra-100">
-                  {svc.category}
-                </span>
-                <span className="text-base font-extrabold text-stone-900 bg-stone-100 px-2.5 py-1 rounded-lg">
-                  {svc.price} €
-                </span>
-              </div>
-
-              <h3 className="font-bold text-base text-stone-900 leading-snug">{svc.name}</h3>
-
-              {svc.description && (
-                <p className="text-xs text-stone-500 mt-2 line-clamp-3 leading-relaxed">
-                  {svc.description}
-                </p>
-              )}
-            </div>
-
-            <div className="border-t border-stone-100 pt-3 space-y-2 text-xs text-stone-600">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center space-x-1.5 text-stone-500">
-                  <Clock className="w-3.5 h-3.5 text-terra-500" />
-                  <span>Durada: {svc.durationMinutes} minuts</span>
-                </div>
-                <div className="flex items-center space-x-1.5 text-moka-700 font-medium">
-                  <Layers className="w-3.5 h-3.5" />
-                  <span>{svc.roomName || "Cabina per defecte"}</span>
-                </div>
-              </div>
-
-              <div className="flex items-center justify-end space-x-2 pt-2">
-                <button
-                  onClick={() => openEditModal(svc)}
-                  className="px-3 py-1.5 text-xs font-semibold text-terra-700 bg-terra-50 hover:bg-terra-100 rounded-lg transition-colors flex items-center space-x-1"
-                >
-                  <Edit2 className="w-3.5 h-3.5" />
-                  <span>Modificar</span>
-                </button>
-                <button
-                  onClick={() => handleDelete(svc.id)}
-                  className="p-1.5 text-stone-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-                  title="Eliminar"
-                >
-                  <Trash2 className="w-3.5 h-3.5" />
-                </button>
-              </div>
-            </div>
-          </div>
-        ))}
+            {showInactive ? "Amagar desactivats" : `Veure ${inactiveCount} desactivats`}
+          </button>
+        )}
       </div>
+
+      {/* Llista per seccions, com a la carta */}
+      {grouped.length === 0 ? (
+        <div className="bg-white rounded-2xl p-10 text-center border border-dashed border-stone-300 text-xs text-stone-500">
+          No hi ha serveis en aquesta secció.
+        </div>
+      ) : (
+        <div className="space-y-5">
+          {grouped.map(({ section, items }) => (
+            <section key={section.id} className="bg-white rounded-2xl border border-stone-200 shadow-xs overflow-hidden">
+              <h3 className="px-5 py-3 text-xs font-black uppercase tracking-wider text-terra-700 bg-terra-50/60 border-b border-terra-100 flex items-center justify-between">
+                <span>{section.label}</span>
+                <span className="font-semibold normal-case tracking-normal text-stone-400">{items.length}</span>
+              </h3>
+              <ul className="divide-y divide-stone-100">
+                {items.map((svc) => (
+                  <li key={svc.id} className={`px-5 py-2.5 flex items-center gap-3 ${svc.isActive ? "" : "opacity-50"}`}>
+                    <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: svc.color }} />
+                    <div className="flex-1 min-w-0">
+                      <div className="text-sm font-semibold text-stone-900 truncate">
+                        {svc.name}
+                        {!svc.isActive && <span className="ml-2 text-[10px] font-bold text-stone-400">desactivat</span>}
+                      </div>
+                      {svc.description && <div className="text-[11px] text-stone-400 truncate">{svc.description}</div>}
+                    </div>
+                    <span className="text-xs text-stone-500 inline-flex items-center gap-1 shrink-0 w-16 justify-end whitespace-nowrap">
+                      <Clock className="w-3.5 h-3.5 text-terra-400" />
+                      {svc.durationMinutes} min
+                    </span>
+                    <span className={`text-xs font-bold shrink-0 w-20 text-right whitespace-nowrap ${Number(svc.price) > 0 ? "text-stone-800" : "text-amber-600"}`}>
+                      {Number(svc.price) > 0 ? `${Number(svc.price).toFixed(Number(svc.price) % 1 ? 2 : 0)} €` : "sense preu"}
+                    </span>
+                    <button
+                      onClick={() => openEditModal(svc)}
+                      title="Modificar"
+                      className="p-1.5 text-stone-400 hover:text-terra-700 hover:bg-terra-50 rounded-lg"
+                    >
+                      <Edit2 className="w-3.5 h-3.5" />
+                    </button>
+                    {svc.isActive && (
+                      <button
+                        onClick={() => handleDelete(svc.id)}
+                        className="p-1.5 text-stone-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                        title="Desactivar"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    )}
+                  </li>
+                ))}
+              </ul>
+            </section>
+          ))}
+        </div>
+      )}
 
       {/* Modal de Crear o Modificar Servei */}
       {isModalOpen && (
@@ -275,12 +324,9 @@ export function ServicesManager({ services, rooms, onServicesUpdated }: Services
                     onChange={(e) => setCategory(e.target.value)}
                     className="w-full px-3 py-2 text-sm border border-stone-300 rounded-lg focus:ring-2 focus:ring-terra-500 bg-white"
                   >
-                    <option value="Facial">Facial</option>
-                    <option value="Corporal">Corporal</option>
-                    <option value="Depilació">Depilació Làser</option>
-                    <option value="Mans i Peus">Mans i Peus</option>
-                    <option value="Benestar">Benestar & Massatges</option>
-                    <option value="Mirada">Mirada & Pestanyes</option>
+                    {SERVICE_SECTIONS.map((sec) => (
+                      <option key={sec.id} value={sec.id}>{sec.label}</option>
+                    ))}
                   </select>
                 </div>
 

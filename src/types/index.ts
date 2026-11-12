@@ -146,3 +146,32 @@ export interface CenterSettings {
   autoReplyConfirmation: string;
   slotIntervalMinutes: number;
 }
+
+export interface GiftVoucherUse {
+  id: number;
+  voucherId: number;
+  date: string;
+  amount: string;
+  note: string | null;
+}
+
+export interface GiftVoucher {
+  id: number;
+  code: string;
+  kind: "import" | "servei";
+  amount: string;
+  remaining: string;
+  serviceId: number | null;
+  serviceText: string | null;
+  buyerName: string;
+  buyerPhone: string | null;
+  recipientName: string;
+  recipientPhone: string | null;
+  issueDate: string;
+  expiryDate: string | null;
+  paymentMethod: string | null;
+  status: "actiu" | "bescanviat" | "anul·lat";
+  notes: string | null;
+  createdAt?: string;
+  uses?: GiftVoucherUse[];
+}
