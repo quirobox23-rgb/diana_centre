@@ -89,6 +89,8 @@ export const appointments = pgTable("appointments", {
   notes: text("notes"),
   source: text("source").notNull().default("manual"), // "manual", "bot_simulador", "whatsapp", "web"
   reminderSent: boolean("reminder_sent").notNull().default(false),
+  // Pagat en efectiu? Tot el que no es marqui com a efectiu es considera pagat amb targeta
+  paidCash: boolean("paid_cash").notNull().default(false),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 

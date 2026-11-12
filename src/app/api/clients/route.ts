@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { db } from "@/db";
 import { clients, appointments } from "@/db/schema";
-import { eq, desc, ilike, or } from "drizzle-orm";
+import { eq, ilike, or } from "drizzle-orm";
 import { getAllClientSummaries } from "@/lib/client-profile";
 
 export async function GET(request: Request) {
@@ -21,7 +21,9 @@ export async function GET(request: Request) {
       ) as typeof query;
     }
 
-    const allClients = await query.orderBy(desc(clients.createdAt));
+    // Per ordre alfabètic del nom (el nom va primer: "Abel Gil Borrull"), ignorant accents i majúscules
+    const collator = new Intl.Collator("ca", { sensitivity: "base" });
+    const allClients = (await query).sort((x, y) => collator.compare(x.name, y.name));
 
     // Amb ?summary=1 afegim els tractaments habituals i els costums de cada clienta
     if (searchParams.get("summary") === "1") {

@@ -19,6 +19,8 @@ export function ensureSchema(): Promise<void> {
       CREATE UNIQUE INDEX IF NOT EXISTS client_treatments_client_service_idx
         ON client_treatments (client_id, service_id);
 
+      ALTER TABLE appointments ADD COLUMN IF NOT EXISTS paid_cash boolean NOT NULL DEFAULT false;
+
       CREATE TABLE IF NOT EXISTS app_settings (
         key text PRIMARY KEY,
         value text NOT NULL
