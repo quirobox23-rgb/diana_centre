@@ -59,7 +59,7 @@ export function formatDateCatalan(dateStr: string): string {
  * Detecta el servei desitjat, calcula 3 franges lliures reals i genera el text
  * de resposta. Utilitzat tant pel simulador (panell) com pel webhook real de WhatsApp.
  */
-export async function generateBotReply(params: { clientPhone: string; clientName: string; message: string }) {
+export async function generateBotReply(params: { clientPhone: string; clientName: string; message: string; serviceId?: number }) {
   const { clientPhone, clientName, message } = params;
   const lower = message.toLowerCase();
 
@@ -95,6 +95,13 @@ export async function generateBotReply(params: { clientPhone: string; clientName
 
   if (byName || bySection) {
     matchedService = (byName || bySection)!;
+    serviceDetected = true;
+  }
+
+  // L'agent de WhatsApp ja sap quin servei vol la clienta i el passa directament
+  const requested = params.serviceId ? allServices.find(s => s.id === params.serviceId) : undefined;
+  if (requested) {
+    matchedService = requested;
     serviceDetected = true;
   }
 

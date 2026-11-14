@@ -16,6 +16,11 @@ export async function GET(request: Request) {
     return NextResponse.json({ status: "unauthorized" }, { status: 401 });
   }
 
+  // Amb l'agent de WhatsApp propi connectat, és ell qui envia els recordatoris (amb la plantilla de Meta)
+  if (process.env.AGENT_SEND_URL) {
+    return NextResponse.json({ status: "handled_by_agent" });
+  }
+
   const tomorrowStr = addDays(todayStr(), 1);
 
   const toRemind = await db.select().from(appointments)
