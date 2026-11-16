@@ -14,6 +14,17 @@ function getClient(): twilioLib.Twilio {
 }
 
 export async function sendWhatsApp(toPhone: string, body: string): Promise<void> {
+  // Si l'agent de WhatsApp propi està connectat (AGENT_SEND_URL), els missatges surten per ell (Meta directe).
+  // Si no, es continua fent servir Twilio com fins ara.
+  if (process.env.AGENT_SEND_URL) {
+    const res = await fetch(process.env.AGENT_SEND_URL, {
+      method: "POST",
+      headers: { Authorization: `Bearer ${process.env.AGENT_SEND_KEY ?? ""}`, "Content-Type": "application/json" },
+      body: JSON.stringify({ business: process.env.AGENT_BUSINESS_ID ?? "diana", to: toPhone.replace("whatsapp:", ""), text: body }),
+    });
+    if (!res.ok) throw new Error(`L'agent de WhatsApp ha respost ${res.status}`);
+    return;
+  }
   if (!fromNumber) throw new Error("Falta la variable TWILIO_WHATSAPP_FROM");
   const to = toPhone.startsWith("whatsapp:") ? toPhone : `whatsapp:${toPhone}`;
   await getClient().messages.create({ from: fromNumber, to, body });

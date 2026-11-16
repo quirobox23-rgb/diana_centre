@@ -5,12 +5,14 @@ import { SESSION_COOKIE, verifySessionToken } from "@/lib/auth";
 // Rutes que han de ser accessibles sense iniciar sessió.
 // - El webhook de WhatsApp el crida Twilio (ja valida la seva firma).
 // - Els recordatoris els crida Vercel Cron (valida CRON_SECRET).
+// - /api/agent la crida l'agent de WhatsApp (valida AGENT_API_KEY).
 const PUBLIC_PATHS = [
   "/login",
   "/api/auth/login",
   "/api/auth/logout",
   "/api/bot/webhook",
   "/api/reminders",
+  "/api/agent",
   "/api/health",
 ];
 
