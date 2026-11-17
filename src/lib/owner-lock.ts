@@ -27,7 +27,13 @@ export async function isLockConfigured(): Promise<boolean> {
   return (await getStoredHash()) !== null;
 }
 
-export async function checkPin(pin: string): Promise<boolean> {
+/** Neteja la clau: sense espais als extrems i amb els accents sempre igual codificats. */
+export function normalizePin(pin: unknown): string {
+  return typeof pin === "string" ? pin.normalize("NFC").trim() : "";
+}
+
+export async function checkPin(rawPin: string): Promise<boolean> {
+  const pin = normalizePin(rawPin);
   const stored = await getStoredHash();
   if (!stored || !pin) return false;
   const [saltHex, hashHex] = stored.split(":");
@@ -37,7 +43,8 @@ export async function checkPin(pin: string): Promise<boolean> {
 }
 
 /** Desa la clau. Si ja n'hi havia una, només es pot canviar sabent l'anterior. */
-export async function setPin(pin: string, current?: string): Promise<boolean> {
+export async function setPin(rawPin: string, current?: string): Promise<boolean> {
+  const pin = normalizePin(rawPin);
   if ((await isLockConfigured()) && !(await checkPin(current ?? ""))) return false;
   await pool.query(
     `INSERT INTO app_settings (key, value) VALUES ($1, $2)

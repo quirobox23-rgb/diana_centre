@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useCallback, useEffect, useMemo, useState } from "react";
-import { BarChart3, ChevronLeft, ChevronRight, Eye, EyeOff } from "lucide-react";
+import { BarChart3, ChevronLeft, ChevronRight, Eye, EyeOff, Lock } from "lucide-react";
 import { Appointment, Professional } from "@/types";
 import { addDays, dayOfWeek, todayStr } from "@/lib/dates";
 
@@ -63,13 +63,21 @@ interface ProStats {
   services: { name: string; count: number }[];
 }
 
-export function ProfessionalSummary({ professionals, canSeeMoney = true }: { professionals: Professional[]; canSeeMoney?: boolean }) {
+export function ProfessionalSummary({
+  professionals,
+  canSeeMoney = true,
+  onRequestUnlock,
+}: {
+  professionals: Professional[];
+  canSeeMoney?: boolean;
+  onRequestUnlock?: (then?: () => void) => void;
+}) {
   const [mode, setMode] = useState<Mode>("week");
   const [anchor, setAnchor] = useState<string>(() => todayStr());
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [loading, setLoading] = useState(true);
   const [moneyToggle, setShowMoney] = useState(false);
-  // L'equip (contrasenya d'empleada) mai veu els imports
+  // Els imports només es veuen amb el candado de la dueña obert
   const showMoney = canSeeMoney && moneyToggle;
 
   // Recordem en aquest navegador si es volen veure els imports (per defecte, ocults)
@@ -83,6 +91,18 @@ export function ProfessionalSummary({ professionals, canSeeMoney = true }: { pro
   }, []);
 
   const toggleMoney = () => {
+    if (!canSeeMoney) {
+      // Candado tancat: demanem la clau i, si l'obre, ensenyem els imports
+      onRequestUnlock?.(() => {
+        setShowMoney(true);
+        try {
+          localStorage.setItem(MONEY_KEY, "1");
+        } catch {
+          // ignorem
+        }
+      });
+      return;
+    }
     setShowMoney((prev) => {
       try {
         localStorage.setItem(MONEY_KEY, prev ? "0" : "1");
@@ -225,7 +245,16 @@ export function ProfessionalSummary({ professionals, canSeeMoney = true }: { pro
             Avui
           </button>
 
-          {canSeeMoney && <button
+          {!canSeeMoney && onRequestUnlock ? (
+            <button
+              onClick={toggleMoney}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold rounded-lg border bg-white text-stone-600 border-stone-200 hover:bg-stone-50"
+              title="Els imports només els pot veure la dueña"
+            >
+              <Lock className="w-3.5 h-3.5" />
+              Veure imports
+            </button>
+          ) : canSeeMoney && <button
             onClick={toggleMoney}
             className={`inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold rounded-lg border ${
               showMoney ? "bg-stone-900 text-white border-stone-900" : "bg-white text-stone-600 border-stone-200 hover:bg-stone-50"
