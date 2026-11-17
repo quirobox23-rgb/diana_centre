@@ -11,7 +11,7 @@ import { ProfessionalsManager } from "@/components/ProfessionalsManager";
 import { ClientsManager } from "@/components/ClientsManager";
 import { ProfessionalSummary } from "@/components/ProfessionalSummary";
 import { GiftVouchersManager } from "@/components/GiftVouchersManager";
-import { OwnerLockModal, LockedSection, LockMode } from "@/components/OwnerLock";
+import { OwnerLockModal, LockMode } from "@/components/OwnerLock";
 import { AppointmentModal } from "@/components/AppointmentModal";
 import { Room, Professional, Service, Schedule, Appointment, Client } from "@/types";
 import { Sparkles, Calendar, Smartphone, RefreshCw, CheckCircle2 } from "lucide-react";
@@ -19,14 +19,14 @@ import { addDays, todayStr } from "@/lib/dates";
 
 export default function EsteticaDianaApp() {
   const [activeTab, setActiveTab] = useState<"calendar" | "clients" | "bot" | "services" | "schedules" | "professionals" | "pending" | "summary" | "vouchers">("pending");
-  // Candado de la dueña: obre el Resum, els imports i anul·lar xecs regal
+  // Candado de la dueña: obre els imports del Resum i anul·lar xecs regal
   const [lock, setLock] = useState({ configured: true, unlocked: false });
   const [lockModal, setLockModal] = useState<{ mode: LockMode; then?: () => void } | null>(null);
   const isAdmin = lock.unlocked;
 
   const refreshLock = useCallback(async () => {
     try {
-      const res = await fetch("/api/owner-lock");
+      const res = await fetch("/api/owner-lock", { cache: "no-store" });
       const d = await res.json();
       if (d.success) setLock({ configured: d.configured, unlocked: d.unlocked });
     } catch {
@@ -41,9 +41,28 @@ export default function EsteticaDianaApp() {
     return () => clearInterval(interval);
   }, [refreshLock]);
 
-  const requireOwner = (then?: () => void) => {
-    if (lock.unlocked) then?.();
-    else setLockModal({ mode: lock.configured ? "unlock" : "setup", then });
+  const requireOwner = async (then?: () => void) => {
+    if (lock.unlocked) {
+      then?.();
+      return;
+    }
+    // Mirem l'estat real abans d'obrir la finestra (si ja hi ha clau o s'ha de crear)
+    let configured = lock.configured;
+    try {
+      const res = await fetch("/api/owner-lock", { cache: "no-store" });
+      const d = await res.json();
+      if (d.success) {
+        configured = d.configured;
+        setLock({ configured: d.configured, unlocked: d.unlocked });
+        if (d.unlocked) {
+          then?.();
+          return;
+        }
+      }
+    } catch {
+      // fem servir el que ja sabíem
+    }
+    setLockModal({ mode: configured ? "unlock" : "setup", then });
   };
 
   const closeLock = async () => {
@@ -214,7 +233,6 @@ export default function EsteticaDianaApp() {
         onNewAppointmentClick={() => handleOpenNewAppointment()}
         pendingCount={pendingCount}
         ownerUnlocked={lock.unlocked}
-        lockedTabs={lock.unlocked ? [] : ["summary"]}
         onLockClick={() => (lock.unlocked ? closeLock() : requireOwner())}
         onChangeKey={() => setLockModal({ mode: "change" })}
       />
@@ -290,11 +308,7 @@ export default function EsteticaDianaApp() {
 
             {/* PESTANYA 3: SIMULADOR DE MÒBIL (WHATSAPP AMB 3 OPCIONS D'HORARI) */}
             {activeTab === "summary" &&
-              (isAdmin ? (
-                <ProfessionalSummary professionals={professionals} />
-              ) : (
-                <LockedSection title="Resum per professional" onUnlock={() => requireOwner()} />
-              ))}
+              <ProfessionalSummary professionals={professionals} canSeeMoney={isAdmin} onRequestUnlock={requireOwner} />}
 
             {activeTab === "vouchers" && <GiftVouchersManager services={services} isAdmin={isAdmin} onRequestUnlock={requireOwner} />}
 

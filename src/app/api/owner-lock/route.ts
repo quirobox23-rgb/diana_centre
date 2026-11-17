@@ -6,8 +6,11 @@ import {
   createOwnerToken,
   isLockConfigured,
   isOwnerUnlocked,
+  normalizePin,
   setPin,
 } from "@/lib/owner-lock";
+
+export const dynamic = "force-dynamic";
 
 export async function GET() {
   try {
@@ -15,7 +18,7 @@ export async function GET() {
       success: true,
       configured: await isLockConfigured(),
       unlocked: await isOwnerUnlocked(),
-    });
+    }, { headers: { "Cache-Control": "no-store" } });
   } catch (error) {
     console.error("Error owner lock:", error);
     return NextResponse.json({ success: false, error: "Error amb el candado" }, { status: 500 });
@@ -37,7 +40,7 @@ function withUnlockCookie(res: NextResponse) {
 export async function POST(request: Request) {
   try {
     const body = await request.json().catch(() => ({}));
-    const pin = typeof body.pin === "string" ? body.pin.trim() : "";
+    const pin = normalizePin(body.pin);
 
     if (body.action === "lock") {
       const res = NextResponse.json({ success: true, unlocked: false });
@@ -60,7 +63,7 @@ export async function POST(request: Request) {
       if (body.action === "setup" && (await isLockConfigured())) {
         return NextResponse.json({ success: false, error: "La clau ja està creada" }, { status: 400 });
       }
-      const current = typeof body.current === "string" ? body.current : "";
+      const current = normalizePin(body.current);
       if (!(await setPin(pin, current))) {
         await new Promise(r => setTimeout(r, 800));
         return NextResponse.json({ success: false, error: "La clau actual no és correcta" }, { status: 401 });
