@@ -17,8 +17,29 @@ async function hashPin(pin: string, salt = randomBytes(16)): Promise<string> {
   return `${salt.toString("hex")}:${hash.toString("hex")}`;
 }
 
+const RESET_DONE_KEY = "owner_lock_reset_done";
+
+/**
+ * Esborrat de la clau sense entrar a la base de dades: si a Vercel hi ha la variable
+ * OWNER_LOCK_RESET amb un valor nou (p. ex. la data), s'esborra la clau una sola vegada
+ * i la dueña la torna a crear des del panell. Per tornar-ho a fer, posar-hi un altre valor.
+ */
+async function applyPendingReset(): Promise<void> {
+  const token = process.env.OWNER_LOCK_RESET?.trim();
+  if (!token) return;
+  const done = await pool.query("SELECT value FROM app_settings WHERE key = $1", [RESET_DONE_KEY]);
+  if (done.rows[0]?.value === token) return;
+  await pool.query("DELETE FROM app_settings WHERE key = $1", [KEY]);
+  await pool.query(
+    `INSERT INTO app_settings (key, value) VALUES ($1, $2)
+     ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value`,
+    [RESET_DONE_KEY, token]
+  );
+}
+
 async function getStoredHash(): Promise<string | null> {
   await ensureSchema();
+  await applyPendingReset();
   const r = await pool.query("SELECT value FROM app_settings WHERE key = $1", [KEY]);
   return r.rows[0]?.value ?? null;
 }
