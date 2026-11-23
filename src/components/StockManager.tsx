@@ -1,0 +1,348 @@
+"use client";
+
+import React, { useCallback, useEffect, useMemo, useState } from "react";
+import { Package, Plus, Minus, Search, Pencil, Trash2, X, AlertTriangle, History } from "lucide-react";
+
+interface Product {
+  id: number;
+  name: string;
+  category: string | null;
+  price: string;
+  stock: number;
+  minStock: number;
+  soldThisMonth: number;
+}
+
+interface Movement {
+  id: number;
+  productId: number;
+  productName: string;
+  quantity: number;
+  kind: "venda" | "entrada" | "ajust";
+  date: string;
+  note: string | null;
+}
+
+type MoveKind = "venda" | "entrada" | "ajust";
+
+const money = (v: string | number) =>
+  new Intl.NumberFormat("es-ES", { style: "currency", currency: "EUR" }).format(Number(v) || 0);
+
+const emptyForm = { name: "", category: "", price: "", stock: "", minStock: "2" };
+
+/** Pestanya d'estoc: què hi ha, què s'ha venut i què queda. */
+export function StockManager() {
+  const [items, setItems] = useState<Product[]>([]);
+  const [recent, setRecent] = useState<Movement[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [query, setQuery] = useState("");
+  const [toast, setToast] = useState<string | null>(null);
+  const [form, setForm] = useState<typeof emptyForm & { id?: number } | null>(null);
+  const [move, setMove] = useState<{ product: Product; kind: MoveKind; quantity: string } | null>(null);
+  const [busy, setBusy] = useState(false);
+  const [showHistory, setShowHistory] = useState(false);
+
+  const load = useCallback(async () => {
+    try {
+      const res = await fetch("/api/stock", { cache: "no-store" });
+      const data = await res.json();
+      if (data.success) {
+        setItems(data.data);
+        setRecent(data.recent);
+      }
+    } catch {
+      // es tornarà a provar
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    load();
+  }, [load]);
+
+  const flash = (msg: string) => {
+    setToast(msg);
+    setTimeout(() => setToast(null), 3000);
+  };
+
+  const post = async (payload: Record<string, unknown>) => {
+    setBusy(true);
+    try {
+      const res = await fetch("/api/stock", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      const data = await res.json();
+      if (!data.success) {
+        flash(data.error || "No s'ha pogut desar");
+        return null;
+      }
+      await load();
+      return data;
+    } catch {
+      flash("Error de connexió");
+      return null;
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const saveForm = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!form) return;
+    const ok = await post(form.id ? { action: "update", ...form } : { action: "create", ...form });
+    if (ok) {
+      flash(form.id ? "Producte actualitzat" : "Producte afegit a l'estoc");
+      setForm(null);
+    }
+  };
+
+  const saveMove = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!move) return;
+    const ok = await post({ action: "move", productId: move.product.id, kind: move.kind, quantity: Number(move.quantity) });
+    if (ok) {
+      const left = ok.data.stock as number;
+      flash(
+        move.kind === "venda"
+          ? `Venda apuntada. Queden ${left} de ${move.product.name}`
+          : move.kind === "entrada"
+            ? `Entrada apuntada. Ara n'hi ha ${left}`
+            : `Recompte corregit: ${left}`
+      );
+      setMove(null);
+    }
+  };
+
+  const remove = async (p: Product) => {
+    if (!confirm(`Treure "${p.name}" de l'estoc?`)) return;
+    if (await post({ action: "delete", id: p.id })) flash("Producte tret de l'estoc");
+  };
+
+  const filtered = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    return q ? items.filter((p) => `${p.name} ${p.category ?? ""}`.toLowerCase().includes(q)) : items;
+  }, [items, query]);
+
+  const low = items.filter((p) => p.stock <= p.minStock);
+  const totalUnits = items.reduce((t, p) => t + p.stock, 0);
+  const soldMonth = items.reduce((t, p) => t + p.soldThisMonth, 0);
+
+  const input = "w-full px-3 py-2 text-sm border border-stone-300 rounded-lg focus:ring-2 focus:ring-terra-500 outline-hidden";
+
+  return (
+    <div className="space-y-4">
+      {/* Capçalera */}
+      <div className="bg-white rounded-2xl border border-stone-200 p-4 flex flex-col md:flex-row md:items-center justify-between gap-3">
+        <div className="flex items-center gap-2">
+          <Package className="w-5 h-5 text-terra-600" />
+          <h2 className="text-base font-bold text-stone-900">Estoc de productes</h2>
+        </div>
+        <div className="flex flex-wrap items-center gap-2">
+          <div className="relative">
+            <Search className="w-4 h-4 text-stone-400 absolute left-3 top-2.5" />
+            <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Busca un producte" className="pl-9 pr-3 py-2 text-sm border border-stone-200 rounded-xl outline-hidden focus:border-terra-400" />
+          </div>
+          <button onClick={() => setShowHistory((v) => !v)} className="inline-flex items-center gap-1.5 px-3 py-2 text-xs font-bold rounded-xl border border-stone-200 text-stone-600 hover:bg-stone-50">
+            <History className="w-4 h-4" /> {showHistory ? "Amagar moviments" : "Últims moviments"}
+          </button>
+          <button onClick={() => setForm({ ...emptyForm })} className="inline-flex items-center gap-1.5 px-3 py-2 text-xs font-bold text-white bg-terra-600 hover:bg-terra-700 rounded-xl">
+            <Plus className="w-4 h-4" /> Nou producte
+          </button>
+        </div>
+      </div>
+
+      {/* Resum ràpid */}
+      <div className="grid grid-cols-3 gap-3">
+        {[
+          { label: "Productes", value: items.length },
+          { label: "Unitats en estoc", value: totalUnits },
+          { label: "Venuts aquest mes", value: soldMonth },
+        ].map((b) => (
+          <div key={b.label} className="bg-white rounded-2xl border border-stone-200 px-4 py-3">
+            <p className="text-[11px] font-bold uppercase tracking-wider text-stone-400">{b.label}</p>
+            <p className="text-xl font-bold text-stone-900">{b.value}</p>
+          </div>
+        ))}
+      </div>
+
+      {low.length > 0 && (
+        <div className="flex items-start gap-2 bg-amber-50 border border-amber-200 text-amber-800 rounded-2xl px-4 py-3 text-sm">
+          <AlertTriangle className="w-4 h-4 mt-0.5 shrink-0" />
+          <p>
+            <span className="font-bold">Cal reposar:</span>{" "}
+            {low.map((p) => `${p.name} (${p.stock === 0 ? "esgotat" : `queden ${p.stock}`})`).join(" · ")}
+          </p>
+        </div>
+      )}
+
+      {showHistory && (
+        <div className="bg-white rounded-2xl border border-stone-200 p-4">
+          <h3 className="text-sm font-bold text-stone-900 mb-2">Últims moviments</h3>
+          {recent.length === 0 ? (
+            <p className="text-xs text-stone-500">Encara no hi ha cap moviment.</p>
+          ) : (
+            <ul className="divide-y divide-stone-100 text-sm">
+              {recent.map((m) => (
+                <li key={m.id} className="py-1.5 flex justify-between gap-3">
+                  <span className="truncate">
+                    <span className="text-stone-400 text-xs mr-2">{m.date.split("-").reverse().join("/")}</span>
+                    {m.productName}
+                    {m.note && <span className="text-stone-400 text-xs"> · {m.note}</span>}
+                  </span>
+                  <span className={`shrink-0 font-semibold tabular-nums ${m.quantity < 0 ? "text-red-600" : "text-salvia-700"}`}>
+                    {m.kind === "venda" ? "Venda" : m.kind === "entrada" ? "Entrada" : "Recompte"} {m.quantity > 0 ? `+${m.quantity}` : m.quantity}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+      )}
+
+      {/* Llista de productes */}
+      {loading ? (
+        <div className="py-12 text-center text-xs text-stone-500">Carregant…</div>
+      ) : items.length === 0 ? (
+        <div className="bg-white border border-stone-200 rounded-2xl p-10 text-center space-y-2">
+          <Package className="w-8 h-8 text-terra-400 mx-auto" />
+          <p className="text-sm font-semibold text-stone-800">Encara no hi ha productes</p>
+          <p className="text-xs text-stone-500">Afegeix cada producte amb les unitats que tens ara. Després, cada venda es resta sola.</p>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+          {filtered.map((p) => {
+            const state = p.stock === 0 ? "out" : p.stock <= p.minStock ? "low" : "ok";
+            return (
+              <div key={p.id} className={`bg-white rounded-2xl border p-4 space-y-3 ${state === "out" ? "border-red-200" : state === "low" ? "border-amber-200" : "border-stone-200"}`}>
+                <div className="flex items-start justify-between gap-2">
+                  <div className="min-w-0">
+                    <h3 className="font-bold text-sm text-stone-900 truncate">{p.name}</h3>
+                    <p className="text-[11px] text-stone-500">
+                      {p.category ? `${p.category} · ` : ""}
+                      {Number(p.price) > 0 ? money(p.price) : "sense preu"}
+                    </p>
+                  </div>
+                  <div className="flex gap-1 shrink-0">
+                    <button title="Editar" onClick={() => setForm({ id: p.id, name: p.name, category: p.category ?? "", price: p.price, stock: String(p.stock), minStock: String(p.minStock) })} className="p-1.5 text-stone-400 hover:text-terra-700">
+                      <Pencil className="w-4 h-4" />
+                    </button>
+                    <button title="Treure" onClick={() => remove(p)} className="p-1.5 text-stone-400 hover:text-red-600">
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  </div>
+                </div>
+
+                <div className="flex items-end justify-between">
+                  <div>
+                    <p className={`text-3xl font-bold leading-none ${state === "out" ? "text-red-600" : state === "low" ? "text-amber-600" : "text-stone-900"}`}>{p.stock}</p>
+                    <p className="text-[11px] text-stone-500 mt-1">
+                      {state === "out" ? "Esgotat" : state === "low" ? "Queda poc" : "en estoc"} · {p.soldThisMonth} venuts aquest mes
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex flex-wrap gap-2">
+                  <button
+                    onClick={() => setMove({ product: p, kind: "venda", quantity: "1" })}
+                    disabled={p.stock === 0}
+                    className="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-bold text-white bg-terra-600 hover:bg-terra-700 disabled:opacity-40 rounded-lg"
+                  >
+                    <Minus className="w-3.5 h-3.5" /> Venda
+                  </button>
+                  <button onClick={() => setMove({ product: p, kind: "entrada", quantity: "1" })} className="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-bold text-salvia-700 bg-salvia-50 hover:bg-salvia-100 border border-salvia-200 rounded-lg">
+                    <Plus className="w-3.5 h-3.5" /> Entrada
+                  </button>
+                  <button onClick={() => setMove({ product: p, kind: "ajust", quantity: String(p.stock) })} className="px-3 py-1.5 text-xs font-bold text-stone-600 bg-stone-50 hover:bg-stone-100 border border-stone-200 rounded-lg">
+                    Recompte
+                  </button>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      {/* Finestra: venda / entrada / recompte */}
+      {move && (
+        <div className="fixed inset-0 z-[60] bg-stone-900/50 flex items-center justify-center p-4" onClick={() => setMove(null)}>
+          <form onSubmit={saveMove} onClick={(e) => e.stopPropagation()} className="bg-white rounded-3xl shadow-2xl w-full max-w-xs p-6 space-y-4">
+            <div className="flex items-start justify-between">
+              <div>
+                <h3 className="font-bold text-stone-900">
+                  {move.kind === "venda" ? "Apuntar venda" : move.kind === "entrada" ? "Entrada de producte" : "Corregir recompte"}
+                </h3>
+                <p className="text-xs text-stone-500 mt-1">{move.product.name} · ara n&apos;hi ha {move.product.stock}</p>
+              </div>
+              <button type="button" onClick={() => setMove(null)} className="p-1 text-stone-400 hover:text-stone-700">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            <label className="block text-xs font-medium text-stone-700">
+              {move.kind === "ajust" ? "Unitats que hi ha de veritat" : "Quantitat"}
+              <input type="number" min={move.kind === "ajust" ? 0 : 1} step={1} inputMode="numeric" value={move.quantity} onChange={(e) => setMove({ ...move, quantity: e.target.value })} className={`${input} mt-1`} autoFocus />
+            </label>
+            {move.kind !== "ajust" && Number(move.quantity) > 0 && (
+              <p className="text-xs text-stone-500">
+                En quedaran {move.kind === "venda" ? move.product.stock - Number(move.quantity) : move.product.stock + Number(move.quantity)}
+              </p>
+            )}
+            <button type="submit" disabled={busy || move.quantity === ""} className="w-full py-2.5 text-sm font-bold text-white bg-gradient-to-r from-terra-600 to-arcilla-600 rounded-xl disabled:opacity-50">
+              {busy ? "..." : "Desar"}
+            </button>
+          </form>
+        </div>
+      )}
+
+      {/* Finestra: producte nou o editar */}
+      {form && (
+        <div className="fixed inset-0 z-[60] bg-stone-900/50 flex items-center justify-center p-4" onClick={() => setForm(null)}>
+          <form onSubmit={saveForm} onClick={(e) => e.stopPropagation()} className="bg-white rounded-3xl shadow-2xl w-full max-w-sm p-6 space-y-3">
+            <div className="flex items-start justify-between">
+              <h3 className="font-bold text-stone-900">{form.id ? "Editar producte" : "Nou producte"}</h3>
+              <button type="button" onClick={() => setForm(null)} className="p-1 text-stone-400 hover:text-stone-700">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            <label className="block text-xs font-medium text-stone-700">
+              Nom *
+              <input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} placeholder="Ex: Crema hidratant facial" className={`${input} mt-1`} autoFocus required />
+            </label>
+            <label className="block text-xs font-medium text-stone-700">
+              Tipus (opcional)
+              <input value={form.category} onChange={(e) => setForm({ ...form, category: e.target.value })} placeholder="Ex: Facial, Corporal, Olis…" className={`${input} mt-1`} />
+            </label>
+            <div className="grid grid-cols-2 gap-3">
+              <label className="block text-xs font-medium text-stone-700">
+                Preu de venda (€)
+                <input inputMode="decimal" value={form.price} onChange={(e) => setForm({ ...form, price: e.target.value })} placeholder="0,00" className={`${input} mt-1`} />
+              </label>
+              {!form.id && (
+                <label className="block text-xs font-medium text-stone-700">
+                  Unitats que hi ha
+                  <input type="number" min={0} step={1} inputMode="numeric" value={form.stock} onChange={(e) => setForm({ ...form, stock: e.target.value })} placeholder="0" className={`${input} mt-1`} />
+                </label>
+              )}
+              <label className="block text-xs font-medium text-stone-700">
+                Avisar quan en quedin
+                <input type="number" min={0} step={1} inputMode="numeric" value={form.minStock} onChange={(e) => setForm({ ...form, minStock: e.target.value })} className={`${input} mt-1`} />
+              </label>
+            </div>
+            <button type="submit" disabled={busy || !form.name.trim()} className="w-full py-2.5 text-sm font-bold text-white bg-gradient-to-r from-terra-600 to-arcilla-600 rounded-xl disabled:opacity-50">
+              {busy ? "..." : "Desar"}
+            </button>
+          </form>
+        </div>
+      )}
+
+      {toast && (
+        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-[70] bg-stone-900 text-white text-sm font-medium px-4 py-2.5 rounded-xl shadow-lg">
+          {toast}
+        </div>
+      )}
+    </div>
+  );
+}

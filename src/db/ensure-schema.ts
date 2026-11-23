@@ -53,6 +53,26 @@ export function ensureSchema(): Promise<void> {
         note text,
         created_at timestamp DEFAULT now() NOT NULL
       );
+
+      CREATE TABLE IF NOT EXISTS products (
+        id serial PRIMARY KEY,
+        name text NOT NULL,
+        category text,
+        price numeric(10,2) NOT NULL DEFAULT 0,
+        stock integer NOT NULL DEFAULT 0,
+        min_stock integer NOT NULL DEFAULT 2,
+        is_active boolean NOT NULL DEFAULT true,
+        created_at timestamp DEFAULT now() NOT NULL
+      );
+      CREATE TABLE IF NOT EXISTS stock_movements (
+        id serial PRIMARY KEY,
+        product_id integer NOT NULL REFERENCES products(id) ON DELETE CASCADE,
+        quantity integer NOT NULL,
+        kind text NOT NULL,
+        date text NOT NULL,
+        note text,
+        created_at timestamp DEFAULT now() NOT NULL
+      );
     `).then(() => undefined).catch(err => {
       ensured = null;
       throw err;

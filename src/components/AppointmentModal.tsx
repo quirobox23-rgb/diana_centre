@@ -5,11 +5,12 @@ import { groupBySection } from "@/lib/service-catalog";
 import { X, Calendar, Clock, User, Scissors, Phone, Mail, FileText, CheckCircle2, AlertCircle, Trash2, Search } from "lucide-react";
 import { Room, Professional, Service, Appointment, Client } from "@/types";
 import { todayStr } from "@/lib/dates";
+import { searchClients } from "@/lib/client-search";
 
 interface AppointmentModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSave: (savedAppointment: Appointment) => void;
+  onSave: (savedAppointment: Appointment, createdClient?: boolean) => void;
   onDelete?: (id: number) => void;
   appointmentToEdit?: Appointment | null;
   initialRoomId?: number;
@@ -49,6 +50,7 @@ export function AppointmentModal({
   const [clientPhone, setClientPhone] = useState("");
   const [clientEmail, setClientEmail] = useState("");
   const [selectedClientId, setSelectedClientId] = useState<number | null>(null);
+  const [clientQuery, setClientQuery] = useState("");
   const [roomId, setRoomId] = useState<number>(initialRoomId || (rooms[0]?.id ?? 1));
   const [serviceId, setServiceId] = useState<number>(services[0]?.id ?? 1);
   const [professionalId, setProfessionalId] = useState<number>(professionals[0]?.id ?? 1);
@@ -142,6 +144,7 @@ export function AppointmentModal({
       setProfessionalId(professionals[0]?.id ?? 1);
       setDate(initialDate || todayStr());
       setStartTime(initialTime || "10:00");
+      setClientQuery("");
       setStatus("confirmada");
       setNotes("");
       setClientTreatments([]);
@@ -255,7 +258,7 @@ export function AppointmentModal({
         return;
       }
 
-      onSave(data.data);
+      onSave(data.data, Boolean(data.createdClient));
       onClose();
     } catch (err: unknown) {
       setError("Error de xarxa: " + (err instanceof Error ? err.message : String(err)));
@@ -331,25 +334,62 @@ export function AppointmentModal({
                 <span>Dades de la Clienta</span>
               </h4>
 
-              {clients.length > 0 && !appointmentToEdit && (
-                <div className="flex items-center space-x-1.5 text-xs text-stone-500">
-                  <Search className="w-3.5 h-3.5 text-terra-600" />
-                  <span>Triar del fitxer:</span>
-                  <select
-                    value={selectedClientId ?? ""}
-                    onChange={(e) => handleSelectClient(e.target.value)}
-                    className="border border-stone-300 rounded-lg px-2 py-0.5 text-xs text-stone-800 bg-white"
-                  >
-                    <option value="">-- Clienta Registrada --</option>
-                    {clients.map((c) => (
-                      <option key={c.id} value={c.id}>
-                        {c.name} ({c.phone})
-                      </option>
-                    ))}
-                  </select>
-                </div>
+              {selectedClientId && !appointmentToEdit && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    handleSelectClient("");
+                    setClientName("");
+                    setClientPhone("");
+                    setClientEmail("");
+                  }}
+                  className="text-xs font-semibold text-terra-700 hover:underline"
+                >
+                  Canviar de clienta
+                </button>
               )}
             </div>
+
+            {clients.length > 0 && !appointmentToEdit && !selectedClientId && (
+              <div className="relative mb-3">
+                <Search className="w-4 h-4 text-terra-600 absolute left-3 top-2.5" />
+                <input
+                  type="search"
+                  value={clientQuery}
+                  onChange={(e) => setClientQuery(e.target.value)}
+                  placeholder="Busca al fitxer: nom, inicials (ex. MG) o telèfon"
+                  autoComplete="off"
+                  className="w-full pl-9 pr-3 py-2 text-sm border border-terra-200 bg-terra-50/40 rounded-lg focus:ring-2 focus:ring-terra-500 outline-hidden"
+                />
+                {clientQuery.trim() && (() => {
+                  const found = searchClients(clients, clientQuery);
+                  return (
+                    <div className="absolute z-10 left-0 right-0 mt-1 bg-white border border-stone-200 rounded-lg shadow-lg max-h-64 overflow-y-auto">
+                      {found.length === 0 ? (
+                        <p className="px-3 py-2 text-xs text-stone-500">
+                          Cap clienta trobada. Omple les dades i es guardarà com a clienta nova.
+                        </p>
+                      ) : (
+                        found.map((c) => (
+                          <button
+                            key={c.id}
+                            type="button"
+                            onClick={() => {
+                              handleSelectClient(String(c.id));
+                              setClientQuery("");
+                            }}
+                            className="w-full text-left px-3 py-2 text-sm hover:bg-terra-50 flex justify-between gap-3"
+                          >
+                            <span className="font-medium text-stone-900 truncate">{c.name}</span>
+                            <span className="text-xs text-stone-500 shrink-0">{c.phone}</span>
+                          </button>
+                        ))
+                      )}
+                    </div>
+                  );
+                })()}
+              </div>
+            )}
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
               <div>
