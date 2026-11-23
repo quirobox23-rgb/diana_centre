@@ -329,6 +329,7 @@ export default function EsteticaDianaApp() {
               <ServicesManager
                 services={services}
                 rooms={rooms}
+                professionals={professionals}
                 onServicesUpdated={() => {
                   fetchBaseData();
                   showToast("Catàleg de serveis actualitzat!");
@@ -351,6 +352,7 @@ export default function EsteticaDianaApp() {
             {activeTab === "professionals" && (
               <ProfessionalsManager
                 professionals={professionals}
+                rooms={rooms}
                 onProfessionalsUpdated={() => {
                   fetchBaseData();
                   showToast("Equip de professionals actualitzat!");

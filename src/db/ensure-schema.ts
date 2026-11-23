@@ -54,6 +54,9 @@ export function ensureSchema(): Promise<void> {
         created_at timestamp DEFAULT now() NOT NULL
       );
 
+      ALTER TABLE professionals ADD COLUMN IF NOT EXISTS default_room_id integer;
+      ALTER TABLE services ADD COLUMN IF NOT EXISTS professional_ids integer[];
+
       CREATE TABLE IF NOT EXISTS products (
         id serial PRIMARY KEY,
         name text NOT NULL,

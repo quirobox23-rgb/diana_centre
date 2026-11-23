@@ -2,16 +2,17 @@
 
 import React, { useState } from "react";
 import { Plus, Edit2, Trash2, Clock, CheckCircle2, AlertCircle, X, Sparkles, BookOpen } from "lucide-react";
-import { Service, Room } from "@/types";
+import { Service, Room, Professional } from "@/types";
 import { CENTRE_CATALOG, SERVICE_SECTIONS, groupBySection, sectionLabel, sectionOf } from "@/lib/service-catalog";
 
 interface ServicesManagerProps {
   services: Service[];
   rooms: Room[];
+  professionals?: Professional[];
   onServicesUpdated: () => void;
 }
 
-export function ServicesManager({ services, rooms, onServicesUpdated }: ServicesManagerProps) {
+export function ServicesManager({ services, rooms, professionals = [], onServicesUpdated }: ServicesManagerProps) {
   const [selectedCategory, setSelectedCategory] = useState<string>("Tots");
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingService, setEditingService] = useState<Service | null>(null);
@@ -24,6 +25,7 @@ export function ServicesManager({ services, rooms, onServicesUpdated }: Services
   const [description, setDescription] = useState("");
   const [defaultRoomId, setDefaultRoomId] = useState<number | null>(rooms[0]?.id || 1);
   const [color, setColor] = useState("#c06a44");
+  const [proIds, setProIds] = useState<number[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
@@ -42,6 +44,7 @@ export function ServicesManager({ services, rooms, onServicesUpdated }: Services
     setDescription("");
     setDefaultRoomId(rooms[0]?.id || 1);
     setColor("#c06a44");
+    setProIds([]);
     setError(null);
     setIsModalOpen(true);
   };
@@ -55,6 +58,7 @@ export function ServicesManager({ services, rooms, onServicesUpdated }: Services
     setDescription(svc.description || "");
     setDefaultRoomId(svc.defaultRoomId);
     setColor(svc.color || "#c06a44");
+    setProIds(svc.professionalIds ?? []);
     setError(null);
     setIsModalOpen(true);
   };
@@ -78,6 +82,7 @@ export function ServicesManager({ services, rooms, onServicesUpdated }: Services
         price,
         description: description.trim() || null,
         defaultRoomId: defaultRoomId ? Number(defaultRoomId) : null,
+        professionalIds: proIds,
         color,
       };
 
@@ -376,6 +381,32 @@ export function ServicesManager({ services, rooms, onServicesUpdated }: Services
                   </select>
                 </div>
               </div>
+
+              {professionals.filter((p) => p.isActive).length > 1 && (
+                <div>
+                  <label className="block font-medium text-stone-700 mb-1">Qui fa aquest tractament</label>
+                  <div className="flex flex-wrap gap-2">
+                    {professionals.filter((p) => p.isActive).map((p) => {
+                      const on = proIds.includes(p.id);
+                      return (
+                        <button
+                          key={p.id}
+                          type="button"
+                          onClick={() => setProIds(on ? proIds.filter((x) => x !== p.id) : [...proIds, p.id])}
+                          className={`px-3 py-1.5 text-xs font-semibold rounded-lg border ${on ? "bg-terra-600 text-white border-terra-600" : "bg-white text-stone-600 border-stone-300"}`}
+                        >
+                          {p.name}
+                        </button>
+                      );
+                    })}
+                  </div>
+                  <p className="text-[11px] text-stone-500 mt-1">
+                    {proIds.length === 0
+                      ? "Cap marcada: el pot fer qualsevol. El WhatsApp buscarà hores per a totes."
+                      : "El WhatsApp només buscarà hores per a les marcades."}
+                  </p>
+                </div>
+              )}
 
               <div>
                 <label className="block font-medium text-stone-700 mb-1">Descripció del Servei</label>

@@ -2,14 +2,15 @@
 
 import React, { useState } from "react";
 import { User, Plus, Edit2, Phone, Mail, Award, CheckCircle2, AlertCircle, X, Sparkles } from "lucide-react";
-import { Professional } from "@/types";
+import { Professional, Room } from "@/types";
 
 interface ProfessionalsManagerProps {
   professionals: Professional[];
+  rooms?: Room[];
   onProfessionalsUpdated: () => void;
 }
 
-export function ProfessionalsManager({ professionals, onProfessionalsUpdated }: ProfessionalsManagerProps) {
+export function ProfessionalsManager({ professionals, rooms = [], onProfessionalsUpdated }: ProfessionalsManagerProps) {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingProf, setEditingProf] = useState<Professional | null>(null);
 
@@ -18,6 +19,7 @@ export function ProfessionalsManager({ professionals, onProfessionalsUpdated }: 
   const [phone, setPhone] = useState("");
   const [email, setEmail] = useState("");
   const [color, setColor] = useState("#866353");
+  const [roomId, setRoomId] = useState<number | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
@@ -29,6 +31,7 @@ export function ProfessionalsManager({ professionals, onProfessionalsUpdated }: 
     setPhone("+34 600 00 00 00");
     setEmail("");
     setColor("#866353");
+    setRoomId(null);
     setError(null);
     setIsModalOpen(true);
   };
@@ -40,6 +43,7 @@ export function ProfessionalsManager({ professionals, onProfessionalsUpdated }: 
     setPhone(prof.phone || "");
     setEmail(prof.email || "");
     setColor(prof.color || "#866353");
+    setRoomId(prof.defaultRoomId ?? null);
     setError(null);
     setIsModalOpen(true);
   };
@@ -60,6 +64,7 @@ export function ProfessionalsManager({ professionals, onProfessionalsUpdated }: 
         phone: phone.trim() || null,
         email: email.trim() || null,
         color,
+        defaultRoomId: roomId,
       };
 
       const res = await fetch("/api/professionals", {
@@ -141,6 +146,9 @@ export function ProfessionalsManager({ professionals, onProfessionalsUpdated }: 
                 <Award className="w-3.5 h-3.5" />
                 <span>{prof.specialty || "Estètica Integral"}</span>
               </p>
+              {prof.defaultRoomId && rooms.find((r) => r.id === prof.defaultRoomId) && (
+                <p className="text-xs text-stone-500 mt-0.5">Sala: {rooms.find((r) => r.id === prof.defaultRoomId)?.name}</p>
+              )}
 
               <div className="mt-4 pt-3 border-t border-stone-100 space-y-1.5 text-xs text-stone-600">
                 {prof.phone && (
@@ -222,6 +230,23 @@ export function ProfessionalsManager({ professionals, onProfessionalsUpdated }: 
                   className="w-full px-3 py-2 text-sm border border-stone-300 rounded-lg focus:ring-2 focus:ring-moka-500"
                 />
               </div>
+
+              {rooms.length > 0 && (
+                <div>
+                  <label className="block font-medium text-stone-700 mb-1">Sala on treballa</label>
+                  <select
+                    value={roomId ?? ""}
+                    onChange={(e) => setRoomId(e.target.value ? Number(e.target.value) : null)}
+                    className="w-full px-3 py-2 text-sm border border-stone-300 rounded-lg bg-white"
+                  >
+                    <option value="">La del tractament (sense sala fixa)</option>
+                    {rooms.map((r) => (
+                      <option key={r.id} value={r.id}>{r.name}</option>
+                    ))}
+                  </select>
+                  <p className="text-[11px] text-stone-500 mt-1">Si sempre treballa a la mateixa sala, les seves cites (també les de WhatsApp) aniran sempre allà.</p>
+                </div>
+              )}
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
