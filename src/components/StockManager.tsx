@@ -124,6 +124,12 @@ export function StockManager() {
     }
   };
 
+  const importCatalog = async () => {
+    if (!confirm("Afegir els productes Aromsnatur (facial i corporal) amb el preu de la web? Entren amb 0 unitats i sense codi.")) return;
+    const ok = await post({ action: "import-catalog" });
+    if (ok) flash(ok.added > 0 ? `Afegits ${ok.added} productes. Ara posa les unitats amb "Recompte".` : "Ja hi eren tots");
+  };
+
   const remove = async (p: Product) => {
     if (!confirm(`Treure "${p.name}" de l'estoc?`)) return;
     if (await post({ action: "delete", id: p.id })) flash("Producte tret de l'estoc");
@@ -136,7 +142,8 @@ export function StockManager() {
   }, [items, query, line]);
 
   const lineItems = items.filter((p) => (p.line ?? "venda") === line);
-  const low = lineItems.filter((p) => p.stock <= p.minStock);
+  // Avís de reposar només si s'ha posat un mínim (els del catàleg comencen sense)
+  const low = lineItems.filter((p) => p.minStock > 0 && p.stock <= p.minStock);
   const totalUnits = lineItems.reduce((t, p) => t + p.stock, 0);
   const outMonth = lineItems.reduce((t, p) => t + (line === "venda" ? p.soldThisMonth : p.usedThisMonth), 0);
   // Venda: el que s'ha ingressat · Professional: el que ha costat (només despesa)
@@ -164,6 +171,11 @@ export function StockManager() {
           <button onClick={() => setShowHistory((v) => !v)} className="inline-flex items-center gap-1.5 px-3 py-2 text-xs font-bold rounded-xl border border-stone-200 text-stone-600 hover:bg-stone-50">
             <History className="w-4 h-4" /> {showHistory ? "Amagar moviments" : "Últims moviments"}
           </button>
+          {line === "venda" && !items.some((p) => p.category === "Facial" || p.category === "Corporal") && (
+            <button onClick={importCatalog} disabled={busy} className="inline-flex items-center gap-1.5 px-3 py-2 text-xs font-bold rounded-xl border border-terra-200 text-terra-700 bg-terra-50 hover:bg-terra-100 disabled:opacity-50">
+              <Package className="w-4 h-4" /> Carregar productes Aromsnatur
+            </button>
+          )}
           <button onClick={() => setForm({ ...emptyForm, line })} className="inline-flex items-center gap-1.5 px-3 py-2 text-xs font-bold text-white bg-terra-600 hover:bg-terra-700 rounded-xl">
             <Plus className="w-4 h-4" /> Nou producte
           </button>
@@ -252,7 +264,7 @@ export function StockManager() {
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
           {filtered.map((p) => {
-            const state = p.stock === 0 ? "out" : p.stock <= p.minStock ? "low" : "ok";
+            const state = p.minStock === 0 ? "ok" : p.stock === 0 ? "out" : p.stock <= p.minStock ? "low" : "ok";
             return (
               <div key={p.id} className={`bg-white rounded-2xl border p-4 space-y-3 ${state === "out" ? "border-red-200" : state === "low" ? "border-amber-200" : "border-stone-200"}`}>
                 <div className="flex items-start justify-between gap-2">
@@ -368,8 +380,8 @@ export function StockManager() {
               ))}
             </div>
             <label className="block text-xs font-medium text-stone-700">
-              Codi (opcional)
-              <input value={form.code} onChange={(e) => setForm({ ...form, code: e.target.value })} placeholder="Referència del proveïdor" className={`${input} mt-1`} />
+              Codi del TPV (opcional)
+              <input value={form.code} onChange={(e) => setForm({ ...form, code: e.target.value })} placeholder="El mateix codi que surt al TPV quan cobreu" className={`${input} mt-1`} />
             </label>
             <label className="block text-xs font-medium text-stone-700">
               Tipus (opcional)

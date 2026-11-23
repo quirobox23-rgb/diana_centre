@@ -4,6 +4,7 @@ import { products, stockMovements } from "@/db/schema";
 import { and, desc, eq, gte, inArray, sql } from "drizzle-orm";
 import { ensureSchema } from "@/db/ensure-schema";
 import { todayStr } from "@/lib/dates";
+import { AROMSNATUR_CATALOG } from "@/lib/aromsnatur-catalog";
 
 function clean(v: unknown): string | null {
   return typeof v === "string" && v.trim() ? v.trim() : null;
@@ -88,6 +89,28 @@ export async function POST(request: Request) {
         await db.insert(stockMovements).values({ productId: created.id, quantity: stock, kind: "entrada", date: todayStr(), note: "Estoc inicial" });
       }
       return NextResponse.json({ success: true, data: created });
+    }
+
+    // Carrega el catàleg Aromsnatur (venda al públic, sense codi ni unitats). No repeteix els que ja hi són.
+    if (body.action === "import-catalog") {
+      const existing = await db.select({ name: products.name }).from(products).where(eq(products.isActive, true));
+      const have = new Set(existing.map((p) => p.name.trim().toLowerCase()));
+      const toAdd = AROMSNATUR_CATALOG
+        .map((c) => ({ ...c, fullName: `${c.name} (${c.format})` }))
+        .filter((c) => !have.has(c.fullName.toLowerCase()) && !have.has(c.name.toLowerCase()));
+      if (toAdd.length > 0) {
+        await db.insert(products).values(toAdd.map((c) => ({
+          name: c.fullName,
+          category: c.category,
+          line: "venda",
+          code: null,
+          price: c.price,
+          cost: "0.00",
+          stock: 0,
+          minStock: 0,
+        })));
+      }
+      return NextResponse.json({ success: true, added: toAdd.length, skipped: AROMSNATUR_CATALOG.length - toAdd.length });
     }
 
     const id = Number(body.id ?? body.productId);
