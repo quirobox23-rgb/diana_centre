@@ -2,9 +2,18 @@ import { NextResponse } from "next/server";
 import { db } from "@/db";
 import { services, rooms } from "@/db/schema";
 import { eq, asc } from "drizzle-orm";
+import { ensureSchema } from "@/db/ensure-schema";
+
+// Llista d'ids de professionals (buida = qualsevol la pot fer)
+function proIds(v: unknown): number[] | null {
+  if (!Array.isArray(v)) return null;
+  const list = [...new Set(v.map(Number).filter((n) => Number.isInteger(n) && n > 0))];
+  return list.length ? list : null;
+}
 
 export async function GET() {
   try {
+    await ensureSchema();
     const allServices = await db.select({
       id: services.id,
       name: services.name,
@@ -13,6 +22,7 @@ export async function GET() {
       price: services.price,
       description: services.description,
       defaultRoomId: services.defaultRoomId,
+      professionalIds: services.professionalIds,
       color: services.color,
       isActive: services.isActive,
       roomName: rooms.name,
@@ -31,7 +41,7 @@ export async function GET() {
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    const { name, category, durationMinutes, price, description, defaultRoomId, color } = body;
+    const { name, category, durationMinutes, price, description, defaultRoomId, color, professionalIds } = body;
 
     if (!name || !name.trim()) {
       return NextResponse.json({ success: false, error: "El nom del servei és obligatori" }, { status: 400 });
@@ -44,6 +54,7 @@ export async function POST(request: Request) {
       price: price ? String(price) : "45.00",
       description: description?.trim() || null,
       defaultRoomId: defaultRoomId ? Number(defaultRoomId) : null,
+      professionalIds: proIds(professionalIds),
       color: color || "#f43f5e",
       isActive: true,
     }).returning();
@@ -58,7 +69,7 @@ export async function POST(request: Request) {
 export async function PUT(request: Request) {
   try {
     const body = await request.json();
-    const { id, name, category, durationMinutes, price, description, defaultRoomId, color, isActive } = body;
+    const { id, name, category, durationMinutes, price, description, defaultRoomId, color, isActive, professionalIds } = body;
 
     if (!id) {
       return NextResponse.json({ success: false, error: "Falta l'identificador del servei" }, { status: 400 });
@@ -72,6 +83,7 @@ export async function PUT(request: Request) {
         price: price !== undefined ? String(price) : undefined,
         description: description !== undefined ? description?.trim() : undefined,
         defaultRoomId: defaultRoomId !== undefined ? (defaultRoomId ? Number(defaultRoomId) : null) : undefined,
+        professionalIds: professionalIds !== undefined ? proIds(professionalIds) : undefined,
         color: color !== undefined ? color : undefined,
         isActive: isActive !== undefined ? Boolean(isActive) : undefined,
       })

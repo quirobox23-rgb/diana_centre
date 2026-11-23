@@ -118,10 +118,17 @@ export async function generateBotReply(params: { clientPhone: string; clientName
   const durationMinutes = clientTreatment?.durationMinutes || matchedService.durationMinutes;
   const preferredProId = clientTreatment?.professionalId ?? clientStats?.topProfessional?.professionalId ?? null;
 
-  const targetRoom = allRooms.find(r => r.id === matchedService.defaultRoomId) || allRooms[0];
-  let candidatePros = pickProfessionalsForCategory(allProfessionals, matchedService.category);
-  const preferredPro = allProfessionals.find(p => p.id === preferredProId);
+  const serviceRoom = allRooms.find(r => r.id === matchedService.defaultRoomId) || allRooms[0];
+  // Qui pot fer el tractament: les marcades al servei; si no n'hi ha cap, per especialitat
+  const assigned = (matchedService.professionalIds ?? []).length
+    ? allProfessionals.filter(p => matchedService.professionalIds!.includes(p.id))
+    : [];
+  let candidatePros = assigned.length ? assigned : pickProfessionalsForCategory(allProfessionals, matchedService.category);
+  const preferredPro = candidatePros.find(p => p.id === preferredProId);
   if (preferredPro) candidatePros = [preferredPro, ...candidatePros.filter(p => p.id !== preferredPro.id)];
+  // Cada professional treballa a la seva sala si en té una; si no, a la del tractament
+  const roomFor = (pro: { defaultRoomId: number | null }) =>
+    allRooms.find(r => r.id === pro.defaultRoomId) || serviceRoom;
 
   let prefersMorning = lower.includes("matí") || lower.includes("mati") || lower.includes("pronto") || lower.includes("mañana");
   let prefersAfternoon = lower.includes("tarda") || lower.includes("tarde") || lower.includes("vespre");
@@ -173,10 +180,12 @@ export async function generateBotReply(params: { clientPhone: string; clientName
         if (dayOffset === 0 && time < earliestToday) continue;
 
         const overlapping = dayAppointments.filter(apt => time < apt.endTime && endTime > apt.startTime);
-        if (overlapping.some(apt => apt.roomId === targetRoom.id)) continue;
-
-        const freePro = candidatePros.find(p => !overlapping.some(apt => apt.professionalId === p.id));
+        // La primera professional que pugui (ella i la seva sala lliures)
+        const freePro = candidatePros.find(p =>
+          !overlapping.some(apt => apt.professionalId === p.id || apt.roomId === roomFor(p).id)
+        );
         if (!freePro) continue;
+        const targetRoom = roomFor(freePro);
 
         foundSlots.push({
           date: dateStr,
@@ -205,7 +214,7 @@ export async function generateBotReply(params: { clientPhone: string; clientName
   const settings = settingsForSlots;
   const greeting = settings?.autoReplyGreeting || `Hola ${clientName.trim()}! ✨ Gràcies per contactar amb Estètica Diana.`;
 
-  let replyText = `${greeting}\n\nHe buscat a la nostra agenda per al servei de *${matchedService.name}* (${durationMinutes} min - ${matchedService.price}€).\n\nAquestes són les millors hores disponibles que et puc oferir a la *${targetRoom.name}*:\n\n`;
+  let replyText = `${greeting}\n\nHe buscat a la nostra agenda per al servei de *${matchedService.name}* (${durationMinutes} min - ${matchedService.price}€).\n\nAquestes són les millors hores disponibles que et puc oferir:\n\n`;
 
   foundSlots.forEach((slot, idx) => {
     replyText += `Opció ${idx + 1}️⃣: ${slot.displayDate} a les ${slot.time}h (amb ${slot.professionalName})\n`;

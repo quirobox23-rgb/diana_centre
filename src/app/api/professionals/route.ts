@@ -2,9 +2,11 @@ import { NextResponse } from "next/server";
 import { db } from "@/db";
 import { professionals } from "@/db/schema";
 import { eq, asc } from "drizzle-orm";
+import { ensureSchema } from "@/db/ensure-schema";
 
 export async function GET() {
   try {
+    await ensureSchema();
     const list = await db.select().from(professionals).orderBy(asc(professionals.id));
     return NextResponse.json({ success: true, data: list });
   } catch (error) {
@@ -16,7 +18,7 @@ export async function GET() {
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    const { name, email, phone, specialty, color } = body;
+    const { name, email, phone, specialty, color, defaultRoomId } = body;
 
     if (!name || !name.trim()) {
       return NextResponse.json({ success: false, error: "El nom del/la professional és obligatori" }, { status: 400 });
@@ -28,6 +30,7 @@ export async function POST(request: Request) {
       phone: phone?.trim() || null,
       specialty: specialty?.trim() || null,
       color: color || "#866353",
+      defaultRoomId: defaultRoomId ? Number(defaultRoomId) : null,
       isActive: true,
     }).returning();
 
@@ -41,7 +44,7 @@ export async function POST(request: Request) {
 export async function PUT(request: Request) {
   try {
     const body = await request.json();
-    const { id, name, email, phone, specialty, color, isActive } = body;
+    const { id, name, email, phone, specialty, color, isActive, defaultRoomId } = body;
 
     if (!id) {
       return NextResponse.json({ success: false, error: "Falta l'identificador" }, { status: 400 });
@@ -54,6 +57,7 @@ export async function PUT(request: Request) {
         phone: phone !== undefined ? phone?.trim() : undefined,
         specialty: specialty !== undefined ? specialty?.trim() : undefined,
         color: color !== undefined ? color : undefined,
+        defaultRoomId: defaultRoomId !== undefined ? (defaultRoomId ? Number(defaultRoomId) : null) : undefined,
         isActive: isActive !== undefined ? Boolean(isActive) : undefined,
       })
       .where(eq(professionals.id, Number(id)))

@@ -74,7 +74,11 @@ export function AppointmentModal({
       return;
     }
     if (t.durationMinutes) setDurationMinutes(t.durationMinutes);
-    if (t.professionalId) setProfessionalId(t.professionalId);
+    if (t.professionalId) {
+      setProfessionalId(t.professionalId);
+      const pro = professionals.find((p) => p.id === t.professionalId);
+      if (pro?.defaultRoomId && rooms.some((r) => r.id === pro.defaultRoomId)) setRoomId(pro.defaultRoomId);
+    }
     const parts = [
       t.durationMinutes ? `${t.durationMinutes} min` : null,
       t.professionalName ? `amb ${t.professionalName}` : null,
@@ -186,6 +190,13 @@ export function AppointmentModal({
     }
   };
 
+  // En triar professional, si sempre treballa a la mateixa sala, la posem
+  const chooseProfessional = (proId: number) => {
+    setProfessionalId(proId);
+    const pro = professionals.find((p) => p.id === proId);
+    if (pro?.defaultRoomId && rooms.some((r) => r.id === pro.defaultRoomId)) setRoomId(pro.defaultRoomId);
+  };
+
   const handleServiceChange = (newServiceId: number) => {
     setServiceId(newServiceId);
     const svc = services.find((s) => s.id === newServiceId);
@@ -194,6 +205,15 @@ export function AppointmentModal({
       setPrice(svc.price);
       if (svc.defaultRoomId && !appointmentToEdit) {
         setRoomId(svc.defaultRoomId);
+      }
+      // Si el tractament només el fan algunes professionals, en triem una d'elles
+      const allowed = svc.professionalIds ?? [];
+      if (!appointmentToEdit && allowed.length) {
+        if (!allowed.includes(professionalId)) chooseProfessional(allowed[0]);
+        else chooseProfessional(professionalId);
+      } else if (!appointmentToEdit) {
+        const pro = professionals.find((p) => p.id === professionalId);
+        if (pro?.defaultRoomId && rooms.some((r) => r.id === pro.defaultRoomId)) setRoomId(pro.defaultRoomId);
       }
     }
     if (!appointmentToEdit) applyClientTreatment(newServiceId, clientTreatments);
@@ -496,7 +516,7 @@ export function AppointmentModal({
                 </label>
                 <select
                   value={professionalId}
-                  onChange={(e) => setProfessionalId(Number(e.target.value))}
+                  onChange={(e) => chooseProfessional(Number(e.target.value))}
                   className="w-full px-3 py-2 text-sm border border-stone-300 rounded-lg focus:ring-2 focus:ring-terra-500 bg-white font-medium"
                 >
                   {professionals.map((prof) => (

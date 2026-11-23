@@ -14,6 +14,7 @@ export interface Professional {
   phone: string | null;
   specialty: string | null;
   color: string;
+  defaultRoomId?: number | null;
   isActive: boolean;
 }
 
@@ -25,6 +26,7 @@ export interface Service {
   price: string;
   description: string | null;
   defaultRoomId: number | null;
+  professionalIds?: number[] | null;
   color: string;
   isActive: boolean;
   roomName?: string | null;

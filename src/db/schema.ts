@@ -17,6 +17,7 @@ export const professionals = pgTable("professionals", {
   phone: text("phone"),
   specialty: text("specialty"),
   color: text("color").notNull().default("#866353"),
+  defaultRoomId: integer("default_room_id"), // sala on treballa sempre (si en té una)
   isActive: boolean("is_active").notNull().default(true),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
@@ -29,6 +30,7 @@ export const services = pgTable("services", {
   price: numeric("price", { precision: 10, scale: 2 }).notNull().default("45.00"),
   description: text("description"),
   defaultRoomId: integer("default_room_id").references(() => rooms.id),
+  professionalIds: integer("professional_ids").array(), // qui el pot fer (buit = qualsevol)
   color: text("color").notNull().default("#a85436"),
   isActive: boolean("is_active").notNull().default(true),
   createdAt: timestamp("created_at").defaultNow().notNull(),
