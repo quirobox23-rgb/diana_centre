@@ -1,15 +1,19 @@
 import { NextResponse } from "next/server";
 import { db } from "@/db";
-import { botSimulations } from "@/db/schema";
+import { botSimulations, services } from "@/db/schema";
 import { eq, desc } from "drizzle-orm";
 
 // Sol·licituds de WhatsApp on la clienta ja ha triat i confirmat un horari,
 // i ara esperen que la professional les confirmi des del panell.
 export async function GET() {
   try {
-    const pending = await db.select().from(botSimulations)
+    // Amb el nom i la durada del tractament, perquè es vegi què s'ha de confirmar
+    const rows = await db.select({ sim: botSimulations, serviceName: services.name, serviceDuration: services.durationMinutes })
+      .from(botSimulations)
+      .leftJoin(services, eq(botSimulations.detectedServiceId, services.id))
       .where(eq(botSimulations.status, "pendent_confirmacio"))
       .orderBy(desc(botSimulations.createdAt));
+    const pending = rows.map(r => ({ ...r.sim, serviceName: r.serviceName, serviceDuration: r.serviceDuration }));
 
     return NextResponse.json({ success: true, pending });
   } catch (error) {
