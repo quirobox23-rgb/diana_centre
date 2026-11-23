@@ -9,7 +9,7 @@ import { findClientByPhone } from "@/lib/client-profile";
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    const { simulationId, slotIndex, manualSlot, clientName, clientPhone } = body;
+    const { simulationId, slotIndex, manualSlot, clientName, clientPhone, modified } = body;
 
     let targetSlot = manualSlot;
     let targetClientName = clientName;
@@ -37,6 +37,11 @@ export async function POST(request: Request) {
           }
         }
       }
+    }
+
+    // La propietària ha canviat el dia o l'hora des de "Sol·licituds pendents"
+    if (modified && manualSlot?.date && manualSlot?.time && manualSlot?.endTime) {
+      targetSlot = { ...targetSlot, ...manualSlot };
     }
 
     if (!targetSlot) {

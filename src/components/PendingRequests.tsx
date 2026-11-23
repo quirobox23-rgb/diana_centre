@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useCallback } from "react";
-import { MessageCircle, Clock, Calendar, User, Phone, CheckCircle2, X, RefreshCw, AlertCircle } from "lucide-react";
+import { MessageCircle, Clock, Calendar, User, Phone, CheckCircle2, X, RefreshCw, AlertCircle, Sparkles, Pencil } from "lucide-react";
 import { ProposedSlot } from "@/types";
 
 interface PendingRequest {
@@ -12,6 +12,7 @@ interface PendingRequest {
   proposedSlots: string | null;
   selectedSlotIndex: number | null;
   createdAt: string;
+  serviceName?: string | null;
 }
 
 interface PendingRequestsProps {
@@ -23,6 +24,8 @@ export function PendingRequests({ onConfirmed }: PendingRequestsProps) {
   const [loading, setLoading] = useState(true);
   const [confirmingId, setConfirmingId] = useState<number | null>(null);
   const [toast, setToast] = useState<string | null>(null);
+  // Modificar el dia o l'hora abans de confirmar
+  const [editing, setEditing] = useState<{ id: number; date: string; time: string } | null>(null);
 
   const load = useCallback(async () => {
     try {
@@ -49,17 +52,31 @@ export function PendingRequests({ onConfirmed }: PendingRequestsProps) {
 
   const handleConfirm = async (req: PendingRequest) => {
     if (req.selectedSlotIndex === null || req.selectedSlotIndex === undefined) return;
+    const slots: ProposedSlot[] = req.proposedSlots ? JSON.parse(req.proposedSlots) : [];
+    const original = slots[req.selectedSlotIndex];
+    const edit = editing?.id === req.id ? editing : null;
+    let manualSlot: ProposedSlot | undefined;
+    if (edit && original && (edit.date !== original.date || edit.time !== original.time)) {
+      // Mantenim la mateixa durada, sala i professional; només canvia el dia o l'hora
+      const toMin = (t: string) => { const [h, m] = t.split(":").map(Number); return h * 60 + m; };
+      const end = toMin(edit.time) + (toMin(original.endTime) - toMin(original.time));
+      const endTime = `${String(Math.floor(end / 60)).padStart(2, "0")}:${String(end % 60).padStart(2, "0")}`;
+      const displayDate = new Intl.DateTimeFormat("ca-ES", { weekday: "long", day: "numeric", month: "long", timeZone: "UTC" })
+        .format(new Date(`${edit.date}T00:00:00Z`));
+      manualSlot = { ...original, date: edit.date, time: edit.time, endTime, displayDate };
+    }
     setConfirmingId(req.id);
     try {
       const res = await fetch("/api/bot/confirm", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ simulationId: req.id, slotIndex: req.selectedSlotIndex }),
+        body: JSON.stringify({ simulationId: req.id, slotIndex: req.selectedSlotIndex, manualSlot, modified: !!manualSlot }),
       });
       const data = await res.json();
       if (data.success) {
         showToast(data.whatsappSent ? "Cita confirmada i WhatsApp enviat ✅" : "Cita confirmada (no s'ha pogut enviar el WhatsApp)");
         setPending(prev => prev.filter(p => p.id !== req.id));
+        setEditing(null);
         onConfirmed();
       } else {
         showToast(data.error || "Error al confirmar");
@@ -129,7 +146,15 @@ export function PendingRequests({ onConfirmed }: PendingRequestsProps) {
                   </span>
                 </div>
 
-                <p className="text-xs text-stone-500 bg-stone-50 rounded-lg p-2 mb-3 italic">"{req.incomingMessage}"</p>
+                {req.serviceName && (
+                  <div className="flex items-center gap-1.5 text-sm font-bold text-stone-900 mb-2">
+                    <Sparkles className="w-4 h-4 text-terra-500" /> {req.serviceName}
+                  </div>
+                )}
+
+                {req.incomingMessage?.trim() && !["matí", "tarda"].includes(req.incomingMessage.trim()) && (
+                  <p className="text-xs text-stone-500 bg-stone-50 rounded-lg p-2 mb-3 italic">&ldquo;{req.incomingMessage}&rdquo;</p>
+                )}
 
                 {slot ? (
                   <div className="flex items-center gap-4 bg-terra-50 rounded-lg p-3 mb-3 text-sm">
@@ -145,7 +170,23 @@ export function PendingRequests({ onConfirmed }: PendingRequestsProps) {
                   <p className="text-sm text-stone-400 italic mb-3">Encara no ha triat cap horari.</p>
                 )}
 
-                <div className="flex gap-2">
+                {slot && editing?.id === req.id && (
+                  <div className="flex flex-wrap items-end gap-3 bg-stone-50 border border-stone-200 rounded-lg p-3 mb-3 text-sm">
+                    <label className="flex flex-col gap-1 text-xs font-semibold text-stone-600">
+                      Dia
+                      <input type="date" value={editing.date} onChange={e => setEditing({ ...editing, date: e.target.value })}
+                        className="px-2 py-1.5 border border-stone-200 rounded-lg text-sm font-normal text-stone-900" />
+                    </label>
+                    <label className="flex flex-col gap-1 text-xs font-semibold text-stone-600">
+                      Hora
+                      <input type="time" step={300} value={editing.time} onChange={e => setEditing({ ...editing, time: e.target.value })}
+                        className="px-2 py-1.5 border border-stone-200 rounded-lg text-sm font-normal text-stone-900" />
+                    </label>
+                    <p className="text-xs text-stone-500 basis-full">Mateixa durada, sala i professional. En confirmar, es comprova que estigui lliure.</p>
+                  </div>
+                )}
+
+                <div className="flex flex-wrap gap-2">
                   <button
                     onClick={() => handleConfirm(req)}
                     disabled={!slot || confirmingId === req.id}
@@ -154,6 +195,14 @@ export function PendingRequests({ onConfirmed }: PendingRequestsProps) {
                     <CheckCircle2 className="w-4 h-4" />
                     {confirmingId === req.id ? "Confirmant..." : "Confirmar i avisar per WhatsApp"}
                   </button>
+                  {slot && (
+                    <button
+                      onClick={() => setEditing(editing?.id === req.id ? null : { id: req.id, date: slot.date, time: slot.time })}
+                      className="flex items-center gap-1.5 bg-white border border-terra-200 hover:bg-terra-50 text-terra-700 text-sm font-medium px-3 py-2 rounded-lg transition-colors"
+                    >
+                      <Pencil className="w-4 h-4" /> {editing?.id === req.id ? "Deixar com estava" : "Modificar"}
+                    </button>
+                  )}
                   <button
                     onClick={() => handleDismiss(req.id)}
                     className="flex items-center gap-1.5 bg-stone-100 hover:bg-stone-200 text-stone-600 text-sm font-medium px-3 py-2 rounded-lg transition-colors"
