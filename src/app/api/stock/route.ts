@@ -1,9 +1,10 @@
 import { NextResponse } from "next/server";
 import { db } from "@/db";
 import { products, stockMovements } from "@/db/schema";
-import { and, desc, eq, gte, sql } from "drizzle-orm";
+import { and, desc, eq, gte, inArray, sql } from "drizzle-orm";
 import { ensureSchema } from "@/db/ensure-schema";
 import { todayStr } from "@/lib/dates";
+import { AROMSNATUR_CATALOG } from "@/lib/aromsnatur-catalog";
 
 function clean(v: unknown): string | null {
   return typeof v === "string" && v.trim() ? v.trim() : null;
@@ -25,12 +26,18 @@ export async function GET() {
     await ensureSchema();
     const monthStart = `${todayStr().slice(0, 7)}-01`;
     const list = await db.select().from(products).where(eq(products.isActive, true)).orderBy(products.name);
-    const sold = await db
-      .select({ productId: stockMovements.productId, qty: sql<number>`coalesce(sum(-${stockMovements.quantity}), 0)::int` })
+    // Sortides del mes: venudes (al públic) o gastades al centre (ús professional)
+    const out = await db
+      .select({
+        productId: stockMovements.productId,
+        kind: stockMovements.kind,
+        qty: sql<number>`coalesce(sum(-${stockMovements.quantity}), 0)::int`,
+      })
       .from(stockMovements)
-      .where(and(eq(stockMovements.kind, "venda"), gte(stockMovements.date, monthStart)))
-      .groupBy(stockMovements.productId);
-    const soldMap = new Map(sold.map((s) => [s.productId, Number(s.qty)]));
+      .where(and(inArray(stockMovements.kind, ["venda", "us"]), gte(stockMovements.date, monthStart)))
+      .groupBy(stockMovements.productId, stockMovements.kind);
+    const soldMap = new Map(out.filter((s) => s.kind === "venda").map((s) => [s.productId, Number(s.qty)]));
+    const usedMap = new Map(out.filter((s) => s.kind === "us").map((s) => [s.productId, Number(s.qty)]));
 
     const recent = await db
       .select({
@@ -49,7 +56,7 @@ export async function GET() {
 
     return NextResponse.json({
       success: true,
-      data: list.map((p) => ({ ...p, soldThisMonth: soldMap.get(p.id) ?? 0 })),
+      data: list.map((p) => ({ ...p, soldThisMonth: soldMap.get(p.id) ?? 0, usedThisMonth: usedMap.get(p.id) ?? 0 })),
       recent,
     });
   } catch (error) {
@@ -71,7 +78,10 @@ export async function POST(request: Request) {
       const [created] = await db.insert(products).values({
         name,
         category: clean(body.category),
-        price: money(body.price),
+        line: body.line === "professional" ? "professional" : "venda",
+        code: clean(body.code),
+        price: body.line === "professional" ? "0.00" : money(body.price),
+        cost: money(body.cost),
         stock,
         minStock: wholeNumber(body.minStock) ?? 2,
       }).returning();
@@ -79,6 +89,28 @@ export async function POST(request: Request) {
         await db.insert(stockMovements).values({ productId: created.id, quantity: stock, kind: "entrada", date: todayStr(), note: "Estoc inicial" });
       }
       return NextResponse.json({ success: true, data: created });
+    }
+
+    // Carrega el catàleg Aromsnatur (venda al públic, sense codi ni unitats). No repeteix els que ja hi són.
+    if (body.action === "import-catalog") {
+      const existing = await db.select({ name: products.name }).from(products).where(eq(products.isActive, true));
+      const have = new Set(existing.map((p) => p.name.trim().toLowerCase()));
+      const toAdd = AROMSNATUR_CATALOG
+        .map((c) => ({ ...c, fullName: `${c.name} (${c.format})` }))
+        .filter((c) => !have.has(c.fullName.toLowerCase()) && !have.has(c.name.toLowerCase()));
+      if (toAdd.length > 0) {
+        await db.insert(products).values(toAdd.map((c) => ({
+          name: c.fullName,
+          category: c.category,
+          line: "venda",
+          code: null,
+          price: c.price,
+          cost: "0.00",
+          stock: 0,
+          minStock: 0,
+        })));
+      }
+      return NextResponse.json({ success: true, added: toAdd.length, skipped: AROMSNATUR_CATALOG.length - toAdd.length });
     }
 
     const id = Number(body.id ?? body.productId);
@@ -90,7 +122,10 @@ export async function POST(request: Request) {
       const [updated] = await db.update(products).set({
         name,
         category: clean(body.category),
-        price: money(body.price),
+        line: body.line === "professional" ? "professional" : "venda",
+        code: clean(body.code),
+        price: body.line === "professional" ? "0.00" : money(body.price),
+        cost: money(body.cost),
         minStock: wholeNumber(body.minStock) ?? 2,
       }).where(eq(products.id, id)).returning();
       return NextResponse.json({ success: true, data: updated });
@@ -104,14 +139,15 @@ export async function POST(request: Request) {
     if (body.action === "move") {
       const kind = body.kind;
       const qty = wholeNumber(body.quantity);
-      if (!["venda", "entrada", "ajust"].includes(kind) || qty === null) {
+      if (!["venda", "us", "entrada", "ajust"].includes(kind) || qty === null) {
         return NextResponse.json({ success: false, error: "Quantitat no vàlida" }, { status: 400 });
       }
       const [product] = await db.select().from(products).where(eq(products.id, id));
       if (!product) return NextResponse.json({ success: false, error: "No trobo el producte" }, { status: 404 });
 
-      // Venda: resta · Entrada: suma · Ajust: el recompte real que hi ha ara
-      const delta = kind === "venda" ? -qty : kind === "entrada" ? qty : qty - product.stock;
+      // Venda / ús al centre: resta · Entrada: suma · Ajust: el recompte real que hi ha ara
+      // (l'ús professional no compta com a venda: només com a despesa, a preu de compra)
+      const delta = kind === "venda" || kind === "us" ? -qty : kind === "entrada" ? qty : qty - product.stock;
       if (kind !== "ajust" && qty === 0) {
         return NextResponse.json({ success: false, error: "Posa una quantitat" }, { status: 400 });
       }
