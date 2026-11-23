@@ -150,3 +150,26 @@ export const giftVoucherUses = pgTable("gift_voucher_uses", {
   note: text("note"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
+
+// Stock de productes que es venen al centre
+export const products = pgTable("products", {
+  id: serial("id").primaryKey(),
+  name: text("name").notNull(),
+  category: text("category"),
+  price: numeric("price", { precision: 10, scale: 2 }).notNull().default("0.00"),
+  stock: integer("stock").notNull().default(0),
+  minStock: integer("min_stock").notNull().default(2), // avís de "queda poc"
+  isActive: boolean("is_active").notNull().default(true),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+// Cada venda (quantitat negativa), entrada de producte (positiva) o ajust de recompte
+export const stockMovements = pgTable("stock_movements", {
+  id: serial("id").primaryKey(),
+  productId: integer("product_id").notNull().references(() => products.id, { onDelete: "cascade" }),
+  quantity: integer("quantity").notNull(),
+  kind: text("kind").notNull(), // "venda", "entrada", "ajust"
+  date: text("date").notNull(), // YYYY-MM-DD
+  note: text("note"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});

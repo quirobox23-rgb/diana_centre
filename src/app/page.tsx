@@ -11,6 +11,7 @@ import { ProfessionalsManager } from "@/components/ProfessionalsManager";
 import { ClientsManager } from "@/components/ClientsManager";
 import { ProfessionalSummary } from "@/components/ProfessionalSummary";
 import { GiftVouchersManager } from "@/components/GiftVouchersManager";
+import { StockManager } from "@/components/StockManager";
 import { OwnerLockModal, LockMode } from "@/components/OwnerLock";
 import { AppointmentModal } from "@/components/AppointmentModal";
 import { Room, Professional, Service, Schedule, Appointment, Client } from "@/types";
@@ -18,7 +19,7 @@ import { Sparkles, Calendar, Smartphone, RefreshCw, CheckCircle2 } from "lucide-
 import { addDays, todayStr } from "@/lib/dates";
 
 export default function EsteticaDianaApp() {
-  const [activeTab, setActiveTab] = useState<"calendar" | "clients" | "bot" | "services" | "schedules" | "professionals" | "pending" | "summary" | "vouchers">("pending");
+  const [activeTab, setActiveTab] = useState<"calendar" | "clients" | "bot" | "services" | "schedules" | "professionals" | "pending" | "summary" | "vouchers" | "stock">("pending");
   // Candado de la dueña: obre els imports del Resum i anul·lar xecs regal
   const [lock, setLock] = useState({ configured: true, unlocked: false });
   const [lockModal, setLockModal] = useState<{ mode: LockMode; then?: () => void } | null>(null);
@@ -192,13 +193,15 @@ export default function EsteticaDianaApp() {
     setIsModalOpen(true);
   };
 
-  const handleSaveAppointment = (saved: Appointment) => {
+  const handleSaveAppointment = (saved: Appointment, createdClient?: boolean) => {
     fetchAppointments();
     fetchBaseData(); // Actualitza fitxer clientes si cal
     showToast(
       appointmentToEdit
         ? `Cita de ${saved.clientName} modificada correctament!`
-        : `Nova cita de ${saved.clientName} afegida a l'agenda!`
+        : createdClient
+          ? `Nova cita de ${saved.clientName} afegida i guardada com a clienta nova!`
+          : `Nova cita de ${saved.clientName} afegida a l'agenda!`
     );
   };
 
@@ -309,6 +312,8 @@ export default function EsteticaDianaApp() {
             {/* PESTANYA 3: SIMULADOR DE MÒBIL (WHATSAPP AMB 3 OPCIONS D'HORARI) */}
             {activeTab === "summary" &&
               <ProfessionalSummary professionals={professionals} canSeeMoney={isAdmin} onRequestUnlock={requireOwner} />}
+
+            {activeTab === "stock" && <StockManager />}
 
             {activeTab === "vouchers" && <GiftVouchersManager services={services} isAdmin={isAdmin} onRequestUnlock={requireOwner} />}
 

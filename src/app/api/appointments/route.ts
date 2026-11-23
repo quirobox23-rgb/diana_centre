@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { db } from "@/db";
-import { appointments, rooms, services, professionals } from "@/db/schema";
+import { appointments, rooms, services, professionals, clients } from "@/db/schema";
+import { findClientByPhone } from "@/lib/client-profile";
 import { eq, and, asc, gte, lte } from "drizzle-orm";
 import { addMinutesToTime, CONFLICT_MESSAGES, findConflict } from "@/lib/availability";
 import { ensureSchema } from "@/db/ensure-schema";
@@ -134,11 +135,29 @@ export async function POST(request: Request) {
       return NextResponse.json({ success: false, error: CONFLICT_MESSAGES[conflict] }, { status: 409 });
     }
 
+    // Si la clienta no és al fitxer (mateix telèfon), la donem d'alta automàticament
+    let linkedClientId: number | null = clientId ? Number(clientId) : null;
+    let createdClient = false;
+    if (!linkedClientId) {
+      const existing = await findClientByPhone(clientPhone);
+      if (existing) {
+        linkedClientId = existing.id;
+      } else {
+        const [created] = await db.insert(clients).values({
+          name: clientName.trim(),
+          phone: clientPhone.trim(),
+          email: clientEmail?.trim() || null,
+        }).returning();
+        linkedClientId = created.id;
+        createdClient = true;
+      }
+    }
+
     const [newAppointment] = await db.insert(appointments).values({
       clientName: clientName.trim(),
       clientPhone: clientPhone.trim(),
       clientEmail: clientEmail?.trim() || null,
-      clientId: clientId ? Number(clientId) : null,
+      clientId: linkedClientId,
       roomId: Number(roomId),
       serviceId: Number(serviceId),
       professionalId: Number(professionalId),
@@ -153,7 +172,7 @@ export async function POST(request: Request) {
       source: source || "manual",
     }).returning();
 
-    return NextResponse.json({ success: true, data: newAppointment });
+    return NextResponse.json({ success: true, data: newAppointment, createdClient });
   } catch (error) {
     console.error("Error creating appointment:", error);
     return NextResponse.json({ success: false, error: "Error al crear la cita" }, { status: 500 });
