@@ -158,7 +158,10 @@ export const products = pgTable("products", {
   id: serial("id").primaryKey(),
   name: text("name").notNull(),
   category: text("category"),
-  price: numeric("price", { precision: 10, scale: 2 }).notNull().default("0.00"),
+  line: text("line").notNull().default("venda"), // "venda" (al públic) · "professional" (ús del centre)
+  code: text("code"),
+  price: numeric("price", { precision: 10, scale: 2 }).notNull().default("0.00"), // preu de venda
+  cost: numeric("cost", { precision: 10, scale: 2 }).notNull().default("0.00"), // preu de compra
   stock: integer("stock").notNull().default(0),
   minStock: integer("min_stock").notNull().default(2), // avís de "queda poc"
   isActive: boolean("is_active").notNull().default(true),
@@ -170,7 +173,7 @@ export const stockMovements = pgTable("stock_movements", {
   id: serial("id").primaryKey(),
   productId: integer("product_id").notNull().references(() => products.id, { onDelete: "cascade" }),
   quantity: integer("quantity").notNull(),
-  kind: text("kind").notNull(), // "venda", "entrada", "ajust"
+  kind: text("kind").notNull(), // "venda", "us" (gastat al centre), "entrada", "ajust"
   date: text("date").notNull(), // YYYY-MM-DD
   note: text("note"),
   createdAt: timestamp("created_at").defaultNow().notNull(),

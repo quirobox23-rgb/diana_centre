@@ -67,6 +67,10 @@ export function ensureSchema(): Promise<void> {
         is_active boolean NOT NULL DEFAULT true,
         created_at timestamp DEFAULT now() NOT NULL
       );
+      ALTER TABLE products ADD COLUMN IF NOT EXISTS line text NOT NULL DEFAULT 'venda';
+      ALTER TABLE products ADD COLUMN IF NOT EXISTS code text;
+      ALTER TABLE products ADD COLUMN IF NOT EXISTS cost numeric(10,2) NOT NULL DEFAULT 0;
+
       CREATE TABLE IF NOT EXISTS stock_movements (
         id serial PRIMARY KEY,
         product_id integer NOT NULL REFERENCES products(id) ON DELETE CASCADE,

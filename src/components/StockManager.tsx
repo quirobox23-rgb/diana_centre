@@ -7,10 +7,14 @@ interface Product {
   id: number;
   name: string;
   category: string | null;
+  line: "venda" | "professional";
+  code: string | null;
   price: string;
+  cost: string;
   stock: number;
   minStock: number;
   soldThisMonth: number;
+  usedThisMonth: number;
 }
 
 interface Movement {
@@ -18,17 +22,18 @@ interface Movement {
   productId: number;
   productName: string;
   quantity: number;
-  kind: "venda" | "entrada" | "ajust";
+  kind: "venda" | "us" | "entrada" | "ajust";
   date: string;
   note: string | null;
 }
 
-type MoveKind = "venda" | "entrada" | "ajust";
+type MoveKind = "venda" | "us" | "entrada" | "ajust";
+type Line = "venda" | "professional";
 
 const money = (v: string | number) =>
   new Intl.NumberFormat("es-ES", { style: "currency", currency: "EUR" }).format(Number(v) || 0);
 
-const emptyForm = { name: "", category: "", price: "", stock: "", minStock: "2" };
+const emptyForm = { name: "", category: "", code: "", line: "venda" as Line, price: "", cost: "", stock: "", minStock: "2" };
 
 /** Pestanya d'estoc: què hi ha, què s'ha venut i què queda. */
 export function StockManager() {
@@ -41,6 +46,8 @@ export function StockManager() {
   const [move, setMove] = useState<{ product: Product; kind: MoveKind; quantity: string } | null>(null);
   const [busy, setBusy] = useState(false);
   const [showHistory, setShowHistory] = useState(false);
+  // Dues línies: productes per vendre a les clientes i productes que gasta el centre
+  const [line, setLine] = useState<Line>("venda");
 
   const load = useCallback(async () => {
     try {
@@ -107,8 +114,8 @@ export function StockManager() {
     if (ok) {
       const left = ok.data.stock as number;
       flash(
-        move.kind === "venda"
-          ? `Venda apuntada. Queden ${left} de ${move.product.name}`
+        move.kind === "venda" || move.kind === "us"
+          ? `${move.kind === "venda" ? "Venda" : "Ús"} apuntat. Queden ${left} de ${move.product.name}`
           : move.kind === "entrada"
             ? `Entrada apuntada. Ara n'hi ha ${left}`
             : `Recompte corregit: ${left}`
@@ -124,12 +131,20 @@ export function StockManager() {
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
-    return q ? items.filter((p) => `${p.name} ${p.category ?? ""}`.toLowerCase().includes(q)) : items;
-  }, [items, query]);
+    const inLine = items.filter((p) => (p.line ?? "venda") === line);
+    return q ? inLine.filter((p) => `${p.name} ${p.category ?? ""} ${p.code ?? ""}`.toLowerCase().includes(q)) : inLine;
+  }, [items, query, line]);
 
-  const low = items.filter((p) => p.stock <= p.minStock);
-  const totalUnits = items.reduce((t, p) => t + p.stock, 0);
-  const soldMonth = items.reduce((t, p) => t + p.soldThisMonth, 0);
+  const lineItems = items.filter((p) => (p.line ?? "venda") === line);
+  const low = lineItems.filter((p) => p.stock <= p.minStock);
+  const totalUnits = lineItems.reduce((t, p) => t + p.stock, 0);
+  const outMonth = lineItems.reduce((t, p) => t + (line === "venda" ? p.soldThisMonth : p.usedThisMonth), 0);
+  // Venda: el que s'ha ingressat · Professional: el que ha costat (només despesa)
+  const outMonthMoney = lineItems.reduce(
+    (t, p) => t + (line === "venda" ? p.soldThisMonth * Number(p.price) : p.usedThisMonth * Number(p.cost)),
+    0
+  );
+  const recentInLine = recent.filter((m) => lineItems.some((p) => p.id === m.productId));
 
   const input = "w-full px-3 py-2 text-sm border border-stone-300 rounded-lg focus:ring-2 focus:ring-terra-500 outline-hidden";
 
@@ -149,18 +164,40 @@ export function StockManager() {
           <button onClick={() => setShowHistory((v) => !v)} className="inline-flex items-center gap-1.5 px-3 py-2 text-xs font-bold rounded-xl border border-stone-200 text-stone-600 hover:bg-stone-50">
             <History className="w-4 h-4" /> {showHistory ? "Amagar moviments" : "Últims moviments"}
           </button>
-          <button onClick={() => setForm({ ...emptyForm })} className="inline-flex items-center gap-1.5 px-3 py-2 text-xs font-bold text-white bg-terra-600 hover:bg-terra-700 rounded-xl">
+          <button onClick={() => setForm({ ...emptyForm, line })} className="inline-flex items-center gap-1.5 px-3 py-2 text-xs font-bold text-white bg-terra-600 hover:bg-terra-700 rounded-xl">
             <Plus className="w-4 h-4" /> Nou producte
           </button>
         </div>
       </div>
 
+      {/* Les dues línies */}
+      <div className="flex bg-stone-100 rounded-xl p-1 border border-stone-200 text-xs font-bold w-fit">
+        {([
+          ["venda", "Venda al públic"],
+          ["professional", "Ús professional"],
+        ] as [Line, string][]).map(([id, label]) => (
+          <button
+            key={id}
+            onClick={() => setLine(id)}
+            className={`px-4 py-2 rounded-lg ${line === id ? "bg-white text-terra-700 shadow-xs" : "text-stone-600 hover:text-stone-900"}`}
+          >
+            {label} ({items.filter((p) => (p.line ?? "venda") === id).length})
+          </button>
+        ))}
+      </div>
+      <p className="text-xs text-stone-500 -mt-2 px-1">
+        {line === "venda"
+          ? "Productes que es venen a les clientes. Cada venda resta unitats i compta com a ingrés."
+          : "Material que gasta el centre (paper de llitera, cremes de cabina...). Restar el que es gasta no compta com a venda: només com a despesa."}
+      </p>
+
       {/* Resum ràpid */}
-      <div className="grid grid-cols-3 gap-3">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         {[
-          { label: "Productes", value: items.length },
-          { label: "Unitats en estoc", value: totalUnits },
-          { label: "Venuts aquest mes", value: soldMonth },
+          { label: "Productes", value: String(lineItems.length) },
+          { label: "Unitats en estoc", value: String(totalUnits) },
+          { label: line === "venda" ? "Venuts aquest mes" : "Gastats aquest mes", value: String(outMonth) },
+          { label: line === "venda" ? "Vendes del mes" : "Despesa del mes", value: money(outMonthMoney) },
         ].map((b) => (
           <div key={b.label} className="bg-white rounded-2xl border border-stone-200 px-4 py-3">
             <p className="text-[11px] font-bold uppercase tracking-wider text-stone-400">{b.label}</p>
@@ -182,11 +219,11 @@ export function StockManager() {
       {showHistory && (
         <div className="bg-white rounded-2xl border border-stone-200 p-4">
           <h3 className="text-sm font-bold text-stone-900 mb-2">Últims moviments</h3>
-          {recent.length === 0 ? (
+          {recentInLine.length === 0 ? (
             <p className="text-xs text-stone-500">Encara no hi ha cap moviment.</p>
           ) : (
             <ul className="divide-y divide-stone-100 text-sm">
-              {recent.map((m) => (
+              {recentInLine.map((m) => (
                 <li key={m.id} className="py-1.5 flex justify-between gap-3">
                   <span className="truncate">
                     <span className="text-stone-400 text-xs mr-2">{m.date.split("-").reverse().join("/")}</span>
@@ -194,7 +231,7 @@ export function StockManager() {
                     {m.note && <span className="text-stone-400 text-xs"> · {m.note}</span>}
                   </span>
                   <span className={`shrink-0 font-semibold tabular-nums ${m.quantity < 0 ? "text-red-600" : "text-salvia-700"}`}>
-                    {m.kind === "venda" ? "Venda" : m.kind === "entrada" ? "Entrada" : "Recompte"} {m.quantity > 0 ? `+${m.quantity}` : m.quantity}
+                    {m.kind === "venda" ? "Venda" : m.kind === "us" ? "Ús" : m.kind === "entrada" ? "Entrada" : "Recompte"} {m.quantity > 0 ? `+${m.quantity}` : m.quantity}
                   </span>
                 </li>
               ))}
@@ -206,11 +243,11 @@ export function StockManager() {
       {/* Llista de productes */}
       {loading ? (
         <div className="py-12 text-center text-xs text-stone-500">Carregant…</div>
-      ) : items.length === 0 ? (
+      ) : lineItems.length === 0 ? (
         <div className="bg-white border border-stone-200 rounded-2xl p-10 text-center space-y-2">
           <Package className="w-8 h-8 text-terra-400 mx-auto" />
           <p className="text-sm font-semibold text-stone-800">Encara no hi ha productes</p>
-          <p className="text-xs text-stone-500">Afegeix cada producte amb les unitats que tens ara. Després, cada venda es resta sola.</p>
+          <p className="text-xs text-stone-500">Afegeix cada producte amb les unitats que tens ara. {line === "venda" ? "Després, cada venda es resta sola." : "Després, apunta el que es gasta i es resta sol."}</p>
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
@@ -222,12 +259,15 @@ export function StockManager() {
                   <div className="min-w-0">
                     <h3 className="font-bold text-sm text-stone-900 truncate">{p.name}</h3>
                     <p className="text-[11px] text-stone-500">
+                      {p.code ? `${p.code} · ` : ""}
                       {p.category ? `${p.category} · ` : ""}
-                      {Number(p.price) > 0 ? money(p.price) : "sense preu"}
+                      {line === "venda"
+                        ? Number(p.price) > 0 ? money(p.price) : "sense preu"
+                        : Number(p.cost) > 0 ? `cost ${money(p.cost)}` : "sense cost"}
                     </p>
                   </div>
                   <div className="flex gap-1 shrink-0">
-                    <button title="Editar" onClick={() => setForm({ id: p.id, name: p.name, category: p.category ?? "", price: p.price, stock: String(p.stock), minStock: String(p.minStock) })} className="p-1.5 text-stone-400 hover:text-terra-700">
+                    <button title="Editar" onClick={() => setForm({ id: p.id, name: p.name, category: p.category ?? "", code: p.code ?? "", line: p.line ?? "venda", price: p.price, cost: p.cost, stock: String(p.stock), minStock: String(p.minStock) })} className="p-1.5 text-stone-400 hover:text-terra-700">
                       <Pencil className="w-4 h-4" />
                     </button>
                     <button title="Treure" onClick={() => remove(p)} className="p-1.5 text-stone-400 hover:text-red-600">
@@ -240,18 +280,19 @@ export function StockManager() {
                   <div>
                     <p className={`text-3xl font-bold leading-none ${state === "out" ? "text-red-600" : state === "low" ? "text-amber-600" : "text-stone-900"}`}>{p.stock}</p>
                     <p className="text-[11px] text-stone-500 mt-1">
-                      {state === "out" ? "Esgotat" : state === "low" ? "Queda poc" : "en estoc"} · {p.soldThisMonth} venuts aquest mes
+                      {state === "out" ? "Esgotat" : state === "low" ? "Queda poc" : "en estoc"} ·{" "}
+                      {line === "venda" ? `${p.soldThisMonth} venuts aquest mes` : `${p.usedThisMonth} gastats aquest mes`}
                     </p>
                   </div>
                 </div>
 
                 <div className="flex flex-wrap gap-2">
                   <button
-                    onClick={() => setMove({ product: p, kind: "venda", quantity: "1" })}
+                    onClick={() => setMove({ product: p, kind: line === "venda" ? "venda" : "us", quantity: "1" })}
                     disabled={p.stock === 0}
                     className="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-bold text-white bg-terra-600 hover:bg-terra-700 disabled:opacity-40 rounded-lg"
                   >
-                    <Minus className="w-3.5 h-3.5" /> Venda
+                    <Minus className="w-3.5 h-3.5" /> {line === "venda" ? "Venda" : "Gastat"}
                   </button>
                   <button onClick={() => setMove({ product: p, kind: "entrada", quantity: "1" })} className="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-bold text-salvia-700 bg-salvia-50 hover:bg-salvia-100 border border-salvia-200 rounded-lg">
                     <Plus className="w-3.5 h-3.5" /> Entrada
@@ -273,7 +314,7 @@ export function StockManager() {
             <div className="flex items-start justify-between">
               <div>
                 <h3 className="font-bold text-stone-900">
-                  {move.kind === "venda" ? "Apuntar venda" : move.kind === "entrada" ? "Entrada de producte" : "Corregir recompte"}
+                  {move.kind === "venda" ? "Apuntar venda" : move.kind === "us" ? "Apuntar el que s'ha gastat" : move.kind === "entrada" ? "Entrada de producte" : "Corregir recompte"}
                 </h3>
                 <p className="text-xs text-stone-500 mt-1">{move.product.name} · ara n&apos;hi ha {move.product.stock}</p>
               </div>
@@ -287,7 +328,7 @@ export function StockManager() {
             </label>
             {move.kind !== "ajust" && Number(move.quantity) > 0 && (
               <p className="text-xs text-stone-500">
-                En quedaran {move.kind === "venda" ? move.product.stock - Number(move.quantity) : move.product.stock + Number(move.quantity)}
+                En quedaran {move.kind === "venda" || move.kind === "us" ? move.product.stock - Number(move.quantity) : move.product.stock + Number(move.quantity)}
               </p>
             )}
             <button type="submit" disabled={busy || move.quantity === ""} className="w-full py-2.5 text-sm font-bold text-white bg-gradient-to-r from-terra-600 to-arcilla-600 rounded-xl disabled:opacity-50">
@@ -311,14 +352,39 @@ export function StockManager() {
               Nom *
               <input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} placeholder="Ex: Crema hidratant facial" className={`${input} mt-1`} autoFocus required />
             </label>
+            <div className="flex bg-stone-100 rounded-lg p-1 border border-stone-200 text-xs font-bold">
+              {([
+                ["venda", "Venda al públic"],
+                ["professional", "Ús professional"],
+              ] as [Line, string][]).map(([id, label]) => (
+                <button
+                  key={id}
+                  type="button"
+                  onClick={() => setForm({ ...form, line: id })}
+                  className={`flex-1 py-1.5 rounded-md ${form.line === id ? "bg-white text-terra-700 shadow-xs" : "text-stone-600"}`}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+            <label className="block text-xs font-medium text-stone-700">
+              Codi (opcional)
+              <input value={form.code} onChange={(e) => setForm({ ...form, code: e.target.value })} placeholder="Referència del proveïdor" className={`${input} mt-1`} />
+            </label>
             <label className="block text-xs font-medium text-stone-700">
               Tipus (opcional)
               <input value={form.category} onChange={(e) => setForm({ ...form, category: e.target.value })} placeholder="Ex: Facial, Corporal, Olis…" className={`${input} mt-1`} />
             </label>
             <div className="grid grid-cols-2 gap-3">
+              {form.line === "venda" && (
+                <label className="block text-xs font-medium text-stone-700">
+                  Preu de venda (€)
+                  <input inputMode="decimal" value={form.price} onChange={(e) => setForm({ ...form, price: e.target.value })} placeholder="0,00" className={`${input} mt-1`} />
+                </label>
+              )}
               <label className="block text-xs font-medium text-stone-700">
-                Preu de venda (€)
-                <input inputMode="decimal" value={form.price} onChange={(e) => setForm({ ...form, price: e.target.value })} placeholder="0,00" className={`${input} mt-1`} />
+                Preu de compra (€)
+                <input inputMode="decimal" value={form.cost} onChange={(e) => setForm({ ...form, cost: e.target.value })} placeholder="0,00" className={`${input} mt-1`} />
               </label>
               {!form.id && (
                 <label className="block text-xs font-medium text-stone-700">
