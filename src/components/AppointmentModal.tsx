@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { groupBySection } from "@/lib/service-catalog";
+import { ServicePicker } from "./ServicePicker";
 import { X, Calendar, Clock, User, Scissors, Phone, Mail, FileText, CheckCircle2, AlertCircle, Trash2, Search } from "lucide-react";
 import { Room, Professional, Service, Appointment, Client } from "@/types";
 import { todayStr } from "@/lib/dates";
@@ -469,26 +469,17 @@ export function AppointmentModal({
             </h4>
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-              {/* Desplegable de Serveis */}
-              <div>
+              {/* Desplegable de Serveis (amplada sencera, per veure bé els noms i els colors) */}
+              <div className="md:col-span-3">
                 <label className="block text-xs font-medium text-stone-700 mb-1">
                   Servei d&apos;Estètica *
                 </label>
-                <select
+                <ServicePicker
+                  services={services}
                   value={serviceId}
-                  onChange={(e) => handleServiceChange(Number(e.target.value))}
-                  className="w-full px-3 py-2 text-sm border border-stone-300 rounded-lg focus:ring-2 focus:ring-terra-500 bg-white"
-                >
-                  {groupBySection(services.filter((svc) => svc.isActive || svc.id === serviceId)).map(({ section, items }) => (
-                    <optgroup key={section.id} label={section.label}>
-                      {items.map((svc) => (
-                        <option key={svc.id} value={svc.id}>
-                          {svc.name} · {svc.durationMinutes} min{Number(svc.price) > 0 ? ` · ${Number(svc.price)} €` : ""}
-                        </option>
-                      ))}
-                    </optgroup>
-                  ))}
-                </select>
+                  onChange={handleServiceChange}
+                  showDetails
+                />
               </div>
 
               {/* Desplegable de Sales */}
