@@ -68,21 +68,21 @@ export async function seedDatabase() {
   // 1. Inserir 3 sales
   const insertedRooms = await db.insert(rooms).values([
     {
-      name: "Cabina 1 - Facial & Benestar",
+      name: "Cabina 1 · Corporal i depilació",
       description: "Equipada amb llitera hidràulica, oxigenoteràpia, llum LED i ambient relaxant amb aromateràpia.",
       color: "#c06a44",
       capacity: 1,
       isActive: true,
     },
     {
-      name: "Cabina 2 - Làser & Corporal",
+      name: "Cabina 2 · Facial i làser",
       description: "Aparell de làser díode d'última generació, radiofreqüència corporal i equip de maderoteràpia.",
       color: "#866353",
       capacity: 1,
       isActive: true,
     },
     {
-      name: "Cabina 3 - Mans, Peus & Mirada",
+      name: "Cabina 3 · Manicura i pressoteràpia",
       description: "Estacions d'esmaltat semipermanent, silló de pedicura spa amb hidromassatge i llitera per a pestanyes.",
       color: "#72845b",
       capacity: 1,
