@@ -18,6 +18,7 @@ import {
 } from "lucide-react";
 import { Room, Professional, Service, Appointment } from "@/types";
 import { addDays, dayOfWeek, todayStr } from "@/lib/dates";
+import { TREATMENT_TYPES, textColorOn } from "@/lib/treatment-colors";
 
 interface MultiRoomCalendarProps {
   rooms: Room[];
@@ -387,6 +388,16 @@ export function MultiRoomCalendar({
             </>
           )}
         </p>
+
+        {/* Llegenda: color de cada tipus de tractament (els mateixos que a Google Calendar) */}
+        <div className="mt-2 flex flex-wrap gap-x-3 gap-y-1">
+          {TREATMENT_TYPES.map((t) => (
+            <span key={t.id} className="inline-flex items-center gap-1 text-[11px] text-stone-500">
+              <span className="w-2.5 h-2.5 rounded-sm" style={{ backgroundColor: t.color }} />
+              {t.label}
+            </span>
+          ))}
+        </div>
       </div>
 
       {/* 1. GRAELLA VISUAL DE CALENDARI DE DIA (EIX HORARI 09:00 - 20:30 AMB LES 3 SALES EN COLUMNES) */}
@@ -531,7 +542,7 @@ export function MultiRoomCalendar({
                         const isCancelled = apt.status === "cancel·lada";
                         const isPending = apt.status === "pendent";
 
-                        const accentColor = apt.serviceColor || "#c06a44";
+                        const look = aptLook(apt);
 
                         return (
                           <div
@@ -546,13 +557,12 @@ export function MultiRoomCalendar({
                             style={{
                               top: `${topOffset}px`,
                               height: `${blockHeight - 2}px`,
-                              backgroundColor: isCancelled ? "#f5f5f4" : `${accentColor}1f`,
-                              borderLeft: `3px solid ${isCancelled ? "#a8a29e" : accentColor}`,
+                              ...look.style,
                             }}
                             title={`${apt.startTime}-${apt.endTime} · ${apt.clientName} · ${apt.serviceName} · ${apt.professionalName ?? ""} · ${apt.price}€`}
                           >
                             <div className="flex items-baseline justify-between gap-2">
-                              <span className="font-semibold text-xs text-stone-900 truncate">{apt.clientName}</span>
+                              <span className="font-semibold text-xs truncate">{apt.clientName}</span>
                               {blockHeight < 75 && apt.professionalName && (
                                 <ProfessionalTag name={apt.professionalName} color={apt.professionalColor} />
                               )}
@@ -566,7 +576,7 @@ export function MultiRoomCalendar({
                                 </span>
                               )}
                             </div>
-                            <div className="text-[11px] text-stone-600 truncate">
+                            <div className="text-[11px] opacity-90 truncate">
                               {apt.startTime}–{apt.endTime} · {apt.serviceName}
                             </div>
                             {blockHeight >= 75 && apt.professionalName && (
@@ -686,7 +696,7 @@ export function MultiRoomCalendar({
 
                       {/* Cites del dia, separades en columnes quan coincideixen en horari */}
                       {laidOut.map(({ apt, top, height, col, colCount }) => {
-                        const accentColor = apt.serviceColor || "#c06a44";
+                        const look = aptLook(apt);
                         const isCancelled = apt.status === "cancel·lada";
                         const widthPct = 100 / colCount;
 
@@ -705,23 +715,23 @@ export function MultiRoomCalendar({
                               height: `${height - 2}px`,
                               left: `calc(${col * widthPct}% + 1px)`,
                               width: `calc(${widthPct}% - 2px)`,
-                              backgroundColor: isCancelled ? "#f5f5f4" : `${accentColor}1f`,
-                              borderLeft: `3px solid ${isCancelled ? "#a8a29e" : accentColor}`,
+                              ...look.style,
                               zIndex: 10 + col,
                             }}
                             title={`${apt.startTime}-${apt.endTime} · ${apt.clientName} · ${apt.serviceName} · ${apt.professionalName ?? ""}`}
                           >
-                            <div className="text-[9px] font-bold text-stone-700 truncate leading-tight">
+                            <div className="text-[9px] font-bold opacity-90 truncate leading-tight">
                               {apt.startTime}
                               {apt.professionalName && (
-                                <span className="font-semibold text-stone-500"> · {apt.professionalName.split(" ")[0]}</span>
+                                <span className="font-semibold"> · {apt.professionalName.split(" ")[0]}</span>
                               )}
+                              {apt.status === "pendent" && <span className="font-semibold"> · pendent</span>}
                             </div>
-                            <div className="text-[10px] font-bold text-stone-900 truncate leading-tight">
+                            <div className="text-[10px] font-bold truncate leading-tight">
                               {apt.clientName}
                             </div>
                             {height > 34 && (
-                              <div className="text-[9px] text-stone-500 truncate leading-tight">
+                              <div className="text-[9px] opacity-90 truncate leading-tight">
                                 {apt.serviceName}
                               </div>
                             )}
@@ -740,11 +750,26 @@ export function MultiRoomCalendar({
   );
 }
 
+/**
+ * Aspecte d'una cita al calendari: ple amb el color del tractament (com a Google Calendar).
+ * Les pendents de confirmar surten clares amb vora de punts, i les cancel·lades en gris.
+ */
+function aptLook(apt: { serviceColor?: string | null; status: string }): { style: React.CSSProperties } {
+  const color = apt.serviceColor || "#E67C73";
+  if (apt.status === "cancel·lada") {
+    return { style: { backgroundColor: "#f5f5f4", borderLeft: "3px solid #a8a29e", color: "#57534e" } };
+  }
+  if (apt.status === "pendent") {
+    return { style: { backgroundColor: `${color}26`, border: `1.5px dashed ${color}`, color: "#1c1917" } };
+  }
+  return { style: { backgroundColor: color, color: textColorOn(color), boxShadow: "inset 0 0 0 1px rgba(255,255,255,0.35)" } };
+}
+
 /** Etiqueta petita amb el color i el nom de la professional. */
 function ProfessionalTag({ name, color }: { name: string; color?: string | null }) {
   return (
-    <span className="inline-flex items-center gap-1 shrink-0 text-[10px] font-medium text-stone-600">
-      <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: color || "#866353" }} />
+    <span className="inline-flex items-center gap-1 shrink-0 text-[10px] font-medium opacity-90">
+      <span className="w-1.5 h-1.5 rounded-full ring-1 ring-white/70" style={{ backgroundColor: color || "#866353" }} />
       {name.split(" ")[0]}
     </span>
   );

@@ -121,7 +121,9 @@ export async function generateBotReply(params: { clientPhone: string; clientName
   const serviceRoom = allRooms.find(r => r.id === matchedService.defaultRoomId) || allRooms[0];
   // Qui pot fer el tractament: les marcades al servei; si no n'hi ha cap, per especialitat
   const assigned = (matchedService.professionalIds ?? []).length
-    ? allProfessionals.filter(p => matchedService.professionalIds!.includes(p.id))
+    ? matchedService.professionalIds!
+        .map(id => allProfessionals.find(p => p.id === id))
+        .filter((p): p is (typeof allProfessionals)[number] => !!p) // en l'ordre marcat (la primera, primer)
     : [];
   let candidatePros = assigned.length ? assigned : pickProfessionalsForCategory(allProfessionals, matchedService.category);
   const preferredPro = candidatePros.find(p => p.id === preferredProId);

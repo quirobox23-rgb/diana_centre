@@ -1,9 +1,10 @@
 "use client";
 
 import React, { useState } from "react";
-import { Plus, Edit2, Trash2, Clock, CheckCircle2, AlertCircle, X, Sparkles, BookOpen } from "lucide-react";
+import { Plus, Edit2, Trash2, Clock, CheckCircle2, AlertCircle, X, Sparkles, BookOpen, Palette } from "lucide-react";
 import { Service, Room, Professional } from "@/types";
 import { CENTRE_CATALOG, SERVICE_SECTIONS, groupBySection, sectionLabel, sectionOf } from "@/lib/service-catalog";
+import { GOOGLE_COLORS, TREATMENT_TYPES, colorForService, googleColorName } from "@/lib/treatment-colors";
 
 interface ServicesManagerProps {
   services: Service[];
@@ -24,7 +25,10 @@ export function ServicesManager({ services, rooms, professionals = [], onService
   const [price, setPrice] = useState("45.00");
   const [description, setDescription] = useState("");
   const [defaultRoomId, setDefaultRoomId] = useState<number | null>(rooms[0]?.id || 1);
-  const [color, setColor] = useState("#c06a44");
+  const [color, setColor] = useState(TREATMENT_TYPES[0].color);
+  // En un servei nou, el color segueix el tipus de tractament fins que se'n tria un a mà
+  const [colorTouched, setColorTouched] = useState(false);
+  const [applyingColors, setApplyingColors] = useState(false);
   const [proIds, setProIds] = useState<number[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -43,7 +47,8 @@ export function ServicesManager({ services, rooms, professionals = [], onService
     setPrice("50.00");
     setDescription("");
     setDefaultRoomId(rooms[0]?.id || 1);
-    setColor("#c06a44");
+    setColor(colorForService("", "Facial"));
+    setColorTouched(false);
     setProIds([]);
     setError(null);
     setIsModalOpen(true);
@@ -57,7 +62,8 @@ export function ServicesManager({ services, rooms, professionals = [], onService
     setPrice(svc.price);
     setDescription(svc.description || "");
     setDefaultRoomId(svc.defaultRoomId);
-    setColor(svc.color || "#c06a44");
+    setColor(svc.color || colorForService(svc.name, svc.category));
+    setColorTouched(true);
     setProIds(svc.professionalIds ?? []);
     setError(null);
     setIsModalOpen(true);
@@ -131,6 +137,36 @@ export function ServicesManager({ services, rooms, professionals = [], onService
   });
   const grouped = groupBySection(filteredServices);
 
+  const pickColor = (c: string) => {
+    setColor(c);
+    setColorTouched(true);
+  };
+
+  // Color automàtic mentre es crea un servei nou i encara no se n'ha triat cap
+  const autoColor = (n: string, cat: string) => {
+    if (!editingService && !colorTouched) setColor(colorForService(n, cat));
+  };
+
+  // Torna a posar a tots els serveis el color del seu tipus (colors de Google Calendar)
+  const applyTypeColors = async () => {
+    if (!confirm("Posar a tots els tractaments el color del seu tipus (els mateixos colors que feu servir a Google Calendar)? Els colors canviats a mà es tornaran a posar.")) return;
+    setApplyingColors(true);
+    setError(null);
+    try {
+      const res = await fetch("/api/services/colors", { method: "POST" });
+      const data = await res.json();
+      if (data.success) {
+        setSuccessMsg(`Colors posats: ${data.data.changed} tractaments actualitzats.`);
+        setTimeout(() => setSuccessMsg(null), 4000);
+        onServicesUpdated();
+      } else {
+        setError(data.error || "No s'han pogut aplicar els colors");
+      }
+    } finally {
+      setApplyingColors(false);
+    }
+  };
+
   // Carrega la carta del centre (amb les durades apuntades) sense duplicar el que ja hi ha
   const loadCatalog = async () => {
     if (!confirm(`Afegir els tractaments de la carta del centre (${CENTRE_CATALOG.length}) amb les seves durades? Els que ja tinguis no es dupliquen.`)) return;
@@ -174,7 +210,15 @@ export function ServicesManager({ services, rooms, professionals = [], onService
           </p>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
+        <button
+          onClick={applyTypeColors}
+          disabled={applyingColors}
+          className="inline-flex items-center space-x-2 px-4 py-2.5 text-xs font-bold text-stone-700 bg-white hover:bg-stone-50 border border-stone-200 rounded-xl transition-all shrink-0 disabled:opacity-50"
+        >
+          <Palette className="w-4 h-4" />
+          <span>{applyingColors ? "Posant colors..." : "Colors per tipus"}</span>
+        </button>
         <button
           onClick={loadCatalog}
           disabled={loadingCatalog}
@@ -199,6 +243,20 @@ export function ServicesManager({ services, rooms, professionals = [], onService
           <span>{successMsg}</span>
         </div>
       )}
+
+      {/* Llegenda de colors per tipus de tractament (els de Google Calendar) */}
+      <div className="bg-white rounded-2xl border border-stone-200 shadow-xs px-5 py-3">
+        <div className="text-[11px] font-bold uppercase tracking-wider text-stone-500 mb-2">Colors del calendari</div>
+        <div className="flex flex-wrap gap-x-4 gap-y-1.5">
+          {TREATMENT_TYPES.map((t) => (
+            <span key={t.id} className="inline-flex items-center gap-1.5 text-xs text-stone-700">
+              <span className="w-3 h-3 rounded-sm" style={{ backgroundColor: t.color }} />
+              {t.label}
+              <span className="text-stone-400">({t.colorName})</span>
+            </span>
+          ))}
+        </div>
+      </div>
 
       {/* Filtre per seccions */}
       <div className="flex flex-wrap items-center gap-2">
@@ -241,7 +299,11 @@ export function ServicesManager({ services, rooms, professionals = [], onService
               <ul className="divide-y divide-stone-100">
                 {items.map((svc) => (
                   <li key={svc.id} className={`px-5 py-2.5 flex items-center gap-3 ${svc.isActive ? "" : "opacity-50"}`}>
-                    <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: svc.color }} />
+                    <span
+                      className="w-3 h-3 rounded-sm shrink-0"
+                      style={{ backgroundColor: svc.color }}
+                      title={googleColorName(svc.color) ?? svc.color}
+                    />
                     <div className="flex-1 min-w-0">
                       <div className="text-sm font-semibold text-stone-900 truncate">
                         {svc.name}
@@ -316,7 +378,7 @@ export function ServicesManager({ services, rooms, professionals = [], onService
                   required
                   placeholder="Ex: Peeling Químic Rejuvenidor"
                   value={name}
-                  onChange={(e) => setName(e.target.value)}
+                  onChange={(e) => { setName(e.target.value); autoColor(e.target.value, category); }}
                   className="w-full px-3 py-2 text-sm border border-stone-300 rounded-lg focus:ring-2 focus:ring-terra-500"
                 />
               </div>
@@ -326,7 +388,7 @@ export function ServicesManager({ services, rooms, professionals = [], onService
                   <label className="block font-medium text-stone-700 mb-1">Categoria</label>
                   <select
                     value={category}
-                    onChange={(e) => setCategory(e.target.value)}
+                    onChange={(e) => { setCategory(e.target.value); autoColor(name, e.target.value); }}
                     className="w-full px-3 py-2 text-sm border border-stone-300 rounded-lg focus:ring-2 focus:ring-terra-500 bg-white"
                   >
                     {SERVICE_SECTIONS.map((sec) => (
@@ -421,29 +483,50 @@ export function ServicesManager({ services, rooms, professionals = [], onService
 
               <div>
                 <label className="block font-medium text-stone-700 mb-1.5">Color del Tractament</label>
-                <p className="text-[11px] text-stone-400 mb-2">Aquest color identifica el servei al calendari, sigui quina sigui la sala.</p>
-                <div className="flex items-center flex-wrap gap-2">
-                  {["#c06a44", "#a85436", "#71392b", "#b98a5a", "#d6bd99", "#866353", "#4d3b35", "#72845b", "#aebb9c", "#c5a074"].map((c) => (
+                <p className="text-[11px] text-stone-400 mb-2">
+                  El mateix color que feu servir a Google Calendar per a aquest tipus de tractament. Surt a les cites del calendari.
+                </p>
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-1.5">
+                  {TREATMENT_TYPES.map((t) => (
                     <button
-                      key={c}
+                      key={t.id}
                       type="button"
-                      onClick={() => setColor(c)}
-                      className={`w-7 h-7 rounded-full transition-all ${
-                        color === c ? "ring-2 ring-offset-2 ring-stone-800 scale-110" : "hover:scale-105"
+                      onClick={() => pickColor(t.color)}
+                      className={`flex items-center gap-2 px-2 py-1.5 rounded-lg border text-left text-[11px] transition-all ${
+                        color.toLowerCase() === t.color.toLowerCase()
+                          ? "border-stone-800 bg-stone-50 font-bold"
+                          : "border-stone-200 hover:bg-stone-50"
                       }`}
-                      style={{ backgroundColor: c }}
-                      title={c}
+                    >
+                      <span className="w-4 h-4 rounded shrink-0" style={{ backgroundColor: t.color }} />
+                      <span className="leading-tight">
+                        {t.label}
+                        <span className="block text-[10px] font-normal text-stone-400">{t.colorName}</span>
+                      </span>
+                    </button>
+                  ))}
+                </div>
+                <div className="text-[11px] text-stone-500 mt-3 mb-1.5">Altres colors de Google Calendar</div>
+                <div className="flex items-center flex-wrap gap-1.5">
+                  {GOOGLE_COLORS.map((c) => (
+                    <button
+                      key={c.id}
+                      type="button"
+                      onClick={() => pickColor(c.hex)}
+                      className={`w-6 h-6 rounded-full transition-all ${
+                        color.toLowerCase() === c.hex.toLowerCase() ? "ring-2 ring-offset-2 ring-stone-800 scale-110" : "hover:scale-110"
+                      }`}
+                      style={{ backgroundColor: c.hex }}
+                      title={c.label}
                     />
                   ))}
-                  <div className="relative w-7 h-7">
-                    <input
-                      type="color"
-                      value={color}
-                      onChange={(e) => setColor(e.target.value)}
-                      className="w-7 h-7 rounded-full cursor-pointer border border-stone-200 p-0"
-                      title="Color personalitzat"
-                    />
-                  </div>
+                  <input
+                    type="color"
+                    value={color}
+                    onChange={(e) => pickColor(e.target.value)}
+                    className="w-6 h-6 rounded-full cursor-pointer border border-stone-200 p-0"
+                    title="Color personalitzat"
+                  />
                 </div>
               </div>
 

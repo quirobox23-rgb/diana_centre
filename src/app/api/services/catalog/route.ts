@@ -3,15 +3,8 @@ import { db } from "@/db";
 import { services } from "@/db/schema";
 import { inArray } from "drizzle-orm";
 import { CENTRE_CATALOG } from "@/lib/service-catalog";
-
-const SECTION_COLORS: Record<string, string> = {
-  Ulls: "#866353",
-  Facial: "#c06a44",
-  "Depilació": "#b0805a",
-  Corporal: "#7c8c6b",
-  "Mans i Peus": "#a85436",
-  Altres: "#8a7f74",
-};
+import { colorForService } from "@/lib/treatment-colors";
+import { assignDefaultProfessionals, assignDefaultRooms } from "@/db/treatment-colors-migration";
 
 const norm = (s: string) => s.toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/\s+/g, " ").trim();
 
@@ -30,10 +23,16 @@ export async function POST(request: Request) {
       durationMinutes: c.durationMinutes,
       price: "0.00",
       description: c.description ?? null,
-      color: SECTION_COLORS[c.category] ?? "#a85436",
+      color: colorForService(c.name, c.category),
       isActive: true,
     }));
-    if (toInsert.length) await db.insert(services).values(toInsert);
+    if (toInsert.length) {
+      const inserted = await db.insert(services).values(toInsert).returning({ id: services.id });
+      // Qui fa cada tractament nou (Diana / Montsant), si ja hi són a Professionals
+      const ids = inserted.map(r => r.id);
+      await assignDefaultProfessionals(ids).catch(err => console.error("[pros]", err));
+      await assignDefaultRooms(ids).catch(err => console.error("[sales]", err));
+    }
 
     let deactivated = 0;
     if (body.deactivateOthers) {

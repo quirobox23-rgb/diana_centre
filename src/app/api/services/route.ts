@@ -3,6 +3,7 @@ import { db } from "@/db";
 import { services, rooms } from "@/db/schema";
 import { eq, asc } from "drizzle-orm";
 import { ensureSchema } from "@/db/ensure-schema";
+import { colorForService } from "@/lib/treatment-colors";
 
 // Llista d'ids de professionals (buida = qualsevol la pot fer)
 function proIds(v: unknown): number[] | null {
@@ -55,7 +56,7 @@ export async function POST(request: Request) {
       description: description?.trim() || null,
       defaultRoomId: defaultRoomId ? Number(defaultRoomId) : null,
       professionalIds: proIds(professionalIds),
-      color: color || "#f43f5e",
+      color: color || colorForService(name, category),
       isActive: true,
     }).returning();
 
