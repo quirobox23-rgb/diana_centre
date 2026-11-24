@@ -101,8 +101,8 @@ async function roomNumbered(): Promise<Partial<Record<1 | 2 | 3, number>>> {
 }
 
 /**
- * Sales (ho va dir el centre el 24/11/2026): la Diana treballa a la sala 2 (facials);
- * la Montsant a la 1 (massatges i corporals) i a la 3 (manicures), segons el tractament.
+ * Sales (ho va dir el centre el 24/11/2026): cabina 1 = corporal i depilació, cabina 2 = facial i làser,
+ * cabina 3 = manicura i pressoteràpia. La Diana treballa sobretot a la 2.
  */
 export async function assignDefaultRooms(serviceIds?: number[]): Promise<void> {
   const room = await roomNumbered();
@@ -116,11 +116,42 @@ export async function assignDefaultRooms(serviceIds?: number[]): Promise<void> {
       }
     }
   }
-  const byType: Record<string, number | undefined> = { facial: room[2], corporal: room[1], "mans-peus": room[3] };
+  const byType: Record<string, number | undefined> = {
+    corporal: room[1],
+    depilacio: room[1],
+    facial: room[2],
+    fotodepilacio: room[2],
+    "mans-peus": room[3],
+    pressoterapia: room[3],
+  };
   const { rows } = await pool.query<{ id: number; name: string; category: string }>("SELECT id, name, category FROM services");
   for (const s of rows) {
     if (serviceIds && !serviceIds.includes(s.id)) continue;
     const r = byType[treatmentTypeOf(s.name, s.category).id];
     if (r) await pool.query("UPDATE services SET default_room_id = $1 WHERE id = $2", [r, s.id]);
   }
+}
+
+const ROOMS_DONE_KEY = "rooms_layout_v2";
+export const ROOM_NAMES: Record<1 | 2 | 3, string> = {
+  1: "Cabina 1 · Corporal i depilació",
+  2: "Cabina 2 · Facial i làser",
+  3: "Cabina 3 · Manicura i pressoteràpia",
+};
+
+/** Un sol cop: posa els noms nous a les cabines i torna a repartir els tractaments per cabina. */
+export async function applyRoomLayoutOnce(): Promise<void> {
+  const done = await pool.query("SELECT 1 FROM app_settings WHERE key = $1", [ROOMS_DONE_KEY]);
+  if (done.rowCount) return;
+  const room = await roomNumbered();
+  if (!room[1] || !room[2] || !room[3]) return; // no trobem les 3 cabines: no toquem res
+  for (const n of [1, 2, 3] as const) {
+    await pool.query("UPDATE rooms SET name = $1 WHERE id = $2", [ROOM_NAMES[n], room[n]]);
+  }
+  await assignDefaultRooms();
+  await pool.query(
+    "INSERT INTO app_settings (key, value) VALUES ($1, $2) ON CONFLICT (key) DO NOTHING",
+    [ROOMS_DONE_KEY, new Date().toISOString()]
+  );
+  console.log("[sales] noms i repartiment de cabines actualitzats");
 }

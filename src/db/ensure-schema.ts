@@ -1,5 +1,5 @@
 import { pool } from "./index";
-import { applyTreatmentColorsOnce, assignDefaultProfessionalsOnce } from "./treatment-colors-migration";
+import { applyTreatmentColorsOnce, assignDefaultProfessionalsOnce, applyRoomLayoutOnce } from "./treatment-colors-migration";
 
 // Crea les taules noves si encara no existeixen, perquè no calgui executar
 // "drizzle-kit push" a producció a mà. Només s'executa un cop per instància.
@@ -85,6 +85,7 @@ export function ensureSchema(): Promise<void> {
       // Dades per defecte d'un sol cop; si fallen, l'app ha de seguir funcionant
       await applyTreatmentColorsOnce().catch(err => console.error("[colors]", err));
       await assignDefaultProfessionalsOnce().catch(err => console.error("[pros]", err));
+      await applyRoomLayoutOnce().catch(err => console.error("[sales]", err));
     }).catch(err => {
       ensured = null;
       throw err;
