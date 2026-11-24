@@ -22,6 +22,7 @@ import {
 } from "lucide-react";
 import { ImportClientsModal } from "@/components/ImportClientsModal";
 import { groupBySection } from "@/lib/service-catalog";
+import { ServicePicker } from "./ServicePicker";
 
 const PAGE_SIZE = 60;
 import { Client, ClientStats, ClientTreatment, Professional, Service } from "@/types";
@@ -682,20 +683,12 @@ function TreatmentsEditor({
         const svc = services.find((s) => s.id === t.serviceId);
         return (
           <div key={idx} className="grid grid-cols-12 gap-1.5 items-center bg-white rounded-lg border border-stone-200 p-2">
-            <select
-              value={t.serviceId || ""}
-              onChange={(e) => update(idx, { serviceId: Number(e.target.value) })}
-              className="col-span-12 sm:col-span-5 px-2 py-1.5 border border-stone-300 rounded-lg bg-white"
-            >
-              <option value="">Tria el tractament…</option>
-              {groupBySection(services.filter((s) => s.isActive || s.id === t.serviceId)).map(({ section, items }) => (
-                <optgroup key={section.id} label={section.label}>
-                  {items.map((s) => (
-                    <option key={s.id} value={s.id}>{s.name}</option>
-                  ))}
-                </optgroup>
-              ))}
-            </select>
+            <ServicePicker
+              services={services}
+              value={t.serviceId}
+              onChange={(id) => update(idx, { serviceId: id })}
+              className="col-span-12 sm:col-span-5"
+            />
             <div className="col-span-4 sm:col-span-2 flex items-center gap-1">
               <input
                 type="number"

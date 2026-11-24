@@ -4,6 +4,7 @@ import React, { useState } from "react";
 import { Plus, Edit2, Trash2, Clock, CheckCircle2, AlertCircle, X, Sparkles, BookOpen, Palette } from "lucide-react";
 import { Service, Room, Professional } from "@/types";
 import { CENTRE_CATALOG, SERVICE_SECTIONS, groupBySection, sectionLabel, sectionOf } from "@/lib/service-catalog";
+import { ColorDot } from "./ServicePicker";
 import { GOOGLE_COLORS, TREATMENT_TYPES, colorForService, googleColorName } from "@/lib/treatment-colors";
 
 interface ServicesManagerProps {
@@ -299,14 +300,12 @@ export function ServicesManager({ services, rooms, professionals = [], onService
               <ul className="divide-y divide-stone-100">
                 {items.map((svc) => (
                   <li key={svc.id} className={`px-5 py-2.5 flex items-center gap-3 ${svc.isActive ? "" : "opacity-50"}`}>
-                    <span
-                      className="w-3 h-3 rounded-sm shrink-0"
-                      style={{ backgroundColor: svc.color }}
-                      title={googleColorName(svc.color) ?? svc.color}
-                    />
                     <div className="flex-1 min-w-0">
-                      <div className="text-sm font-semibold text-stone-900 truncate">
-                        {svc.name}
+                      <div className="text-sm font-semibold text-stone-900 flex items-center gap-2 min-w-0">
+                        <span className="truncate">{svc.name}</span>
+                        <span title={googleColorName(svc.color) ?? svc.color} className="inline-flex">
+                          <ColorDot color={svc.color} size={16} />
+                        </span>
                         {!svc.isActive && <span className="ml-2 text-[10px] font-bold text-stone-400">desactivat</span>}
                       </div>
                       {svc.description && <div className="text-[11px] text-stone-400 truncate">{svc.description}</div>}
