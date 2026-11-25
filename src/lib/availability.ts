@@ -21,6 +21,21 @@ export const CONFLICT_MESSAGES: Record<ConflictKind, string> = {
  * Comprova si una franja xoca amb una altra cita (no cancel·lada) de la mateixa sala
  * o de la mateixa professional. Retorna el tipus de conflicte o null si està lliure.
  */
+type Executor = Pick<typeof db, "select">;
+type Tx = Parameters<Parameters<typeof db.transaction>[0]>[0];
+
+/**
+ * Fa la comprovació de conflictes i la reserva dins d'una transacció amb un bloqueig per dia.
+ * Així, si el panell i l'agent de WhatsApp reserven la mateixa hora alhora, només una entra.
+ */
+export async function withBookingLock<T>(dates: string[], fn: (tx: Tx) => Promise<T>): Promise<T> {
+  const unique = [...new Set(dates.filter(Boolean))].sort();
+  return db.transaction(async (tx) => {
+    for (const d of unique) await tx.execute(sql`select pg_advisory_xact_lock(hashtext(${"reserva:" + d}))`);
+    return fn(tx);
+  });
+}
+
 export async function findConflict(params: {
   date: string;
   startTime: string;
@@ -28,17 +43,17 @@ export async function findConflict(params: {
   roomId: number;
   professionalId: number;
   excludeAppointmentId?: number;
-}): Promise<ConflictKind | null> {
+}, exec: Executor = db): Promise<ConflictKind | null> {
   const { date, startTime, endTime, roomId, professionalId, excludeAppointmentId } = params;
 
   const conditions = [
     eq(appointments.date, date),
-    sql`${appointments.status} != 'cancel·lada'`,
+    sql`${appointments.status} not in ('cancel·lada', 'no-presentada')`,
     or(eq(appointments.roomId, roomId), eq(appointments.professionalId, professionalId)),
   ];
   if (excludeAppointmentId) conditions.push(ne(appointments.id, excludeAppointmentId));
 
-  const sameDay = await db.select().from(appointments).where(and(...conditions));
+  const sameDay = await exec.select().from(appointments).where(and(...conditions));
   const overlapping = sameDay.filter(apt => startTime < apt.endTime && endTime > apt.startTime);
 
   if (overlapping.some(apt => apt.roomId === roomId)) return "sala";

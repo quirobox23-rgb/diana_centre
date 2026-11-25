@@ -81,6 +81,10 @@ export function ensureSchema(): Promise<void> {
         note text,
         created_at timestamp DEFAULT now() NOT NULL
       );
+
+      -- Índexs perquè el calendari i les fitxes vagin ràpids amb milers de cites i clientes
+      CREATE INDEX IF NOT EXISTS appointments_date_idx ON appointments (date);
+      CREATE INDEX IF NOT EXISTS appointments_client_idx ON appointments (client_id);
     `).then(async () => {
       // Dades per defecte d'un sol cop; si fallen, l'app ha de seguir funcionant
       await applyTreatmentColorsOnce().catch(err => console.error("[colors]", err));

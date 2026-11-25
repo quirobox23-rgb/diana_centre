@@ -152,6 +152,21 @@ export async function generateBotReply(params: { clientPhone: string; clientName
   // No oferim hores que ja han passat ni que comencin d'aquí a menys d'una hora
   const earliestToday = addMinutesToTime(nowTimeStr(), 60);
 
+  // Les hores que altres clientes ja han triat i esperen confirmació també compten com a ocupades,
+  // perquè dues clientes no es quedin la mateixa hora mentre la dueña no ha confirmat
+  const held: { date: string; startTime: string; endTime: string; roomId: number; professionalId: number }[] = [];
+  const pendingSims = await db.select().from(botSimulations).where(eq(botSimulations.status, "pendent_confirmacio"));
+  for (const ps of pendingSims) {
+    try {
+      const slot = ps.proposedSlots && ps.selectedSlotIndex !== null ? JSON.parse(ps.proposedSlots)[ps.selectedSlotIndex] : null;
+      if (slot?.date && slot?.time && slot?.endTime) {
+        held.push({ date: slot.date, startTime: slot.time, endTime: slot.endTime, roomId: Number(slot.roomId), professionalId: Number(slot.professionalId) });
+      }
+    } catch {
+      // proposta malmesa: la ignorem
+    }
+  }
+
   for (let dayOffset = 0; dayOffset < 14 && foundSlots.length < MAX_CANDIDATES; dayOffset++) {
     const dateStr = addDays(today, dayOffset);
     const weekDay = dayOfWeek(dateStr);
@@ -159,11 +174,14 @@ export async function generateBotReply(params: { clientPhone: string; clientName
     const daySchedule = allSchedules.find(s => s.dayOfWeek === weekDay);
     if (!daySchedule || !daySchedule.isOpen) continue;
 
-    const dayAppointments = await db.select().from(appointments)
-      .where(and(
-        eq(appointments.date, dateStr),
-        sql`${appointments.status} != 'cancel·lada'`
-      ));
+    const dayAppointments: { startTime: string; endTime: string; roomId: number; professionalId: number }[] = [
+      ...(await db.select().from(appointments)
+        .where(and(
+          eq(appointments.date, dateStr),
+          sql`${appointments.status} not in ('cancel·lada', 'no-presentada')`
+        ))),
+      ...held.filter(h => h.date === dateStr),
+    ];
 
     const windows: [string, string][] = [];
     if (!prefersAfternoon) windows.push([daySchedule.morningStart, daySchedule.morningEnd]);

@@ -215,6 +215,8 @@ export function MultiRoomCalendar({
   const getFilteredAppointments = (dateStr: string) => {
     return appointments.filter((apt) => {
       if (apt.date !== dateStr) return false;
+      // Les cancel·lades no ocupen lloc al calendari (queden a l'historial de la clienta)
+      if (apt.status === "cancel·lada" && selectedStatusFilter !== "cancel·lada") return false;
       if (selectedRoomFilter !== "all" && apt.roomId !== Number(selectedRoomFilter)) return false;
       if (selectedProfFilter !== "all" && apt.professionalId !== Number(selectedProfFilter)) return false;
       if (selectedStatusFilter !== "all" && apt.status !== selectedStatusFilter) return false;
@@ -229,8 +231,8 @@ export function MultiRoomCalendar({
     : rooms.filter((r) => r.id === Number(selectedRoomFilter));
 
   const todayRevenue = todayAppointments
-    .filter((a) => a.status !== "cancel·lada")
-    .reduce((sum, a) => sum + (parseFloat(a.price) || 0), 0);
+    .filter((a) => a.status !== "cancel·lada" && a.status !== "no-presentada")
+    .reduce((sum, a) => sum + (parseFloat(a.price ?? "") || 0), 0);
 
   const confirmedCount = todayAppointments.filter((a) => a.status === "confirmada" || a.status === "completada").length;
 
@@ -559,10 +561,13 @@ export function MultiRoomCalendar({
                               height: `${blockHeight - 2}px`,
                               ...look.style,
                             }}
-                            title={`${apt.startTime}-${apt.endTime} · ${apt.clientName} · ${apt.serviceName} · ${apt.professionalName ?? ""} · ${apt.price}€`}
+                            title={`${apt.startTime}-${apt.endTime} · ${apt.clientName} · ${apt.serviceName} · ${apt.professionalName ?? ""}${canSeeMoney ? ` · ${apt.price}€` : ""}`}
                           >
                             <div className="flex items-baseline justify-between gap-2">
-                              <span className="font-semibold text-xs truncate">{apt.clientName}</span>
+                              <span className="font-semibold text-xs truncate">
+                                {apt.clientAllergies && <span title={`Al·lèrgies: ${apt.clientAllergies}`}>⚠️ </span>}
+                                {apt.clientName}
+                              </span>
                               {blockHeight < 75 && apt.professionalName && (
                                 <ProfessionalTag name={apt.professionalName} color={apt.professionalColor} />
                               )}
@@ -676,7 +681,7 @@ export function MultiRoomCalendar({
                         const clickedMins = START_MINUTES + Math.floor(clickY / (30 * PIXELS_PER_MINUTE)) * 30;
                         const h = Math.floor(clickedMins / 60);
                         const m = clickedMins % 60;
-                        onNewAppointment(rooms[0]?.id, `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`, d.dateStr);
+                        onNewAppointment(undefined, `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`, d.dateStr);
                       }}
                     >
                       {/* Línies horàries de fons */}
@@ -728,6 +733,7 @@ export function MultiRoomCalendar({
                               {apt.status === "pendent" && <span className="font-semibold"> · pendent</span>}
                             </div>
                             <div className="text-[10px] font-bold truncate leading-tight">
+                              {apt.clientAllergies && <span title={`Al·lèrgies: ${apt.clientAllergies}`}>⚠️ </span>}
                               {apt.clientName}
                             </div>
                             {height > 34 && (
@@ -756,7 +762,7 @@ export function MultiRoomCalendar({
  */
 function aptLook(apt: { serviceColor?: string | null; status: string }): { style: React.CSSProperties } {
   const color = apt.serviceColor || "#E67C73";
-  if (apt.status === "cancel·lada") {
+  if (apt.status === "cancel·lada" || apt.status === "no-presentada") {
     return { style: { backgroundColor: "#f5f5f4", borderLeft: "3px solid #a8a29e", color: "#57534e" } };
   }
   if (apt.status === "pendent") {

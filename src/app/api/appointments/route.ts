@@ -3,8 +3,9 @@ import { db } from "@/db";
 import { appointments, rooms, services, professionals, clients } from "@/db/schema";
 import { findClientByPhone } from "@/lib/client-profile";
 import { eq, and, asc, gte, lte } from "drizzle-orm";
-import { addMinutesToTime, CONFLICT_MESSAGES, findConflict } from "@/lib/availability";
+import { addMinutesToTime, CONFLICT_MESSAGES, findConflict, withBookingLock } from "@/lib/availability";
 import { ensureSchema } from "@/db/ensure-schema";
+import { isOwnerUnlocked } from "@/lib/owner-lock";
 
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
 const TIME_RE = /^([01]\d|2[0-3]):[0-5]\d$/;
@@ -53,11 +54,13 @@ export async function GET(request: Request) {
       serviceColor: services.color,
       professionalName: professionals.name,
       professionalColor: professionals.color,
+      clientAllergies: clients.allergies,
     })
     .from(appointments)
     .leftJoin(rooms, eq(appointments.roomId, rooms.id))
     .leftJoin(services, eq(appointments.serviceId, services.id))
-    .leftJoin(professionals, eq(appointments.professionalId, professionals.id));
+    .leftJoin(professionals, eq(appointments.professionalId, professionals.id))
+    .leftJoin(clients, eq(appointments.clientId, clients.id));
 
     const conditions = [];
     if (startDate && endDate) {
@@ -78,7 +81,9 @@ export async function GET(request: Request) {
       ? await query.where(and(...conditions)).orderBy(asc(appointments.date), asc(appointments.startTime))
       : await query.orderBy(asc(appointments.date), asc(appointments.startTime));
 
-    return NextResponse.json({ success: true, data: result });
+    // Els imports només els veu la dueña (candado obert); la resta veu la cita sense preu
+    const data = (await isOwnerUnlocked()) ? result : result.map((a) => ({ ...a, price: null }));
+    return NextResponse.json({ success: true, data });
   } catch (error) {
     console.error("Error fetching appointments:", error);
     return NextResponse.json({ success: false, error: "Error al carregar les cites" }, { status: 500 });
@@ -120,57 +125,69 @@ export async function POST(request: Request) {
     }
 
     const duration = Number(durationMinutes) || 60;
-    const computedEndTime = addMinutesToTime(startTime, duration);
-
-    // Comprovar que ni la sala ni la professional estiguin ocupades en aquesta franja
-    const conflict = await findConflict({
-      date,
-      startTime,
-      endTime: computedEndTime,
-      roomId: Number(roomId),
-      professionalId: Number(professionalId),
-    });
-
-    if (conflict) {
-      return NextResponse.json({ success: false, error: CONFLICT_MESSAGES[conflict] }, { status: 409 });
+    // Sense preu (candado tancat): el de la carta
+    let finalPrice = price !== undefined && price !== null && price !== "" ? String(price) : null;
+    if (finalPrice === null) {
+      const [svc] = await db.select({ price: services.price }).from(services).where(eq(services.id, Number(serviceId)));
+      finalPrice = svc?.price ?? "0.00";
     }
+    const computedEndTime = addMinutesToTime(startTime, duration);
 
     // Si la clienta no és al fitxer (mateix telèfon), la donem d'alta automàticament
     let linkedClientId: number | null = clientId ? Number(clientId) : null;
     let createdClient = false;
-    if (!linkedClientId) {
-      const existing = await findClientByPhone(clientPhone);
-      if (existing) {
-        linkedClientId = existing.id;
-      } else {
-        const [created] = await db.insert(clients).values({
-          name: clientName.trim(),
-          phone: clientPhone.trim(),
-          email: clientEmail?.trim() || null,
-        }).returning();
-        linkedClientId = created.id;
-        createdClient = true;
-      }
-    }
 
-    const [newAppointment] = await db.insert(appointments).values({
-      clientName: clientName.trim(),
-      clientPhone: clientPhone.trim(),
-      clientEmail: clientEmail?.trim() || null,
-      clientId: linkedClientId,
-      roomId: Number(roomId),
-      serviceId: Number(serviceId),
-      professionalId: Number(professionalId),
-      date,
-      startTime,
-      endTime: computedEndTime,
-      durationMinutes: duration,
-      status: status || "confirmada",
-      price: price ? String(price) : "0.00",
-      paidCash: Boolean(paidCash),
-      notes: notes?.trim() || null,
-      source: source || "manual",
-    }).returning();
+    // Comprovació i reserva juntes, amb bloqueig per dia: dues reserves alhora no poden quedar-se la mateixa hora
+    const result = await withBookingLock([date], async (tx) => {
+      const conflict = await findConflict({
+        date,
+        startTime,
+        endTime: computedEndTime,
+        roomId: Number(roomId),
+        professionalId: Number(professionalId),
+      }, tx);
+      if (conflict) return { conflict };
+
+      if (!linkedClientId) {
+        const existing = await findClientByPhone(clientPhone);
+        if (existing) {
+          linkedClientId = existing.id;
+        } else {
+          const [created] = await tx.insert(clients).values({
+            name: clientName.trim(),
+            phone: clientPhone.trim(),
+            email: clientEmail?.trim() || null,
+          }).returning();
+          linkedClientId = created.id;
+          createdClient = true;
+        }
+      }
+
+      const [row] = await tx.insert(appointments).values({
+        clientName: clientName.trim(),
+        clientPhone: clientPhone.trim(),
+        clientEmail: clientEmail?.trim() || null,
+        clientId: linkedClientId,
+        roomId: Number(roomId),
+        serviceId: Number(serviceId),
+        professionalId: Number(professionalId),
+        date,
+        startTime,
+        endTime: computedEndTime,
+        durationMinutes: duration,
+        status: status || "confirmada",
+        price: finalPrice,
+        paidCash: Boolean(paidCash),
+        notes: notes?.trim() || null,
+        source: source || "manual",
+      }).returning();
+      return { row };
+    });
+
+    if ("conflict" in result && result.conflict) {
+      return NextResponse.json({ success: false, error: CONFLICT_MESSAGES[result.conflict] }, { status: 409 });
+    }
+    const newAppointment = result.row;
 
     return NextResponse.json({ success: true, data: newAppointment, createdClient });
   } catch (error) {
@@ -222,7 +239,7 @@ export async function PUT(request: Request) {
     if (date !== undefined) updateData.date = date;
     if (notes !== undefined) updateData.notes = notes?.trim() || null;
     if (status !== undefined) updateData.status = status;
-    if (price !== undefined) updateData.price = String(price);
+    if (price !== undefined && price !== null && price !== "") updateData.price = String(price);
     if (paidCash !== undefined) updateData.paidCash = Boolean(paidCash);
 
     const [existing] = await db.select().from(appointments).where(eq(appointments.id, Number(id)));
@@ -239,9 +256,15 @@ export async function PUT(request: Request) {
       updateData.endTime = addMinutesToTime(newStart, newDuration);
     }
 
+    // Si canvia el dia o l'hora, el recordatori s'ha de tornar a enviar
+    const newDate = (updateData.date as string | undefined) ?? existing.date;
+    const newStartTime = (updateData.startTime as string | undefined) ?? existing.startTime;
+    if (newDate !== existing.date || newStartTime !== existing.startTime) updateData.reminderSent = false;
+
     // Si la cita continua activa, comprovem que el canvi no xoqui amb cap altra cita
     const finalStatus = (updateData.status as string | undefined) ?? existing.status;
-    if (finalStatus !== "cancel·lada") {
+    const result = await withBookingLock([existing.date, newDate], async (tx) => {
+    if (finalStatus !== "cancel·lada" && finalStatus !== "no-presentada") {
       const conflict = await findConflict({
         date: (updateData.date as string | undefined) ?? existing.date,
         startTime: (updateData.startTime as string | undefined) ?? existing.startTime,
@@ -249,16 +272,21 @@ export async function PUT(request: Request) {
         roomId: (updateData.roomId as number | undefined) ?? existing.roomId,
         professionalId: (updateData.professionalId as number | undefined) ?? existing.professionalId,
         excludeAppointmentId: existing.id,
-      });
-      if (conflict) {
-        return NextResponse.json({ success: false, error: CONFLICT_MESSAGES[conflict] }, { status: 409 });
-      }
+      }, tx);
+      if (conflict) return { conflict };
     }
 
-    const [updated] = await db.update(appointments)
+    const [row] = await tx.update(appointments)
       .set(updateData)
       .where(eq(appointments.id, Number(id)))
       .returning();
+    return { row };
+    });
+
+    if ("conflict" in result && result.conflict) {
+      return NextResponse.json({ success: false, error: CONFLICT_MESSAGES[result.conflict] }, { status: 409 });
+    }
+    const updated = result.row;
 
     return NextResponse.json({ success: true, data: updated });
   } catch (error) {
@@ -277,9 +305,12 @@ export async function DELETE(request: Request) {
       return NextResponse.json({ success: false, error: "Falta l'identificador" }, { status: 400 });
     }
 
-    await db.delete(appointments).where(eq(appointments.id, Number(id)));
+    // No l'esborrem: la marquem com a cancel·lada perquè es pugui desfer i quedi a l'historial de la clienta
+    const [before] = await db.select({ status: appointments.status }).from(appointments).where(eq(appointments.id, Number(id)));
+    if (!before) return NextResponse.json({ success: false, error: "No s'ha trobat la cita" }, { status: 404 });
+    await db.update(appointments).set({ status: "cancel·lada" }).where(eq(appointments.id, Number(id)));
 
-    return NextResponse.json({ success: true, message: "Cita cancel·lada correctament" });
+    return NextResponse.json({ success: true, message: "Cita cancel·lada correctament", previousStatus: before.status });
   } catch (error) {
     console.error("Error deleting appointment:", error);
     return NextResponse.json({ success: false, error: "Error al cancel·lar la cita" }, { status: 500 });

@@ -86,6 +86,8 @@ export interface ClientSummary {
   treatments: ClientTreatment[];
 }
 
+export type AppointmentStatus = "confirmada" | "pendent" | "completada" | "cancel·lada" | "no-presentada";
+
 export interface Appointment {
   id: number;
   clientName: string;
@@ -99,8 +101,8 @@ export interface Appointment {
   startTime: string; // HH:MM
   endTime: string; // HH:MM
   durationMinutes: number;
-  status: "confirmada" | "pendent" | "completada" | "cancel·lada";
-  price: string;
+  status: AppointmentStatus;
+  price: string | null; // null si el candado està tancat
   paidCash?: boolean;
   notes?: string | null;
   source: string;
@@ -112,6 +114,7 @@ export interface Appointment {
   serviceColor?: string | null;
   professionalName?: string | null;
   professionalColor?: string | null;
+  clientAllergies?: string | null;
 }
 
 export interface ProposedSlot {

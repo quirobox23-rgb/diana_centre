@@ -21,6 +21,12 @@ export async function GET(request: Request) {
     return NextResponse.json({ status: "handled_by_agent" });
   }
 
+  // Mentre les dueñes proven l'app no s'ha d'enviar res a clientes reals:
+  // els recordatoris per Twilio només surten si REMINDERS_ENABLED=true
+  if (process.env.REMINDERS_ENABLED !== "true") {
+    return NextResponse.json({ status: "disabled" });
+  }
+
   const tomorrowStr = addDays(todayStr(), 1);
 
   const toRemind = await db.select().from(appointments)
