@@ -179,3 +179,16 @@ export const stockMovements = pgTable("stock_movements", {
   appointmentId: integer("appointment_id"), // venda feta durant una cita (per veure-la a la fitxa de la cita)
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
+
+// Altres coses afegides al compte d'una cita (un altre tractament, un bo, etc.).
+// Els productes de l'Estoc van a stock_movements amb appointment_id.
+export const appointmentExtras = pgTable("appointment_extras", {
+  id: serial("id").primaryKey(),
+  appointmentId: integer("appointment_id").notNull().references(() => appointments.id, { onDelete: "cascade" }),
+  kind: text("kind").notNull().default("altre"), // "servei" | "bo" | "altre"
+  serviceId: integer("service_id").references(() => services.id, { onDelete: "set null" }),
+  description: text("description").notNull(),
+  quantity: integer("quantity").notNull().default(1),
+  unitPrice: numeric("unit_price", { precision: 10, scale: 2 }).notNull().default("0.00"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});

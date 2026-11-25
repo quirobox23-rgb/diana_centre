@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import { ServicePicker } from "./ServicePicker";
-import { ProductSales } from "./ProductSales";
+import { AppointmentAccount } from "./AppointmentAccount";
 import { X, Calendar, Clock, User, Scissors, Phone, Mail, FileText, CheckCircle2, AlertCircle, Ban, Search, AlertTriangle } from "lucide-react";
 import { Room, Professional, Service, Appointment, Client, Schedule, AppointmentStatus } from "@/types";
 import { todayStr, dayOfWeek } from "@/lib/dates";
@@ -135,7 +135,12 @@ export function AppointmentModal({
       setDate(appointmentToEdit.date);
       setStartTime(appointmentToEdit.startTime);
       setDurationMinutes(appointmentToEdit.durationMinutes);
-      setPrice(appointmentToEdit.price ?? "");
+      {
+        // Cites guardades quan el tractament encara no tenia preu (0 €): agafen el preu actual de Serveis
+        const saved = appointmentToEdit.price;
+        const svcPrice = services.find((x) => x.id === appointmentToEdit.serviceId)?.price;
+        setPrice(saved != null && Number(saved) === 0 && Number(svcPrice) > 0 ? String(svcPrice) : saved ?? "");
+      }
       setPaidCash(Boolean(appointmentToEdit.paidCash));
       setStatus(appointmentToEdit.status);
       setNotes(appointmentToEdit.notes || "");
@@ -721,13 +726,16 @@ export function AppointmentModal({
             </div>
           </div>
 
-          {/* Vendre cremes i productes de l'Estoc a la clienta */}
+          {/* Compte de la cita: el tractament + cremes, altres tractaments, bons... */}
           {appointmentToEdit && (
-            <ProductSales
+            <AppointmentAccount
               appointmentId={appointmentToEdit.id}
               clientName={clientName || appointmentToEdit.clientName}
+              serviceName={services.find((s) => s.id === serviceId)?.name ?? appointmentToEdit.serviceName ?? ""}
               servicePrice={canSeeMoney && price !== "" && Number.isFinite(Number(price)) ? Number(price) : null}
               canSeeMoney={canSeeMoney}
+              services={services}
+              paidCash={paidCash}
             />
           )}
 

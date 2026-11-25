@@ -118,7 +118,7 @@ export function ProfessionalSummary({
   const range = useMemo(() => getRange(mode, anchor), [mode, anchor]);
 
   // Productes venuts i xecs regal del període (només amb el candado obert)
-  const [extra, setExtra] = useState<{ products: { units: number; amount: number }; vouchersSold: { count: number; amount: number }; vouchersUsed: number } | null>(null);
+  const [extra, setExtra] = useState<{ extras?: { amount: number; cash: number }; products: { units: number; amount: number }; vouchersSold: { count: number; amount: number }; vouchersUsed: number } | null>(null);
   useEffect(() => {
     if (!showMoney) return;
     let alive = true;
@@ -319,11 +319,12 @@ export function ProfessionalSummary({
           <div className="flex flex-wrap items-baseline justify-between gap-2">
             <p className="text-[11px] font-bold uppercase tracking-wider text-stone-400">Total del centre</p>
             <p className="text-xl font-bold text-stone-900">
-              {money(totals.revenue + extra.products.amount + extra.vouchersSold.amount - extra.vouchersUsed)}
+              {money(totals.revenue + (extra.extras?.amount ?? 0) + extra.products.amount + extra.vouchersSold.amount - extra.vouchersUsed)}
             </p>
           </div>
           <div className="mt-1.5 flex flex-wrap gap-x-4 gap-y-1 text-xs text-stone-600">
             <span>Tractaments {money(totals.revenue)}</span>
+            {!!extra.extras?.amount && <span>+ Altres al compte de les cites {money(extra.extras.amount)}</span>}
             <span>+ Productes venuts {money(extra.products.amount)} ({extra.products.units} u.)</span>
             <span>+ Xecs regal venuts {money(extra.vouchersSold.amount)} ({extra.vouchersSold.count})</span>
             {extra.vouchersUsed > 0 && <span>− Pagat amb xecs {money(extra.vouchersUsed)}</span>}

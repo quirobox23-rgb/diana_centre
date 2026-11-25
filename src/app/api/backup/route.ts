@@ -26,6 +26,7 @@ export async function GET() {
       gift_voucher_uses: t.giftVoucherUses,
       products: t.products,
       stock_movements: t.stockMovements,
+      appointment_extras: t.appointmentExtras,
       whatsapp_requests: t.botSimulations,
       center_settings: t.centerSettings,
     };

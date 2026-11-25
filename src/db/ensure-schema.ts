@@ -85,6 +85,18 @@ export function ensureSchema(): Promise<void> {
       ALTER TABLE stock_movements ADD COLUMN IF NOT EXISTS appointment_id integer;
       CREATE INDEX IF NOT EXISTS stock_movements_appointment_idx ON stock_movements (appointment_id);
 
+      CREATE TABLE IF NOT EXISTS appointment_extras (
+        id serial PRIMARY KEY,
+        appointment_id integer NOT NULL REFERENCES appointments(id) ON DELETE CASCADE,
+        kind text NOT NULL DEFAULT 'altre',
+        service_id integer REFERENCES services(id) ON DELETE SET NULL,
+        description text NOT NULL,
+        quantity integer NOT NULL DEFAULT 1,
+        unit_price numeric(10,2) NOT NULL DEFAULT 0,
+        created_at timestamp DEFAULT now() NOT NULL
+      );
+      CREATE INDEX IF NOT EXISTS appointment_extras_apt_idx ON appointment_extras (appointment_id);
+
       -- Índexs perquè el calendari i les fitxes vagin ràpids amb milers de cites i clientes
       CREATE INDEX IF NOT EXISTS appointments_date_idx ON appointments (date);
       CREATE INDEX IF NOT EXISTS appointments_client_idx ON appointments (client_id);
