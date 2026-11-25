@@ -21,9 +21,26 @@ function wholeNumber(v: unknown): number | null {
 }
 
 // Llista de productes amb el que en queda i el que s'ha venut aquest mes
-export async function GET() {
+// (?appointmentId=N: només els productes venuts en aquella cita)
+export async function GET(request: Request) {
   try {
     await ensureSchema();
+    const aptId = Number(new URL(request.url).searchParams.get("appointmentId"));
+    if (Number.isInteger(aptId) && aptId > 0) {
+      const sales = await db
+        .select({
+          id: stockMovements.id,
+          productId: stockMovements.productId,
+          productName: products.name,
+          quantity: sql<number>`(-${stockMovements.quantity})::int`,
+          price: products.price,
+        })
+        .from(stockMovements)
+        .innerJoin(products, eq(products.id, stockMovements.productId))
+        .where(and(eq(stockMovements.appointmentId, aptId), eq(stockMovements.kind, "venda")))
+        .orderBy(stockMovements.createdAt);
+      return NextResponse.json({ success: true, data: sales });
+    }
     const monthStart = `${todayStr().slice(0, 7)}-01`;
     const list = await db.select().from(products).where(eq(products.isActive, true)).orderBy(products.name);
     // Sortides del mes: venudes (al públic) o gastades al centre (ús professional)
@@ -113,6 +130,18 @@ export async function POST(request: Request) {
       return NextResponse.json({ success: true, added: toAdd.length, skipped: AROMSNATUR_CATALOG.length - toAdd.length });
     }
 
+    // Treure una venda feta per error des de la fitxa de la cita (torna les unitats a l'estoc)
+    if (body.action === "undo-sale") {
+      const moveId = Number(body.moveId);
+      const [move] = await db.select().from(stockMovements).where(and(eq(stockMovements.id, moveId), eq(stockMovements.kind, "venda")));
+      if (!move) return NextResponse.json({ success: false, error: "No trobo la venda" }, { status: 404 });
+      await db.transaction(async (tx) => {
+        await tx.update(products).set({ stock: sql`${products.stock} + ${-move.quantity}` }).where(eq(products.id, move.productId));
+        await tx.delete(stockMovements).where(eq(stockMovements.id, move.id));
+      });
+      return NextResponse.json({ success: true });
+    }
+
     const id = Number(body.id ?? body.productId);
     if (!Number.isInteger(id)) return NextResponse.json({ success: false, error: "Falta el producte" }, { status: 400 });
 
@@ -150,6 +179,18 @@ export async function POST(request: Request) {
       const delta = kind === "venda" || kind === "us" ? -qty : kind === "entrada" ? qty : qty - product.stock;
       if (kind !== "ajust" && qty === 0) {
         return NextResponse.json({ success: false, error: "Posa una quantitat" }, { status: 400 });
+      }
+      const appointmentId = Number.isInteger(Number(body.appointmentId)) && Number(body.appointmentId) > 0 ? Number(body.appointmentId) : null;
+
+      // Venda feta a una clienta: si el producte és a la botiga es pot vendre encara que el recompte
+      // digui que no n'hi ha (molts productes es van carregar sense unitats). L'estoc no baixa de 0.
+      if (kind === "venda" && appointmentId) {
+        const [updated] = await db.update(products)
+          .set({ stock: sql`greatest(${products.stock} - ${qty}, 0)` })
+          .where(eq(products.id, id))
+          .returning();
+        await db.insert(stockMovements).values({ productId: id, quantity: -qty, kind, date: todayStr(), note: clean(body.note), appointmentId });
+        return NextResponse.json({ success: true, data: updated });
       }
       const [updated] = await db.update(products)
         .set({ stock: sql`${products.stock} + ${delta}` })

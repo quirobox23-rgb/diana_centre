@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useSyncExternalStore } from "react";
 import {
   Calendar as CalendarIcon,
   ChevronLeft,
@@ -123,20 +123,13 @@ export function MultiRoomCalendar({
   // Mode de visualització: "day" (graella horària de 3 sales) o "week" (graella 6 dies amb les 3 sales sub-columnes)
   const [calendarMode, setCalendarMode] = useState<"day" | "week">("day");
   const [selectedRoomFilter, setSelectedRoomFilter] = useState<string>("all");
-  const mobileDefaultApplied = React.useRef(false);
-
-  // En mòbil, mostrar per defecte només 1 sala (les 3 alhora queden massa petites per llegir bé).
-  // Només s'aplica un cop, quan arriben les sales (venen d'una crida asíncrona del component pare).
-  useEffect(() => {
-    if (mobileDefaultApplied.current) return;
-    if (typeof window !== "undefined" && window.innerWidth < 768 && rooms[0]) {
-      setSelectedRoomFilter(String(rooms[0].id));
-      mobileDefaultApplied.current = true;
-    }
-  }, [rooms]);
+  // Al mòbil també es veuen les 3 cabines alhora: les cites surten estretes i es despleguen en tocar-les
   const [selectedProfFilter, setSelectedProfFilter] = useState<string>("all");
   const [selectedStatusFilter, setSelectedStatusFilter] = useState<string>("all");
   const [selectedWeekDayTab, setSelectedWeekDayTab] = useState<number>(0);
+  // Al mòbil les cites són estretes: el primer toc les desplega i el segon obre la fitxa
+  const isMobile = useIsMobile();
+  const [expandedId, setExpandedId] = useState<number | null>(null);
 
   // Format de data en català
   const formatCatalanDate = (dateStr: string) => {
@@ -287,9 +280,9 @@ export function MultiRoomCalendar({
               >
                 <ChevronLeft className="w-5 h-5" />
               </button>
-              <div className="px-3 flex items-center space-x-2 min-w-[200px] justify-center">
-                <CalendarIcon className="w-4 h-4 text-terra-600 shrink-0" />
-                <span className="text-sm font-bold text-stone-900 text-center whitespace-nowrap first-letter:uppercase">
+              <div className="px-1 sm:px-3 flex items-center space-x-2 min-w-0 sm:min-w-[200px] justify-center">
+                <CalendarIcon className="hidden sm:block w-4 h-4 text-terra-600 shrink-0" />
+                <span className="text-sm font-bold text-stone-900 text-center sm:whitespace-nowrap first-letter:uppercase">
                   {calendarMode === "week"
                     ? formatWeekRange(weekDays[0].dateStr, weekDays[5].dateStr)
                     : formatCatalanDate(selectedDate)}
@@ -307,7 +300,7 @@ export function MultiRoomCalendar({
               type="date"
               value={selectedDate}
               onChange={(e) => onDateChange(e.target.value)}
-              className="px-2.5 py-1.5 text-xs border border-stone-200 rounded-lg text-stone-700 focus:ring-2 focus:ring-terra-500"
+              className="hidden sm:block px-2.5 py-1.5 text-xs border border-stone-200 rounded-lg text-stone-700 focus:ring-2 focus:ring-terra-500"
             />
           </div>
 
@@ -406,13 +399,17 @@ export function MultiRoomCalendar({
       {calendarMode === "day" && (
         <div className="bg-white rounded-2xl shadow-xs border border-stone-200 overflow-hidden flex flex-col">
         <div className="overflow-x-auto">
-        <div style={{ minWidth: displayedRooms.length > 1 ? `${80 + displayedRooms.length * 150}px` : undefined }}>
+        <div
+          className="sm:min-w-(--cal-mw)"
+          style={{ "--cal-mw": displayedRooms.length > 1 ? `${90 + displayedRooms.length * 150}px` : "0px" } as React.CSSProperties}
+          onClick={() => setExpandedId(null)}
+        >
           {/* Capçalera de les Sales de la graella */}
-          <div className="grid grid-cols-[80px_1fr] sm:grid-cols-[90px_1fr] border-b border-stone-200 bg-stone-50 sticky top-0 z-20">
+          <div className="grid grid-cols-[42px_1fr] sm:grid-cols-[90px_1fr] border-b border-stone-200 bg-stone-50 sticky top-0 z-20">
             {/* Cantonada de l'hora */}
-            <div className="p-3 text-center text-xs font-bold text-stone-500 border-r border-stone-200 flex items-center justify-center space-x-1">
+            <div className="p-1 sm:p-3 text-center text-xs font-bold text-stone-500 border-r border-stone-200 flex items-center justify-center space-x-1">
               <Clock className="w-3.5 h-3.5 text-stone-400" />
-              <span>Hora</span>
+              <span className="hidden sm:inline">Hora</span>
             </div>
 
             {/* Columnes de les 3 Sales */}
@@ -430,12 +427,13 @@ export function MultiRoomCalendar({
                 const roomApts = todayAppointments.filter((a) => a.roomId === room.id);
 
                 return (
-                  <div key={room.id} className="p-3 bg-white flex items-center justify-between">
-                    <div className="flex items-center space-x-2 overflow-hidden">
-                      <span className={`w-3 h-3 rounded-full shrink-0 ${styles.border.replace("border-", "bg-")}`} />
+                  <div key={room.id} className="p-1.5 sm:p-3 bg-white flex items-center justify-between">
+                    <div className="flex items-center space-x-1.5 sm:space-x-2 overflow-hidden">
+                      <span className={`hidden sm:block w-3 h-3 rounded-full shrink-0 ${styles.border.replace("border-", "bg-")}`} />
                       <div className="truncate">
                         <h4 className="font-bold text-xs sm:text-sm text-stone-900 truncate">
-                          {room.name}
+                          <span className="sm:hidden">{room.name.split(" · ")[0]}</span>
+                          <span className="hidden sm:inline">{room.name}</span>
                         </h4>
                         <p className="text-[11px] text-stone-400">
                           {roomApts.length === 0 ? "Sense cites" : `${roomApts.length} ${roomApts.length === 1 ? "cita" : "cites"}`}
@@ -445,7 +443,7 @@ export function MultiRoomCalendar({
 
                     <button
                       onClick={() => onNewAppointment(room.id, "10:00", selectedDate)}
-                      className="p-1 rounded-lg text-stone-400 hover:text-terra-600 hover:bg-terra-50 transition-colors shrink-0 ml-1"
+                      className="hidden sm:block p-1 rounded-lg text-stone-400 hover:text-terra-600 hover:bg-terra-50 transition-colors shrink-0 ml-1"
                       title={`Afegir cita a ${room.name}`}
                     >
                       <Plus className="w-4 h-4" />
@@ -459,7 +457,7 @@ export function MultiRoomCalendar({
           {/* Cos de la Graella Horària de Calendari */}
           <div className="relative max-h-[65vh] sm:max-h-[720px] overflow-y-auto">
             <div
-              className="grid grid-cols-[80px_1fr] sm:grid-cols-[90px_1fr] relative"
+              className="grid grid-cols-[42px_1fr] sm:grid-cols-[90px_1fr] relative"
               style={{ height: `${TOTAL_MINUTES * PIXELS_PER_MINUTE}px` }}
             >
               {/* Eix d'Hores a l'esquerra */}
@@ -472,7 +470,7 @@ export function MultiRoomCalendar({
                   return (
                     <div
                       key={time}
-                      className="absolute w-full px-2 text-right flex items-center justify-end -translate-y-1/2"
+                      className="absolute w-full px-1 sm:px-2 text-right flex items-center justify-end -translate-y-1/2"
                       style={{ top: `${topPos}px` }}
                     >
                       <span className="text-[11px] font-medium text-stone-500 tabular-nums">{time}</span>
@@ -520,6 +518,11 @@ export function MultiRoomCalendar({
                       key={room.id}
                       className="relative h-full transition-colors hover:bg-stone-50/30"
                       onClick={(e) => {
+                        if (expandedId !== null) {
+                          e.stopPropagation();
+                          setExpandedId(null);
+                          return;
+                        }
                         // Clic per reservar a l'hora exacta on es fa clic
                         const rect = e.currentTarget.getBoundingClientRect();
                         const clickY = e.clientY - rect.top;
@@ -545,24 +548,54 @@ export function MultiRoomCalendar({
                         const isPending = apt.status === "pendent";
 
                         const look = aptLook(apt);
+                        const expanded = isMobile && expandedId === apt.id;
+                        const firstName = apt.clientName.trim().split(/\s+/)[0];
 
                         return (
                           <div
                             key={apt.id}
                             onClick={(e) => {
                               e.stopPropagation();
-                              onEditAppointment(apt);
+                              if (isMobile && !expanded) setExpandedId(apt.id);
+                              else {
+                                setExpandedId(null);
+                                onEditAppointment(apt);
+                              }
                             }}
-                            className={`absolute left-1 right-1 rounded-lg px-2 py-1.5 cursor-pointer z-10 overflow-hidden transition-colors hover:brightness-95 ${
+                            className={`absolute left-0.5 right-0.5 sm:left-1 sm:right-1 rounded-md sm:rounded-lg px-1 sm:px-2 py-1 sm:py-1.5 cursor-pointer overflow-hidden transition-colors hover:brightness-95 ${
                               isCancelled ? "opacity-50 line-through" : ""
-                            }`}
+                            } ${expanded ? "z-30 shadow-xl ring-2 ring-white" : "z-10"}`}
                             style={{
                               top: `${topOffset}px`,
-                              height: `${blockHeight - 2}px`,
+                              ...(expanded ? { minHeight: `${blockHeight - 2}px` } : { height: `${blockHeight - 2}px` }),
                               ...look.style,
                             }}
                             title={`${apt.startTime}-${apt.endTime} · ${apt.clientName} · ${apt.serviceName} · ${apt.professionalName ?? ""}${canSeeMoney ? ` · ${apt.price}€` : ""}`}
                           >
+                            {isMobile && !expanded ? (
+                              // Versió estreta del mòbil: només el nom i l'hora
+                              <div className="leading-tight">
+                                <div className="font-semibold text-[11px] truncate">
+                                  {apt.clientAllergies && "⚠️"}
+                                  {firstName}
+                                </div>
+                                <div className="text-[10px] opacity-90 truncate">{apt.startTime}</div>
+                              </div>
+                            ) : expanded ? (
+                              // Desplegada: tot el detall i el botó per obrir la fitxa
+                              <div className="leading-snug text-[11px] space-y-0.5">
+                                <div className="font-bold text-xs">{apt.clientName}</div>
+                                {apt.clientAllergies && <div className="font-semibold">⚠️ {apt.clientAllergies}</div>}
+                                <div>{apt.serviceName}</div>
+                                <div>
+                                  {apt.startTime}–{apt.endTime}
+                                </div>
+                                {apt.professionalName && <div>{apt.professionalName}</div>}
+                                {apt.status !== "confirmada" && <div className="italic">{apt.status}</div>}
+                                <div className="mt-1 text-center rounded bg-white/90 text-stone-800 font-bold py-0.5">Obrir</div>
+                              </div>
+                            ) : (
+                              <>
                             <div className="flex items-baseline justify-between gap-2">
                               <span className="font-semibold text-xs truncate">
                                 {apt.clientAllergies && <span title={`Al·lèrgies: ${apt.clientAllergies}`}>⚠️ </span>}
@@ -588,6 +621,8 @@ export function MultiRoomCalendar({
                               <div className="mt-0.5">
                                 <ProfessionalTag name={apt.professionalName} color={apt.professionalColor} />
                               </div>
+                            )}
+                              </>
                             )}
                           </div>
                         );
@@ -772,6 +807,19 @@ function aptLook(apt: { serviceColor?: string | null; status: string }): { style
 }
 
 /** Etiqueta petita amb el color i el nom de la professional. */
+const mobileQuery = "(max-width: 639px)";
+function useIsMobile() {
+  return useSyncExternalStore(
+    (cb) => {
+      const m = window.matchMedia(mobileQuery);
+      m.addEventListener("change", cb);
+      return () => m.removeEventListener("change", cb);
+    },
+    () => window.matchMedia(mobileQuery).matches,
+    () => false
+  );
+}
+
 function ProfessionalTag({ name, color }: { name: string; color?: string | null }) {
   return (
     <span className="inline-flex items-center gap-1 shrink-0 text-[10px] font-medium opacity-90">

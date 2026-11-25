@@ -155,3 +155,28 @@ export async function applyRoomLayoutOnce(): Promise<void> {
   );
   console.log("[sales] noms i repartiment de cabines actualitzats");
 }
+
+const NUTRI_KEY = "nutricosmetica_v1";
+
+/** Un sol cop: afegeix el tractament de Nutricosmètica (si el centre ja té serveis i encara no hi és). */
+export async function addNutricosmeticaOnce(): Promise<void> {
+  const done = await pool.query("SELECT 1 FROM app_settings WHERE key = $1", [NUTRI_KEY]);
+  if (done.rowCount) return;
+  const name = "Assessorament de nutricosmètica";
+  const { rows } = await pool.query<{ id: number }>("SELECT id FROM services WHERE lower(name) = lower($1)", [name]);
+  if (!rows.length) {
+    const ins = await pool.query<{ id: number }>(
+      `INSERT INTO services (name, category, duration_minutes, price, description, color, is_active)
+       VALUES ($1, 'Nutricosmètica', 30, '0.00', $2, $3, true) RETURNING id`,
+      [name, "Complements per a la pell, els cabells i les ungles", colorForService(name, "Nutricosmètica")]
+    );
+    const ids = ins.rows.map((r) => r.id);
+    await assignDefaultProfessionals(ids).catch((err) => console.error("[pros]", err));
+    await assignDefaultRooms(ids).catch((err) => console.error("[sales]", err));
+  }
+  await pool.query(
+    "INSERT INTO app_settings (key, value) VALUES ($1, $2) ON CONFLICT (key) DO NOTHING",
+    [NUTRI_KEY, new Date().toISOString()]
+  );
+  console.log("[serveis] nutricosmètica afegida");
+}

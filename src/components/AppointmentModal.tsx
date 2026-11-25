@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import { ServicePicker } from "./ServicePicker";
+import { ProductSales } from "./ProductSales";
 import { X, Calendar, Clock, User, Scissors, Phone, Mail, FileText, CheckCircle2, AlertCircle, Ban, Search, AlertTriangle } from "lucide-react";
 import { Room, Professional, Service, Appointment, Client, Schedule, AppointmentStatus } from "@/types";
 import { todayStr, dayOfWeek } from "@/lib/dates";
@@ -719,6 +720,16 @@ export function AppointmentModal({
               </div>
             </div>
           </div>
+
+          {/* Vendre cremes i productes de l'Estoc a la clienta */}
+          {appointmentToEdit && (
+            <ProductSales
+              appointmentId={appointmentToEdit.id}
+              clientName={clientName || appointmentToEdit.clientName}
+              servicePrice={canSeeMoney && price !== "" && Number.isFinite(Number(price)) ? Number(price) : null}
+              canSeeMoney={canSeeMoney}
+            />
+          )}
 
           {/* Estat i Notes */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-3 pt-2">

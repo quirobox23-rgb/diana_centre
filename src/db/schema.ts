@@ -176,5 +176,6 @@ export const stockMovements = pgTable("stock_movements", {
   kind: text("kind").notNull(), // "venda", "us" (gastat al centre), "entrada", "ajust"
   date: text("date").notNull(), // YYYY-MM-DD
   note: text("note"),
+  appointmentId: integer("appointment_id"), // venda feta durant una cita (per veure-la a la fitxa de la cita)
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });

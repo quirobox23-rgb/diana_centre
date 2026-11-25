@@ -1,5 +1,5 @@
 import { pool } from "./index";
-import { applyTreatmentColorsOnce, assignDefaultProfessionalsOnce, applyRoomLayoutOnce } from "./treatment-colors-migration";
+import { applyTreatmentColorsOnce, assignDefaultProfessionalsOnce, applyRoomLayoutOnce, addNutricosmeticaOnce } from "./treatment-colors-migration";
 
 // Crea les taules noves si encara no existeixen, perquè no calgui executar
 // "drizzle-kit push" a producció a mà. Només s'executa un cop per instància.
@@ -82,6 +82,9 @@ export function ensureSchema(): Promise<void> {
         created_at timestamp DEFAULT now() NOT NULL
       );
 
+      ALTER TABLE stock_movements ADD COLUMN IF NOT EXISTS appointment_id integer;
+      CREATE INDEX IF NOT EXISTS stock_movements_appointment_idx ON stock_movements (appointment_id);
+
       -- Índexs perquè el calendari i les fitxes vagin ràpids amb milers de cites i clientes
       CREATE INDEX IF NOT EXISTS appointments_date_idx ON appointments (date);
       CREATE INDEX IF NOT EXISTS appointments_client_idx ON appointments (client_id);
@@ -90,6 +93,7 @@ export function ensureSchema(): Promise<void> {
       await applyTreatmentColorsOnce().catch(err => console.error("[colors]", err));
       await assignDefaultProfessionalsOnce().catch(err => console.error("[pros]", err));
       await applyRoomLayoutOnce().catch(err => console.error("[sales]", err));
+      await addNutricosmeticaOnce().catch(err => console.error("[nutri]", err));
     }).catch(err => {
       ensured = null;
       throw err;
