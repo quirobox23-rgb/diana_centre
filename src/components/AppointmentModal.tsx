@@ -135,7 +135,12 @@ export function AppointmentModal({
       setDate(appointmentToEdit.date);
       setStartTime(appointmentToEdit.startTime);
       setDurationMinutes(appointmentToEdit.durationMinutes);
-      setPrice(appointmentToEdit.price ?? "");
+      {
+        // Cites guardades quan el tractament encara no tenia preu (0 €): agafen el preu actual de Serveis
+        const saved = appointmentToEdit.price;
+        const svcPrice = services.find((x) => x.id === appointmentToEdit.serviceId)?.price;
+        setPrice(saved != null && Number(saved) === 0 && Number(svcPrice) > 0 ? String(svcPrice) : saved ?? "");
+      }
       setPaidCash(Boolean(appointmentToEdit.paidCash));
       setStatus(appointmentToEdit.status);
       setNotes(appointmentToEdit.notes || "");
