@@ -1,9 +1,9 @@
 "use client";
 
 import React from "react";
-import { Sparkles, Calendar, Smartphone, Scissors, Clock, Users, Plus, UserCheck, MessageCircle, LogOut, BarChart3, Gift, Lock, LockOpen, KeyRound, Package } from "lucide-react";
+import { Sparkles, Calendar, Building2, Scissors, Clock, Users, Plus, UserCheck, MessageCircle, LogOut, BarChart3, Gift, Lock, LockOpen, KeyRound, Package } from "lucide-react";
 
-type TabId = "calendar" | "clients" | "bot" | "services" | "schedules" | "professionals" | "pending" | "summary" | "vouchers" | "stock";
+type TabId = "calendar" | "clients" | "office" | "services" | "schedules" | "professionals" | "pending" | "summary" | "vouchers" | "stock";
 
 interface NavbarProps {
   activeTab: TabId;
@@ -28,11 +28,12 @@ export function Navbar({ activeTab, onTabChange, onNewAppointmentClick, pendingC
   const tabs: TabItem[] = [
     { id: "pending", label: "Per confirmar", icon: MessageCircle, badge: pendingCount },
     { id: "calendar", label: "Calendari", icon: Calendar },
+    { id: "office", label: "Oficina", icon: Building2 },
     { id: "clients", label: "Clientes", icon: Users },
     { id: "vouchers", label: "Xecs regal", icon: Gift },
     { id: "stock", label: "Estoc", icon: Package },
     { id: "summary", label: "Resum", icon: BarChart3 },
-    { id: "bot", label: "Simulador", icon: Smartphone },
+    
     { id: "services", label: "Serveis", icon: Scissors },
     { id: "schedules", label: "Horaris", icon: Clock },
     { id: "professionals", label: "Professionals", icon: UserCheck },

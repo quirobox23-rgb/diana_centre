@@ -59,3 +59,26 @@
 
   --color-sorra: #f7f2ea;
 }
+
+/* Oficina 3D: etiquetes damunt de les persones i botons */
+.office-label {
+  position: absolute; transform: translate(-50%, -100%); white-space: nowrap;
+  display: flex; align-items: center; gap: 5px;
+  background: rgba(34, 27, 23, .86); color: #f5ede3; border: 1px solid rgba(255, 255, 255, .1);
+  border-radius: 6px; padding: 2px 7px; font-size: 11px; line-height: 1.35;
+}
+.office-label b { font-weight: 700; }
+.office-label span { color: #cdbfae; }
+.office-label i { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+.office-label.pending { border-color: #f0b04a; }
+.office-label.free { background: rgba(34, 27, 23, .55); }
+.office-label.free span { color: #a7e3bf; }
+.office-label.aura { border-color: rgba(37, 211, 102, .6); }
+.office-label.aura.alert { border-color: #ef5b5b; box-shadow: 0 0 0 3px rgba(239, 91, 91, .25); }
+.office-btn {
+  background: rgba(34, 27, 23, .85); color: #f5ede3; border: 1px solid rgba(255, 255, 255, .14);
+  border-radius: 8px; font-size: 12px; font-weight: 600; padding: 5px 9px; cursor: pointer;
+}
+.office-btn:hover { border-color: #c06a44; }
+.office-label em { font-style: normal; font-weight: 700; color: #f3c9a6; padding-left: 5px; margin-left: 1px; border-left: 1px solid rgba(255,255,255,.18); }
+@media (max-width: 640px) { .office-label .t { display: none; } .office-label { font-size: 10px; } }
