@@ -25,6 +25,7 @@ export async function GET(request: Request) {
       .select({
         units: sql<number>`coalesce(sum(-${stockMovements.quantity}), 0)::int`,
         amount: sql<string>`coalesce(sum(-${stockMovements.quantity} * ${products.price}), 0)::text`,
+        cash: sql<string>`coalesce(sum(-${stockMovements.quantity} * ${products.price}) filter (where ${stockMovements.paidCash}), 0)::text`,
       })
       .from(stockMovements)
       .innerJoin(products, eq(products.id, stockMovements.productId))
@@ -41,11 +42,11 @@ export async function GET(request: Request) {
       .from(giftVoucherUses)
       .where(and(gte(giftVoucherUses.date, start), lte(giftVoucherUses.date, end)));
 
-    // Altres coses del compte de les cites (un altre tractament, bons...), segons com s'ha pagat la cita
+    // Altres coses del compte de les cites (un altre tractament, bons...), amb el que s'ha cobrat en efectiu
     const [ext] = await db
       .select({
         amount: sql<string>`coalesce(sum(${appointmentExtras.quantity} * ${appointmentExtras.unitPrice}), 0)::text`,
-        cash: sql<string>`coalesce(sum(${appointmentExtras.quantity} * ${appointmentExtras.unitPrice}) filter (where ${appointments.paidCash}), 0)::text`,
+        cash: sql<string>`coalesce(sum(${appointmentExtras.quantity} * ${appointmentExtras.unitPrice}) filter (where ${appointmentExtras.paidCash}), 0)::text`,
       })
       .from(appointmentExtras)
       .innerJoin(appointments, eq(appointments.id, appointmentExtras.appointmentId))
@@ -54,7 +55,7 @@ export async function GET(request: Request) {
     return NextResponse.json({
       success: true,
       extras: { amount: Number(ext?.amount ?? 0), cash: Number(ext?.cash ?? 0) },
-      products: { units: Number(prod?.units ?? 0), amount: Number(prod?.amount ?? 0) },
+      products: { units: Number(prod?.units ?? 0), amount: Number(prod?.amount ?? 0), cash: Number(prod?.cash ?? 0) },
       vouchersSold: {
         count: sold.reduce((s, r) => s + Number(r.n), 0),
         amount: sold.reduce((s, r) => s + Number(r.amount), 0),

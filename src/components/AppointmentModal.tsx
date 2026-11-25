@@ -311,7 +311,7 @@ export function AppointmentModal({
         date,
         startTime,
         durationMinutes: Number(durationMinutes),
-        price: canSeeMoney ? price : undefined,
+        price,
         paidCash,
         status,
         notes: notes.trim() || null,
@@ -625,7 +625,7 @@ export function AppointmentModal({
           <div className="border-t border-stone-100 pt-3">
             <h4 className="text-xs font-semibold uppercase tracking-wider text-terra-800 mb-2 flex items-center space-x-1.5">
               <Clock className="w-3.5 h-3.5" />
-              <span>{canSeeMoney ? "Horari i Preu" : "Horari i Pagament"}</span>
+              <span>Horari i Preu</span>
             </h4>
             {hoursWarning && (
               <p className="mb-2 flex items-center gap-1.5 rounded-lg bg-amber-50 border border-amber-200 px-3 py-1.5 text-xs font-semibold text-amber-800">
@@ -686,24 +686,18 @@ export function AppointmentModal({
               </div>
 
               <div>
-                {canSeeMoney ? (
-                  <>
-                    <label className="block text-xs font-medium text-stone-700 mb-1">
-                      Preu (€)
-                    </label>
-                    <input
-                      type="number"
-                      step="0.50"
-                      value={price}
-                      onChange={(e) => setPrice(e.target.value)}
-                      className="w-full px-3 py-2 text-sm border border-stone-300 rounded-lg focus:ring-2 focus:ring-terra-500 font-semibold text-stone-800"
-                    />
-                  </>
-                ) : (
-                  <label className="block text-xs font-medium text-stone-700 mb-1">Pagament</label>
-                )}
-                {/* Per defecte és targeta; només cal marcar quan paga en efectiu */}
-                <div className="mt-1.5 flex bg-stone-100 rounded-lg p-0.5 text-[11px] font-bold">
+                <label className="block text-xs font-medium text-stone-700 mb-1">
+                  Preu (€)
+                </label>
+                <input
+                  type="number"
+                  step="0.50"
+                  value={price}
+                  onChange={(e) => setPrice(e.target.value)}
+                  className="w-full px-3 py-2 text-sm border border-stone-300 rounded-lg focus:ring-2 focus:ring-terra-500 font-semibold text-stone-800"
+                />
+                {/* Per defecte és targeta; només cal marcar quan paga en efectiu (en editar, es tria al Compte) */}
+                <div className={`mt-1.5 ${appointmentToEdit ? "hidden" : "flex"} bg-stone-100 rounded-lg p-0.5 text-[11px] font-bold`}>
                   {[
                     { cash: false, label: "Targeta" },
                     { cash: true, label: "Efectiu" },
@@ -732,8 +726,8 @@ export function AppointmentModal({
               appointmentId={appointmentToEdit.id}
               clientName={clientName || appointmentToEdit.clientName}
               serviceName={services.find((s) => s.id === serviceId)?.name ?? appointmentToEdit.serviceName ?? ""}
-              servicePrice={canSeeMoney && price !== "" && Number.isFinite(Number(price)) ? Number(price) : null}
-              canSeeMoney={canSeeMoney}
+              servicePrice={price !== "" && Number.isFinite(Number(price)) ? Number(price) : null}
+              onTreatmentCash={setPaidCash}
               services={services}
               paidCash={paidCash}
             />

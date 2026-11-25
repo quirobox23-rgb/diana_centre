@@ -6,11 +6,11 @@ import { Service } from "@/types";
 
 // El compte de la cita: el tractament i tot el que s'hi afegeix abans de cobrar
 // (cremes de l'Estoc, un altre tractament, un bo...). Els productes resten estoc i
-// tot plegat surt al Resum. Es cobra amb Targeta / Efectiu de la mateixa cita.
+// tot plegat surt al Resum. Cada línia es pot cobrar amb targeta o en efectiu.
 
 interface Product { id: number; name: string; price: string; stock: number; line?: string; category?: string | null }
-interface Sale { id: number; productId: number; productName: string; quantity: number; price: string }
-interface Extra { id: number; kind: string; description: string; quantity: number; unitPrice: string }
+interface Sale { id: number; productId: number; productName: string; quantity: number; price: string; paidCash?: boolean }
+interface Extra { id: number; kind: string; description: string; quantity: number; unitPrice: string; paidCash?: boolean }
 type Adding = null | "producte" | "servei" | "bo";
 
 const norm = (s: string) => s.toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "");
@@ -23,12 +23,13 @@ interface Props {
   clientName: string;
   serviceName: string;
   servicePrice: number | null;
-  canSeeMoney: boolean;
+  /** Canvia com es cobra el tractament (es desa amb "Desar canvis") */
+  onTreatmentCash: (cash: boolean) => void;
   services: Service[];
   paidCash: boolean;
 }
 
-export function AppointmentAccount({ appointmentId, clientName, serviceName, servicePrice, canSeeMoney, services, paidCash }: Props) {
+export function AppointmentAccount({ appointmentId, clientName, serviceName, servicePrice, onTreatmentCash, services, paidCash }: Props) {
   const [products, setProducts] = useState<Product[]>([]);
   const [sales, setSales] = useState<Sale[]>([]);
   const [extras, setExtras] = useState<Extra[]>([]);
@@ -124,15 +125,51 @@ export function AppointmentAccount({ appointmentId, clientName, serviceName, ser
     setBusy(false);
   };
 
-  const addedTotal =
-    sales.reduce((t, s) => t + s.quantity * Number(s.price || 0), 0) + extras.reduce((t, x) => t + x.quantity * Number(x.unitPrice || 0), 0);
-  const showTreatmentPrice = canSeeMoney && servicePrice != null;
+  // Totals per forma de pagament (el tractament segons el selector de la cita)
+  const lines = [
+    ...(servicePrice != null ? [{ amount: servicePrice, cash: paidCash }] : []),
+    ...extras.map((x) => ({ amount: x.quantity * Number(x.unitPrice || 0), cash: !!x.paidCash })),
+    ...sales.map((s) => ({ amount: s.quantity * Number(s.price || 0), cash: !!s.paidCash })),
+  ];
+  const total = lines.reduce((t, l) => t + l.amount, 0);
+  const cashTotal = lines.filter((l) => l.cash).reduce((t, l) => t + l.amount, 0);
 
-  const line = (key: string, { label, value, onRemove, strong }: { label: React.ReactNode; value: string | null; onRemove?: () => void; strong?: boolean }) => (
-    <li key={key} className="flex items-center justify-between gap-2 px-3 py-1.5 text-sm">
-      <span className={`min-w-0 truncate ${strong ? "font-semibold text-stone-800" : ""}`}>{label}</span>
+  const setExtraCash = async (x: Extra, cash: boolean) => {
+    setExtras((list) => list.map((e) => (e.id === x.id ? { ...e, paidCash: cash } : e)));
+    await fetch("/api/appointments/extras", { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id: x.id, paidCash: cash }) }).catch(() => {});
+  };
+  const setSaleCash = async (s: Sale, cash: boolean) => {
+    setSales((list) => list.map((e) => (e.id === s.id ? { ...e, paidCash: cash } : e)));
+    await post("/api/stock", { action: "set-cash", moveId: s.id, paidCash: cash }).catch(() => {});
+  };
+
+  const payToggle = (cash: boolean, onChange: (cash: boolean) => void) => (
+    <span className="inline-flex bg-stone-100 rounded-md p-0.5 text-[10px] font-bold">
+      {[
+        { c: false, label: "Targeta" },
+        { c: true, label: "Efectiu" },
+      ].map((o) => (
+        <button
+          key={o.label}
+          type="button"
+          onClick={() => onChange(o.c)}
+          className={`px-1.5 py-0.5 rounded ${cash === o.c ? (o.c ? "bg-salvia-600 text-white" : "bg-white text-stone-800 shadow-xs") : "text-stone-500"}`}
+        >
+          {o.label}
+        </button>
+      ))}
+    </span>
+  );
+
+  const line = (
+    key: string,
+    { label, value, onRemove, strong, pay }: { label: React.ReactNode; value: string | null; onRemove?: () => void; strong?: boolean; pay?: React.ReactNode }
+  ) => (
+    <li key={key} className="flex flex-wrap items-center justify-between gap-x-2 gap-y-1 px-3 py-1.5 text-sm">
+      <span className={`min-w-0 flex-1 truncate ${strong ? "font-semibold text-stone-800" : ""}`}>{label}</span>
       <span className="flex items-center gap-1.5 shrink-0">
-        {value && <span className="text-stone-600 text-xs tabular-nums">{value}</span>}
+        {pay}
+        {value && <span className="text-stone-700 text-xs font-semibold tabular-nums w-16 text-right">{value}</span>}
         {onRemove ? (
           <button type="button" onClick={onRemove} disabled={busy} title="Treure del compte" className="p-1 rounded text-stone-400 hover:text-red-600 hover:bg-red-50">
             <X className="w-3.5 h-3.5" />
@@ -165,11 +202,11 @@ export function AppointmentAccount({ appointmentId, clientName, serviceName, ser
         <span className="flex items-center gap-2 text-xs font-bold uppercase tracking-wide text-terra-800">
           <Receipt className="w-4 h-4" /> Compte de la cita
         </span>
-        <span className="text-[11px] text-stone-500">Es cobra {paidCash ? "en efectiu" : "amb targeta"}</span>
+        <span className="text-[11px] text-stone-500">Tria a cada línia si es paga amb targeta o en efectiu</span>
       </div>
 
       <ul className="divide-y divide-terra-100 bg-white rounded-lg border border-terra-100">
-        {line("svc", { label: serviceName || "Tractament", value: showTreatmentPrice ? eur(servicePrice!) : null, strong: true })}
+        {line("svc", { label: serviceName || "Tractament", value: servicePrice != null ? eur(servicePrice) : null, strong: true, pay: payToggle(paidCash, onTreatmentCash) })}
         {extras.map((x) => (
           line(`e${x.id}`, {
             label: (
@@ -180,6 +217,7 @@ export function AppointmentAccount({ appointmentId, clientName, serviceName, ser
             ),
             value: eur(x.quantity * Number(x.unitPrice || 0)),
             onRemove: () => removeExtra(x),
+            pay: payToggle(!!x.paidCash, (c) => setExtraCash(x, c)),
           })
         ))}
         {sales.map((s) => (
@@ -192,11 +230,21 @@ export function AppointmentAccount({ appointmentId, clientName, serviceName, ser
             ),
             value: eur(s.quantity * Number(s.price || 0)),
             onRemove: () => removeSale(s),
+            pay: payToggle(!!s.paidCash, (c) => setSaleCash(s, c)),
           })
         ))}
-        <li className="flex items-center justify-between gap-2 px-3 py-2 bg-stone-50 rounded-b-lg">
-          <span className="text-sm font-bold text-stone-900">{showTreatmentPrice ? "Total a cobrar" : "Afegit al compte"}</span>
-          <span className="text-base font-bold text-stone-900 tabular-nums pr-[28px]">{eur(addedTotal + (showTreatmentPrice ? servicePrice! : 0))}</span>
+        <li className="px-3 py-2 bg-stone-50 rounded-b-lg">
+          <div className="flex items-center justify-between gap-2">
+            <span className="text-sm font-bold text-stone-900">Total a cobrar</span>
+            <span className="text-base font-bold text-stone-900 tabular-nums pr-[28px]">{eur(total)}</span>
+          </div>
+          {cashTotal > 0 && cashTotal < total && (
+            <div className="flex justify-end gap-3 text-xs text-stone-600 pr-[28px] tabular-nums">
+              <span>Targeta <b>{eur(total - cashTotal)}</b></span>
+              <span>Efectiu <b>{eur(cashTotal)}</b></span>
+            </div>
+          )}
+          {cashTotal > 0 && cashTotal === total && <div className="text-right text-xs text-stone-600 pr-[28px]">Tot en efectiu</div>}
         </li>
       </ul>
 

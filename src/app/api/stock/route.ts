@@ -34,6 +34,7 @@ export async function GET(request: Request) {
           productName: products.name,
           quantity: sql<number>`(-${stockMovements.quantity})::int`,
           price: products.price,
+          paidCash: stockMovements.paidCash,
         })
         .from(stockMovements)
         .innerJoin(products, eq(products.id, stockMovements.productId))
@@ -142,6 +143,14 @@ export async function POST(request: Request) {
       return NextResponse.json({ success: true });
     }
 
+    // Canviar com es cobra una venda feta en una cita (targeta / efectiu)
+    if (body.action === "set-cash") {
+      const moveId = Number(body.moveId);
+      if (!Number.isInteger(moveId)) return NextResponse.json({ success: false, error: "Falta la venda" }, { status: 400 });
+      await db.update(stockMovements).set({ paidCash: body.paidCash === true }).where(and(eq(stockMovements.id, moveId), eq(stockMovements.kind, "venda")));
+      return NextResponse.json({ success: true });
+    }
+
     const id = Number(body.id ?? body.productId);
     if (!Number.isInteger(id)) return NextResponse.json({ success: false, error: "Falta el producte" }, { status: 400 });
 
@@ -189,7 +198,7 @@ export async function POST(request: Request) {
           .set({ stock: sql`greatest(${products.stock} - ${qty}, 0)` })
           .where(eq(products.id, id))
           .returning();
-        await db.insert(stockMovements).values({ productId: id, quantity: -qty, kind, date: todayStr(), note: clean(body.note), appointmentId });
+        await db.insert(stockMovements).values({ productId: id, quantity: -qty, kind, date: todayStr(), note: clean(body.note), appointmentId, paidCash: body.paidCash === true });
         return NextResponse.json({ success: true, data: updated });
       }
       const [updated] = await db.update(products)

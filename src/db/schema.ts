@@ -177,6 +177,7 @@ export const stockMovements = pgTable("stock_movements", {
   date: text("date").notNull(), // YYYY-MM-DD
   note: text("note"),
   appointmentId: integer("appointment_id"), // venda feta durant una cita (per veure-la a la fitxa de la cita)
+  paidCash: boolean("paid_cash").notNull().default(false), // venda cobrada en efectiu (si no, targeta)
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
@@ -190,5 +191,6 @@ export const appointmentExtras = pgTable("appointment_extras", {
   description: text("description").notNull(),
   quantity: integer("quantity").notNull().default(1),
   unitPrice: numeric("unit_price", { precision: 10, scale: 2 }).notNull().default("0.00"),
+  paidCash: boolean("paid_cash").notNull().default(false), // cobrat en efectiu (si no, targeta)
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });

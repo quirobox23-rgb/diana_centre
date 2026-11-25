@@ -118,7 +118,7 @@ export function ProfessionalSummary({
   const range = useMemo(() => getRange(mode, anchor), [mode, anchor]);
 
   // Productes venuts i xecs regal del període (només amb el candado obert)
-  const [extra, setExtra] = useState<{ extras?: { amount: number; cash: number }; products: { units: number; amount: number }; vouchersSold: { count: number; amount: number }; vouchersUsed: number } | null>(null);
+  const [extra, setExtra] = useState<{ extras?: { amount: number; cash: number }; products: { units: number; amount: number; cash?: number }; vouchersSold: { count: number; amount: number }; vouchersUsed: number } | null>(null);
   useEffect(() => {
     if (!showMoney) return;
     let alive = true;
@@ -328,6 +328,9 @@ export function ProfessionalSummary({
             <span>+ Productes venuts {money(extra.products.amount)} ({extra.products.units} u.)</span>
             <span>+ Xecs regal venuts {money(extra.vouchersSold.amount)} ({extra.vouchersSold.count})</span>
             {extra.vouchersUsed > 0 && <span>− Pagat amb xecs {money(extra.vouchersUsed)}</span>}
+            <span className="font-semibold text-salvia-700">
+              Efectiu de cites, cremes i extres: {money(totals.cash + (extra.extras?.cash ?? 0) + (extra.products.cash ?? 0))}
+            </span>
           </div>
         </div>
       )}

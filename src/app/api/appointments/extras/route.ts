@@ -49,11 +49,25 @@ export async function POST(request: Request) {
     if (!description) return NextResponse.json({ success: false, error: "Escriu què s'afegeix" }, { status: 400 });
     if (unitPrice === null) return NextResponse.json({ success: false, error: "Posa el preu" }, { status: 400 });
 
-    const [row] = await db.insert(appointmentExtras).values({ appointmentId, kind, serviceId, description, quantity, unitPrice }).returning();
+    const [row] = await db.insert(appointmentExtras).values({ appointmentId, kind, serviceId, description, quantity, unitPrice, paidCash: body.paidCash === true }).returning();
     return NextResponse.json({ success: true, data: row });
   } catch (error) {
     console.error("Error extras:", error);
     return NextResponse.json({ success: false, error: "No s'ha pogut afegir" }, { status: 500 });
+  }
+}
+
+// Canviar com es cobra una línia (targeta / efectiu)
+export async function PUT(request: Request) {
+  try {
+    const body = await request.json().catch(() => ({}));
+    const id = Number(body.id);
+    if (!Number.isInteger(id) || id <= 0) return NextResponse.json({ success: false, error: "Falta la línia" }, { status: 400 });
+    await db.update(appointmentExtras).set({ paidCash: body.paidCash === true }).where(eq(appointmentExtras.id, id));
+    return NextResponse.json({ success: true });
+  } catch (error) {
+    console.error("Error extras:", error);
+    return NextResponse.json({ success: false, error: "No s'ha pogut canviar" }, { status: 500 });
   }
 }
 
