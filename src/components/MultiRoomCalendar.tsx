@@ -18,7 +18,7 @@ import {
 } from "lucide-react";
 import { Room, Professional, Service, Appointment } from "@/types";
 import { addDays, dayOfWeek, todayStr } from "@/lib/dates";
-import { TREATMENT_TYPES, textColorOn } from "@/lib/treatment-colors";
+import { textColorOn } from "@/lib/treatment-colors";
 
 interface MultiRoomCalendarProps {
   rooms: Room[];
@@ -384,15 +384,6 @@ export function MultiRoomCalendar({
           )}
         </p>
 
-        {/* Llegenda: color de cada tipus de tractament (els mateixos que a Google Calendar) */}
-        <div className="mt-2 flex flex-wrap gap-x-3 gap-y-1">
-          {TREATMENT_TYPES.map((t) => (
-            <span key={t.id} className="inline-flex items-center gap-1 text-[11px] text-stone-500">
-              <span className="w-2.5 h-2.5 rounded-sm" style={{ backgroundColor: t.color }} />
-              {t.label}
-            </span>
-          ))}
-        </div>
       </div>
 
       {/* 1. GRAELLA VISUAL DE CALENDARI DE DIA (EIX HORARI 09:00 - 20:30 AMB LES 3 SALES EN COLUMNES) */}
