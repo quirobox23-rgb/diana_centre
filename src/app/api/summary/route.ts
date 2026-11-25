@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { db } from "@/db";
-import { giftVouchers, giftVoucherUses, products, stockMovements } from "@/db/schema";
-import { and, eq, gte, lte, ne, sql } from "drizzle-orm";
+import { appointmentExtras, appointments, giftVouchers, giftVoucherUses, products, stockMovements } from "@/db/schema";
+import { and, eq, gte, lte, ne, notInArray, sql } from "drizzle-orm";
 import { isOwnerUnlocked } from "@/lib/owner-lock";
 import { ensureSchema } from "@/db/ensure-schema";
 
@@ -41,8 +41,19 @@ export async function GET(request: Request) {
       .from(giftVoucherUses)
       .where(and(gte(giftVoucherUses.date, start), lte(giftVoucherUses.date, end)));
 
+    // Altres coses del compte de les cites (un altre tractament, bons...), segons com s'ha pagat la cita
+    const [ext] = await db
+      .select({
+        amount: sql<string>`coalesce(sum(${appointmentExtras.quantity} * ${appointmentExtras.unitPrice}), 0)::text`,
+        cash: sql<string>`coalesce(sum(${appointmentExtras.quantity} * ${appointmentExtras.unitPrice}) filter (where ${appointments.paidCash}), 0)::text`,
+      })
+      .from(appointmentExtras)
+      .innerJoin(appointments, eq(appointments.id, appointmentExtras.appointmentId))
+      .where(and(gte(appointments.date, start), lte(appointments.date, end), notInArray(appointments.status, ["cancel·lada", "no-presentada"])));
+
     return NextResponse.json({
       success: true,
+      extras: { amount: Number(ext?.amount ?? 0), cash: Number(ext?.cash ?? 0) },
       products: { units: Number(prod?.units ?? 0), amount: Number(prod?.amount ?? 0) },
       vouchersSold: {
         count: sold.reduce((s, r) => s + Number(r.n), 0),
