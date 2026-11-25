@@ -70,7 +70,9 @@ export function Office3D({ data, onCabinClick, onAuraClick }: Props) {
   const apiRef = useRef<{ setData: (d: OfficeSceneData) => void; rotate: (a: number) => void; center: () => void } | null>(null);
   const currentData = useRef<OfficeSceneData | null>(null);
   const cbRef = useRef({ onCabinClick, onAuraClick });
-  cbRef.current = { onCabinClick, onAuraClick };
+  useEffect(() => {
+    cbRef.current = { onCabinClick, onAuraClick };
+  });
 
   // Muntar l'escena un sol cop
   useEffect(() => {
