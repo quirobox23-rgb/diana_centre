@@ -4,7 +4,7 @@ import React, { useState, useEffect, useCallback } from "react";
 import { Navbar } from "@/components/Navbar";
 import { MultiRoomCalendar } from "@/components/MultiRoomCalendar";
 import { PendingRequests } from "@/components/PendingRequests";
-import { BotSimulatorView } from "@/components/BotSimulatorView";
+import { OfficeView } from "@/components/OfficeView";
 import { ServicesManager } from "@/components/ServicesManager";
 import { ScheduleManager } from "@/components/ScheduleManager";
 import { ProfessionalsManager } from "@/components/ProfessionalsManager";
@@ -15,11 +15,11 @@ import { StockManager } from "@/components/StockManager";
 import { OwnerLockModal, LockMode } from "@/components/OwnerLock";
 import { AppointmentModal } from "@/components/AppointmentModal";
 import { Room, Professional, Service, Schedule, Appointment, Client } from "@/types";
-import { Sparkles, Calendar, Smartphone, RefreshCw, CheckCircle2 } from "lucide-react";
+import { CheckCircle2 } from "lucide-react";
 import { addDays, todayStr } from "@/lib/dates";
 
 export default function EsteticaDianaApp() {
-  const [activeTab, setActiveTab] = useState<"calendar" | "clients" | "bot" | "services" | "schedules" | "professionals" | "pending" | "summary" | "vouchers" | "stock">("pending");
+  const [activeTab, setActiveTab] = useState<"calendar" | "clients" | "office" | "services" | "schedules" | "professionals" | "pending" | "summary" | "vouchers" | "stock">("pending");
   // Candado de la dueña: obre els imports del Resum i anul·lar xecs regal
   const [lock, setLock] = useState({ configured: true, unlocked: false });
   const [lockModal, setLockModal] = useState<{ mode: LockMode; then?: () => void } | null>(null);
@@ -220,13 +220,6 @@ export default function EsteticaDianaApp() {
     setIsModalOpen(true);
   };
 
-  // Quan el bot reserva una cita des del mòbil
-  const handleBotAppointmentBooked = (date: string) => {
-    setSelectedDate(date);
-    fetchAppointments();
-    showToast("Cita agendada pel Bot Mòbil! Ja apareix al calendari de sales.");
-  };
-
   return (
     <div className="min-h-screen bg-sorra text-stone-900 flex flex-col font-sans">
       {/* Barra de navegació principal */}
@@ -309,7 +302,7 @@ export default function EsteticaDianaApp() {
               />
             )}
 
-            {/* PESTANYA 3: SIMULADOR DE MÒBIL (WHATSAPP AMB 3 OPCIONS D'HORARI) */}
+            {/* RESUM PER PROFESSIONAL */}
             {activeTab === "summary" &&
               <ProfessionalSummary professionals={professionals} canSeeMoney={isAdmin} onRequestUnlock={requireOwner} />}
 
@@ -317,10 +310,14 @@ export default function EsteticaDianaApp() {
 
             {activeTab === "vouchers" && <GiftVouchersManager services={services} isAdmin={isAdmin} onRequestUnlock={requireOwner} />}
 
-            {activeTab === "bot" && (
-              <BotSimulatorView
-                services={services}
-                onAppointmentBooked={handleBotAppointmentBooked}
+            {/* OFICINA: LES 3 CABINES I L'AURA A RECEPCIÓ */}
+            {activeTab === "office" && (
+              <OfficeView
+                rooms={rooms}
+                professionals={professionals}
+                schedules={schedules}
+                onOpenPending={() => setActiveTab("pending")}
+                onEditAppointment={handleOpenEditAppointment}
               />
             )}
 
