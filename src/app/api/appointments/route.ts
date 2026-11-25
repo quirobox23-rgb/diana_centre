@@ -5,7 +5,6 @@ import { findClientByPhone } from "@/lib/client-profile";
 import { eq, and, asc, gte, lte } from "drizzle-orm";
 import { addMinutesToTime, CONFLICT_MESSAGES, findConflict, withBookingLock } from "@/lib/availability";
 import { ensureSchema } from "@/db/ensure-schema";
-import { isOwnerUnlocked } from "@/lib/owner-lock";
 
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
 const TIME_RE = /^([01]\d|2[0-3]):[0-5]\d$/;
@@ -81,9 +80,8 @@ export async function GET(request: Request) {
       ? await query.where(and(...conditions)).orderBy(asc(appointments.date), asc(appointments.startTime))
       : await query.orderBy(asc(appointments.date), asc(appointments.startTime));
 
-    // Els imports només els veu la dueña (candado obert); la resta veu la cita sense preu
-    const data = (await isOwnerUnlocked()) ? result : result.map((a) => ({ ...a, price: null }));
-    return NextResponse.json({ success: true, data });
+    // El preu de cada cita es veu sempre (cal per cobrar); el candado només amaga els totals del Resum
+    return NextResponse.json({ success: true, data: result });
   } catch (error) {
     console.error("Error fetching appointments:", error);
     return NextResponse.json({ success: false, error: "Error al carregar les cites" }, { status: 500 });

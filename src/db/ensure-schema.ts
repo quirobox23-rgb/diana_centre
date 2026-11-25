@@ -96,6 +96,8 @@ export function ensureSchema(): Promise<void> {
         created_at timestamp DEFAULT now() NOT NULL
       );
       CREATE INDEX IF NOT EXISTS appointment_extras_apt_idx ON appointment_extras (appointment_id);
+      ALTER TABLE appointment_extras ADD COLUMN IF NOT EXISTS paid_cash boolean NOT NULL DEFAULT false;
+      ALTER TABLE stock_movements ADD COLUMN IF NOT EXISTS paid_cash boolean NOT NULL DEFAULT false;
 
       -- Índexs perquè el calendari i les fitxes vagin ràpids amb milers de cites i clientes
       CREATE INDEX IF NOT EXISTS appointments_date_idx ON appointments (date);
