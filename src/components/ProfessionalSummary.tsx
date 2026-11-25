@@ -60,6 +60,8 @@ interface ProStats {
   minutes: number;
   revenue: number;
   cash: number;
+  card: number;
+  noShow: number;
   services: { name: string; count: number }[];
 }
 
@@ -115,6 +117,20 @@ export function ProfessionalSummary({
 
   const range = useMemo(() => getRange(mode, anchor), [mode, anchor]);
 
+  // Productes venuts i xecs regal del període (només amb el candado obert)
+  const [extra, setExtra] = useState<{ products: { units: number; amount: number }; vouchersSold: { count: number; amount: number }; vouchersUsed: number } | null>(null);
+  useEffect(() => {
+    if (!showMoney) return;
+    let alive = true;
+    fetch(`/api/summary?start=${range.start}&end=${range.end}`, { cache: "no-store" })
+      .then((r) => r.json())
+      .then((d) => alive && setExtra(d.success ? d : null))
+      .catch(() => alive && setExtra(null));
+    return () => {
+      alive = false;
+    };
+  }, [showMoney, range.start, range.end]);
+
   const load = useCallback(async () => {
     setLoading(true);
     try {
@@ -126,7 +142,8 @@ export function ProfessionalSummary({
     } finally {
       setLoading(false);
     }
-  }, [range.start, range.end]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [range.start, range.end, canSeeMoney]);
 
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
@@ -136,21 +153,23 @@ export function ProfessionalSummary({
   const stats: ProStats[] = useMemo(() => {
     const map = new Map<number, ProStats>();
     for (const p of professionals) {
-      map.set(p.id, { id: p.id, name: p.name, color: p.color, count: 0, pending: 0, cancelled: 0, minutes: 0, revenue: 0, cash: 0, services: [] });
+      map.set(p.id, { id: p.id, name: p.name, color: p.color, count: 0, pending: 0, cancelled: 0, minutes: 0, revenue: 0, cash: 0, card: 0, noShow: 0, services: [] });
     }
     const svcCounts = new Map<number, Map<string, number>>();
     for (const a of appointments) {
       let s = map.get(a.professionalId);
       if (!s) {
-        s = { id: a.professionalId, name: a.professionalName || "Sense professional", color: a.professionalColor || "#a8a29e", count: 0, pending: 0, cancelled: 0, minutes: 0, revenue: 0, cash: 0, services: [] };
+        s = { id: a.professionalId, name: a.professionalName || "Sense professional", color: a.professionalColor || "#a8a29e", count: 0, pending: 0, cancelled: 0, minutes: 0, revenue: 0, cash: 0, card: 0, noShow: 0, services: [] };
         map.set(a.professionalId, s);
       }
       if (a.status === "cancel·lada") { s.cancelled++; continue; }
+      if (a.status === "no-presentada") { s.noShow++; continue; }
       if (a.status === "pendent") { s.pending++; continue; }
       s.count++;
       s.minutes += a.durationMinutes;
-      s.revenue += parseFloat(a.price) || 0;
-      if (a.paidCash) s.cash += parseFloat(a.price) || 0;
+      s.revenue += parseFloat(a.price ?? "") || 0;
+      if (a.paidCash) s.cash += parseFloat(a.price ?? "") || 0;
+      else if (a.status === "completada") s.card += parseFloat(a.price ?? "") || 0;
       const sc = svcCounts.get(s.id) ?? new Map<string, number>();
       const name = a.serviceName || "Servei";
       sc.set(name, (sc.get(name) ?? 0) + 1);
@@ -165,8 +184,8 @@ export function ProfessionalSummary({
   }, [appointments, professionals]);
 
   const totals = stats.reduce(
-    (t, s) => ({ count: t.count + s.count, minutes: t.minutes + s.minutes, revenue: t.revenue + s.revenue, cash: t.cash + s.cash, pending: t.pending + s.pending }),
-    { count: 0, minutes: 0, revenue: 0, cash: 0, pending: 0 }
+    (t, s) => ({ count: t.count + s.count, minutes: t.minutes + s.minutes, revenue: t.revenue + s.revenue, cash: t.cash + s.cash, card: t.card + s.card, pending: t.pending + s.pending, noShow: t.noShow + s.noShow }),
+    { count: 0, minutes: 0, revenue: 0, cash: 0, card: 0, pending: 0, noShow: 0 }
   );
   const maxCount = Math.max(1, ...stats.map((s) => s.count));
 
@@ -191,16 +210,16 @@ export function ProfessionalSummary({
     }
     return buckets.map((b) => {
       const inBucket = appointments.filter(
-        (a) => a.date >= b.start && a.date <= b.end && a.status !== "cancel·lada" && a.status !== "pendent"
+        (a) => a.date >= b.start && a.date <= b.end && a.status !== "cancel·lada" && a.status !== "pendent" && a.status !== "no-presentada"
       );
       const perPro = new Map<number, { count: number; revenue: number }>();
       for (const a of inBucket) {
         const v = perPro.get(a.professionalId) ?? { count: 0, revenue: 0 };
         v.count++;
-        v.revenue += parseFloat(a.price) || 0;
+        v.revenue += parseFloat(a.price ?? "") || 0;
         perPro.set(a.professionalId, v);
       }
-      return { ...b, perPro, total: inBucket.length, revenue: inBucket.reduce((s, a) => s + (parseFloat(a.price) || 0), 0) };
+      return { ...b, perPro, total: inBucket.length, revenue: inBucket.reduce((s, a) => s + (parseFloat(a.price ?? "") || 0), 0) };
     });
   }, [mode, range.start, range.end, appointments]);
 
@@ -271,21 +290,44 @@ export function ProfessionalSummary({
       <p className="text-xs text-stone-500 px-1">
         <span className="font-semibold text-stone-800">{totals.count}</span> cites fetes o confirmades · {hours(totals.minutes)} de feina
         {totals.pending > 0 && <> · {totals.pending} {totals.pending === 1 ? "pendent" : "pendents"}</>}
+        {appointments.some((a) => a.source === "whatsapp" && a.status !== "cancel·lada") && (
+          <> · {appointments.filter((a) => a.source === "whatsapp" && a.status !== "cancel·lada").length} reservades per WhatsApp</>
+        )}
+        {totals.noShow > 0 && <> · <span className="text-red-600 font-semibold">{totals.noShow} no {totals.noShow === 1 ? "presentada" : "presentades"}</span></>}
       </p>
 
-      {/* Caixa: el que no està marcat com a efectiu es compta com a targeta */}
+      {/* Caixa: efectiu i targeta són les cites ja cobrades; la resta està per cobrar */}
       {showMoney && (
-        <div className="grid grid-cols-3 gap-3">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
           {[
-            { label: "Total", value: totals.revenue, cls: "text-stone-900" },
+            { label: "Tractaments", value: totals.revenue, cls: "text-stone-900" },
             { label: "Efectiu", value: totals.cash, cls: "text-salvia-700" },
-            { label: "Targeta", value: totals.revenue - totals.cash, cls: "text-stone-700" },
+            { label: "Targeta", value: totals.card, cls: "text-stone-700" },
+            { label: "Per cobrar", value: Math.max(0, totals.revenue - totals.cash - totals.card), cls: "text-amber-700" },
           ].map((b) => (
             <div key={b.label} className="bg-white rounded-2xl border border-stone-200 px-4 py-3">
               <p className="text-[11px] font-bold uppercase tracking-wider text-stone-400">{b.label}</p>
               <p className={`text-xl font-bold ${b.cls}`}>{money(b.value)}</p>
             </div>
           ))}
+        </div>
+      )}
+
+      {/* Tot el que entra al centre: tractaments + productes + xecs regal venuts (menys els bescanviats, que ja es van cobrar) */}
+      {showMoney && extra && (
+        <div className="bg-white rounded-2xl border border-stone-200 px-4 py-3">
+          <div className="flex flex-wrap items-baseline justify-between gap-2">
+            <p className="text-[11px] font-bold uppercase tracking-wider text-stone-400">Total del centre</p>
+            <p className="text-xl font-bold text-stone-900">
+              {money(totals.revenue + extra.products.amount + extra.vouchersSold.amount - extra.vouchersUsed)}
+            </p>
+          </div>
+          <div className="mt-1.5 flex flex-wrap gap-x-4 gap-y-1 text-xs text-stone-600">
+            <span>Tractaments {money(totals.revenue)}</span>
+            <span>+ Productes venuts {money(extra.products.amount)} ({extra.products.units} u.)</span>
+            <span>+ Xecs regal venuts {money(extra.vouchersSold.amount)} ({extra.vouchersSold.count})</span>
+            {extra.vouchersUsed > 0 && <span>− Pagat amb xecs {money(extra.vouchersUsed)}</span>}
+          </div>
         </div>
       )}
 
@@ -331,6 +373,9 @@ export function ProfessionalSummary({
                 </ul>
               )}
 
+              {s.noShow > 0 && (
+                <p className="text-[11px] font-semibold text-red-600">{s.noShow} no {s.noShow === 1 ? "presentada" : "presentades"}</p>
+              )}
               {(s.pending > 0 || s.cancelled > 0) && (
                 <p className="text-[11px] text-stone-400">
                   {s.pending > 0 && `${s.pending} ${s.pending === 1 ? "pendent" : "pendents"}`}

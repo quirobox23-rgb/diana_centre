@@ -1,8 +1,8 @@
 "use client";
 
 import React, { useState, useEffect, useCallback } from "react";
-import { MessageCircle, Clock, Calendar, User, Phone, CheckCircle2, X, RefreshCw, AlertCircle, Sparkles, Pencil } from "lucide-react";
-import { ProposedSlot } from "@/types";
+import { MessageCircle, Clock, Calendar, User, Phone, CheckCircle2, X, RefreshCw, AlertCircle, Sparkles, Pencil, AlertTriangle, UserPlus } from "lucide-react";
+import { ProposedSlot, Service } from "@/types";
 
 interface PendingRequest {
   id: number;
@@ -13,13 +13,19 @@ interface PendingRequest {
   selectedSlotIndex: number | null;
   createdAt: string;
   serviceName?: string | null;
+  detectedServiceId?: number | null;
+  knownClient?: boolean;
+  clientAllergies?: string | null;
 }
 
 interface PendingRequestsProps {
   onConfirmed: () => void;
+  services?: Service[];
 }
 
-export function PendingRequests({ onConfirmed }: PendingRequestsProps) {
+export function PendingRequests({ onConfirmed, services = [] }: PendingRequestsProps) {
+  // Tractament triat per la dueña a cada targeta (si l'Aura no l'ha detectat o s'ha de canviar)
+  const [chosenService, setChosenService] = useState<Record<number, number>>({});
   const [pending, setPending] = useState<PendingRequest[]>([]);
   const [loading, setLoading] = useState(true);
   const [confirmingId, setConfirmingId] = useState<number | null>(null);
@@ -70,7 +76,13 @@ export function PendingRequests({ onConfirmed }: PendingRequestsProps) {
       const res = await fetch("/api/bot/confirm", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ simulationId: req.id, slotIndex: req.selectedSlotIndex, manualSlot, modified: !!manualSlot }),
+        body: JSON.stringify({
+          simulationId: req.id,
+          slotIndex: req.selectedSlotIndex,
+          manualSlot,
+          modified: !!manualSlot,
+          serviceId: chosenService[req.id] ?? req.detectedServiceId ?? undefined,
+        }),
       });
       const data = await res.json();
       if (data.success) {
@@ -89,7 +101,7 @@ export function PendingRequests({ onConfirmed }: PendingRequestsProps) {
   };
 
   const handleDismiss = async (id: number) => {
-    if (!confirm("Descartar aquesta sol·licitud? La clienta NO rebrà cap confirmació.")) return;
+    if (!confirm("Descartar aquesta sol·licitud? La clienta NO rebrà cap missatge: recorda trucar-la o escriure-li per proposar-li una altra hora.")) return;
     try {
       await fetch(`/api/bot/pending?id=${id}`, { method: "DELETE" });
       setPending(prev => prev.filter(p => p.id !== id));
@@ -146,11 +158,38 @@ export function PendingRequests({ onConfirmed }: PendingRequestsProps) {
                   </span>
                 </div>
 
-                {req.serviceName && (
-                  <div className="flex items-center gap-1.5 text-sm font-bold text-stone-900 mb-2">
-                    <Sparkles className="w-4 h-4 text-terra-500" /> {req.serviceName}
+                {req.clientAllergies && (
+                  <div role="alert" className="flex items-start gap-2 rounded-lg border-2 border-red-300 bg-red-50 px-3 py-2 mb-2 text-sm text-red-800">
+                    <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5 text-red-600" />
+                    <span><b>Al·lèrgies:</b> {req.clientAllergies}</span>
                   </div>
                 )}
+                {req.knownClient === false && (
+                  <p className="flex items-center gap-1.5 text-xs font-semibold text-salvia-700 mb-2">
+                    <UserPlus className="w-3.5 h-3.5" /> Clienta nova: en confirmar es crearà la seva fitxa.
+                  </p>
+                )}
+
+                <div className="flex items-center gap-1.5 text-sm font-bold text-stone-900 mb-2">
+                  <Sparkles className="w-4 h-4 text-terra-500 shrink-0" />
+                  {services.length > 0 ? (
+                    <select
+                      value={chosenService[req.id] ?? req.detectedServiceId ?? ""}
+                      onChange={(e) => setChosenService((m) => ({ ...m, [req.id]: Number(e.target.value) }))}
+                      className={`min-w-0 flex-1 px-2 py-1 rounded-lg border text-sm font-bold bg-white ${
+                        (chosenService[req.id] ?? req.detectedServiceId) ? "border-stone-200" : "border-amber-400 text-amber-800"
+                      }`}
+                      aria-label="Tractament"
+                    >
+                      <option value="" disabled>Tria el tractament…</option>
+                      {services.filter((s) => s.isActive).map((s) => (
+                        <option key={s.id} value={s.id}>{s.name}</option>
+                      ))}
+                    </select>
+                  ) : (
+                    req.serviceName || "Tractament per triar"
+                  )}
+                </div>
 
                 {req.incomingMessage?.trim() && !["matí", "tarda"].includes(req.incomingMessage.trim()) && (
                   <p className="text-xs text-stone-500 bg-stone-50 rounded-lg p-2 mb-3 italic">&ldquo;{req.incomingMessage}&rdquo;</p>
@@ -189,7 +228,7 @@ export function PendingRequests({ onConfirmed }: PendingRequestsProps) {
                 <div className="flex flex-wrap gap-2">
                   <button
                     onClick={() => handleConfirm(req)}
-                    disabled={!slot || confirmingId === req.id}
+                    disabled={!slot || confirmingId === req.id || !(chosenService[req.id] ?? req.detectedServiceId)}
                     className="flex items-center gap-1.5 bg-terra-600 hover:bg-terra-700 disabled:opacity-50 text-white text-sm font-medium px-4 py-2 rounded-lg transition-colors"
                   >
                     <CheckCircle2 className="w-4 h-4" />

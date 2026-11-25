@@ -9,12 +9,13 @@ import { ServicesManager } from "@/components/ServicesManager";
 import { ScheduleManager } from "@/components/ScheduleManager";
 import { ProfessionalsManager } from "@/components/ProfessionalsManager";
 import { ClientsManager } from "@/components/ClientsManager";
+import { ClientAlerts } from "@/components/ClientAlerts";
 import { ProfessionalSummary } from "@/components/ProfessionalSummary";
 import { GiftVouchersManager } from "@/components/GiftVouchersManager";
 import { StockManager } from "@/components/StockManager";
 import { OwnerLockModal, LockMode } from "@/components/OwnerLock";
 import { AppointmentModal } from "@/components/AppointmentModal";
-import { Room, Professional, Service, Schedule, Appointment, Client } from "@/types";
+import { Room, Professional, Service, Schedule, Appointment, Client, AppointmentStatus } from "@/types";
 import { CheckCircle2 } from "lucide-react";
 import { addDays, todayStr } from "@/lib/dates";
 
@@ -109,11 +110,19 @@ export default function EsteticaDianaApp() {
   const [initialRoomId, setInitialRoomId] = useState<number | undefined>(undefined);
   const [initialDateForModal, setInitialDateForModal] = useState<string | undefined>(undefined);
   const [initialTime, setInitialTime] = useState<string | undefined>(undefined);
+  const [rebookService, setRebookService] = useState<{ serviceId: number; professionalId: number } | null>(null);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
+  const [toastAction, setToastAction] = useState<{ label: string; run: () => void } | null>(null);
+  const toastTimer = React.useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const showToast = (msg: string) => {
+  const showToast = (msg: string, action?: { label: string; run: () => void }) => {
     setToastMessage(msg);
-    setTimeout(() => setToastMessage(null), 3500);
+    setToastAction(action ?? null);
+    if (toastTimer.current) clearTimeout(toastTimer.current);
+    toastTimer.current = setTimeout(() => {
+      setToastMessage(null);
+      setToastAction(null);
+    }, action ? 8000 : 3500);
   };
 
   // Carregar sales, professionals, serveis, horaris i clientes
@@ -170,12 +179,29 @@ export default function EsteticaDianaApp() {
     fetchBaseData();
   }, []);
 
+  // En obrir o tancar el candado es tornen a carregar les cites (amb o sense imports)
+  useEffect(() => {
+    if (!loadingInitial) fetchAppointments();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [lock.unlocked]);
+
   useEffect(() => {
     fetchAppointments();
+    // Si es confirma o canvia una cita des d'un altre mòbil, aquí també es veu sense haver de tocar res
+    const refresh = () => {
+      if (document.visibilityState === "visible") fetchAppointments();
+    };
+    const interval = setInterval(refresh, 60000);
+    window.addEventListener("focus", refresh);
+    return () => {
+      clearInterval(interval);
+      window.removeEventListener("focus", refresh);
+    };
   }, [fetchAppointments]);
 
   // Gestió del modal de cita
   const handleOpenNewAppointment = (roomId?: number, time?: string, date?: string) => {
+    setRebookService(null);
     setAppointmentToEdit(null);
     setClientForModal(null);
     setInitialRoomId(roomId);
@@ -185,6 +211,7 @@ export default function EsteticaDianaApp() {
   };
 
   const handleOpenEditAppointment = (apt: Appointment) => {
+    setRebookService(null);
     setAppointmentToEdit(apt);
     setClientForModal(null);
     setInitialRoomId(apt.roomId);
@@ -195,7 +222,29 @@ export default function EsteticaDianaApp() {
 
   const handleSaveAppointment = (saved: Appointment, createdClient?: boolean) => {
     fetchAppointments();
-    fetchBaseData(); // Actualitza fitxer clientes si cal
+    if (createdClient) fetchBaseData(); // Només cal recarregar les fitxes si se n'ha creat una de nova
+
+    // Cita acabada: proposem reservar ja la propera (d'aquí a 4 setmanes, a la mateixa hora)
+    if (saved.status === "completada" && appointmentToEdit?.status !== "completada") {
+      const client =
+        clients.find((c) => c.id === saved.clientId) ||
+        clients.find((c) => c.phone.replace(/\D/g, "").slice(-9) === saved.clientPhone.replace(/\D/g, "").slice(-9));
+      const next = addDays(saved.date, 28);
+      showToast(`Cita de ${saved.clientName} tancada.`, client ? {
+        label: `Reservar la propera (${Number(next.slice(8))}/${Number(next.slice(5, 7))})`,
+        run: () => {
+          setAppointmentToEdit(null);
+          setClientForModal(client);
+          setRebookService({ serviceId: saved.serviceId, professionalId: saved.professionalId });
+          setInitialRoomId(saved.roomId);
+          setInitialTime(saved.startTime);
+          setInitialDateForModal(next);
+          setIsModalOpen(true);
+        },
+      } : undefined);
+      return;
+    }
+
     showToast(
       appointmentToEdit
         ? `Cita de ${saved.clientName} modificada correctament!`
@@ -205,13 +254,27 @@ export default function EsteticaDianaApp() {
     );
   };
 
-  const handleDeleteAppointment = (id: number) => {
-    setAppointments((prev) => prev.filter((a) => a.id !== id));
-    showToast("Cita cancel·lada de l'agenda.");
+  // Cancel·lar no esborra: es pot desfer durant uns segons des del missatge
+  const handleDeleteAppointment = (apt: Appointment, previousStatus: AppointmentStatus) => {
+    setAppointments((prev) => prev.map((a) => (a.id === apt.id ? { ...a, status: "cancel·lada" } : a)));
+    showToast(`Cita de ${apt.clientName} cancel·lada.`, {
+      label: "Desfer",
+      run: async () => {
+        const res = await fetch("/api/appointments", {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ id: apt.id, status: previousStatus === "cancel·lada" ? "confirmada" : previousStatus }),
+        });
+        const data = await res.json().catch(() => ({}));
+        fetchAppointments();
+        showToast(data.success ? "Cita recuperada." : data.error || "No s'ha pogut recuperar la cita.");
+      },
+    });
   };
 
   // Quan es tria agendar directament des de la fitxa de la clienta
   const handleBookForClient = (client: Client) => {
+    setRebookService(null);
     setAppointmentToEdit(null);
     setClientForModal(client);
     setInitialRoomId(rooms[0]?.id || 1);
@@ -251,6 +314,18 @@ export default function EsteticaDianaApp() {
         <div className="fixed bottom-5 right-5 z-50 bg-stone-900 text-white px-4 py-3 rounded-2xl shadow-2xl flex items-center space-x-2.5 text-xs font-semibold border border-stone-700 animate-in slide-in-from-bottom duration-200">
           <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
           <span>{toastMessage}</span>
+          {toastAction && (
+            <button
+              onClick={() => {
+                const a = toastAction;
+                setToastAction(null);
+                a.run();
+              }}
+              className="ml-2 px-2.5 py-1 rounded-lg bg-white/15 hover:bg-white/25 text-amber-200 font-bold"
+            >
+              {toastAction.label}
+            </button>
+          )}
         </div>
       )}
 
@@ -268,6 +343,7 @@ export default function EsteticaDianaApp() {
             {/* PESTANYA 0: SOL·LICITUDS PENDENTS DE CONFIRMAR (WHATSAPP REAL) */}
             {activeTab === "pending" && (
               <PendingRequests
+                services={services}
                 onConfirmed={() => {
                   fetchPendingCount();
                   fetchAppointments();
@@ -294,6 +370,7 @@ export default function EsteticaDianaApp() {
             )}
 
             {/* PESTANYA 2: LLISTAT DE CLIENTES (AFEGIR, MODIFICAR, AL·LÈRGIES I PREFERÈNCIES) */}
+            {activeTab === "clients" && <ClientAlerts />}
             {activeTab === "clients" && (
               <ClientsManager
                 onSelectClientForBooking={handleBookForClient}
@@ -375,6 +452,10 @@ export default function EsteticaDianaApp() {
         services={services}
         clients={clients}
         initialClient={clientForModal}
+        schedules={schedules}
+        canSeeMoney={isAdmin}
+        initialServiceId={rebookService?.serviceId}
+        initialProfessionalId={rebookService?.professionalId}
       />
 
       {/* Peu de Pàgina */}

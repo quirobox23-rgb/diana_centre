@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import { Sparkles, Calendar, Building2, Scissors, Clock, Users, Plus, UserCheck, MessageCircle, LogOut, BarChart3, Gift, Lock, LockOpen, KeyRound, Package } from "lucide-react";
+import { Sparkles, Calendar, Building2, Scissors, Clock, Users, Plus, UserCheck, MessageCircle, LogOut, BarChart3, Gift, Lock, LockOpen, KeyRound, Package, Download } from "lucide-react";
 
 type TabId = "calendar" | "clients" | "office" | "services" | "schedules" | "professionals" | "pending" | "summary" | "vouchers" | "stock";
 
@@ -63,6 +63,16 @@ export function Navbar({ activeTab, onTabChange, onNewAppointmentClick, pendingC
               <Plus className="w-4 h-4" />
               <span>Nova Cita</span>
             </button>
+            {ownerUnlocked && (
+              <a
+                href="/api/backup"
+                title="Descarregar còpia de totes les dades (guarda-la en un lloc segur)"
+                className="inline-flex items-center gap-1.5 p-2 sm:px-3 text-xs font-bold text-stone-600 hover:text-terra-700 hover:bg-terra-50 rounded-xl transition-all"
+              >
+                <Download className="w-4 h-4" />
+                <span className="hidden md:inline">Descarregar còpia</span>
+              </a>
+            )}
             {ownerUnlocked && onChangeKey && (
               <button
                 onClick={onChangeKey}

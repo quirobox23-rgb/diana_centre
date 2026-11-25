@@ -173,7 +173,7 @@ function computeStats(rows: HistoryRow[]): ClientStats {
 export async function getClientStats(client: { id: number; phone: string }): Promise<ClientStats> {
   const key = phoneKey(client.phone);
   const rows = await historyQuery().where(and(
-    sql`${appointments.status} != 'cancel·lada'`,
+    sql`${appointments.status} not in ('cancel·lada', 'no-presentada')`,
     sql`(${appointments.clientId} = ${client.id} OR right(regexp_replace(${appointments.clientPhone}, '\\D', '', 'g'), 9) = ${key})`
   ));
   return computeStats(rows);
@@ -188,7 +188,7 @@ export interface ClientSummary {
 export async function getAllClientSummaries(clientList: { id: number; phone: string }[]): Promise<Record<number, ClientSummary>> {
   await ensureSchema();
   const [history, treatments] = await Promise.all([
-    historyQuery().where(sql`${appointments.status} != 'cancel·lada'`),
+    historyQuery().where(sql`${appointments.status} not in ('cancel·lada', 'no-presentada')`),
     db.select({
       clientId: clientTreatments.clientId,
       id: clientTreatments.id,

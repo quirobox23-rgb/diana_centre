@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { db } from "@/db";
 import { botSimulations, services } from "@/db/schema";
 import { eq, desc } from "drizzle-orm";
+import { findClientByPhone } from "@/lib/client-profile";
 
 // Sol·licituds de WhatsApp on la clienta ja ha triat i confirmat un horari,
 // i ara esperen que la professional les confirmi des del panell.
@@ -13,7 +14,17 @@ export async function GET() {
       .leftJoin(services, eq(botSimulations.detectedServiceId, services.id))
       .where(eq(botSimulations.status, "pendent_confirmacio"))
       .orderBy(desc(botSimulations.createdAt));
-    const pending = rows.map(r => ({ ...r.sim, serviceName: r.serviceName, serviceDuration: r.serviceDuration }));
+    // Amb les al·lèrgies de la fitxa (si la clienta ja hi és), perquè es vegin abans de confirmar
+    const pending = await Promise.all(rows.map(async r => {
+      const known = await findClientByPhone(r.sim.clientPhone).catch(() => null);
+      return {
+        ...r.sim,
+        serviceName: r.serviceName,
+        serviceDuration: r.serviceDuration,
+        knownClient: !!known,
+        clientAllergies: known?.allergies || null,
+      };
+    }));
 
     return NextResponse.json({ success: true, pending });
   } catch (error) {

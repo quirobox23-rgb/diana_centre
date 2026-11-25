@@ -12,6 +12,7 @@ export const SERVICE_SECTIONS: ServiceSection[] = [
   { id: "Depilació", label: "Depilacions" },
   { id: "Corporal", label: "Tractaments corporals" },
   { id: "Mans i Peus", label: "Manicura i pedicura" },
+  { id: "Nutricosmètica", label: "Nutricosmètica" },
   { id: "Altres", label: "Altres serveis" },
 ];
 
@@ -122,4 +123,7 @@ export const CENTRE_CATALOG: CatalogItem[] = [
   item("Altres", "Assessorament estètic", 30, { durationToConfirm: true }),
   item("Altres", "Assessorament dietètic", 30, { durationToConfirm: true }),
   item("Altres", "Control dietètic", 30, { durationToConfirm: true }),
+
+  // NUTRICOSMÈTICA
+  item("Nutricosmètica", "Assessorament de nutricosmètica", 30, { durationToConfirm: true, description: "Complements per a la pell, els cabells i les ungles" }),
 ];

@@ -2,16 +2,17 @@
 
 import React, { useState, useEffect } from "react";
 import { ServicePicker } from "./ServicePicker";
-import { X, Calendar, Clock, User, Scissors, Phone, Mail, FileText, CheckCircle2, AlertCircle, Trash2, Search } from "lucide-react";
-import { Room, Professional, Service, Appointment, Client } from "@/types";
-import { todayStr } from "@/lib/dates";
+import { ProductSales } from "./ProductSales";
+import { X, Calendar, Clock, User, Scissors, Phone, Mail, FileText, CheckCircle2, AlertCircle, Ban, Search, AlertTriangle } from "lucide-react";
+import { Room, Professional, Service, Appointment, Client, Schedule, AppointmentStatus } from "@/types";
+import { todayStr, dayOfWeek } from "@/lib/dates";
 import { searchClients } from "@/lib/client-search";
 
 interface AppointmentModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSave: (savedAppointment: Appointment, createdClient?: boolean) => void;
-  onDelete?: (id: number) => void;
+  onDelete?: (apt: Appointment, previousStatus: AppointmentStatus) => void;
   appointmentToEdit?: Appointment | null;
   initialRoomId?: number;
   initialDate?: string;
@@ -21,6 +22,11 @@ interface AppointmentModalProps {
   services: Service[];
   clients?: Client[];
   initialClient?: Client | null;
+  schedules?: Schedule[];
+  canSeeMoney?: boolean;
+  /** Per a "reservar la propera": tractament i professional de la cita anterior */
+  initialServiceId?: number;
+  initialProfessionalId?: number;
 }
 
 interface ClientTreatmentInfo {
@@ -45,6 +51,10 @@ export function AppointmentModal({
   services,
   clients = [],
   initialClient = null,
+  schedules = [],
+  canSeeMoney = true,
+  initialServiceId,
+  initialProfessionalId,
 }: AppointmentModalProps) {
   const [clientName, setClientName] = useState("");
   const [clientPhone, setClientPhone] = useState("");
@@ -59,7 +69,7 @@ export function AppointmentModal({
   const [durationMinutes, setDurationMinutes] = useState<number>(60);
   const [price, setPrice] = useState<string>("45.00");
   const [paidCash, setPaidCash] = useState(false);
-  const [status, setStatus] = useState<"confirmada" | "pendent" | "completada" | "cancel·lada">("confirmada");
+  const [status, setStatus] = useState<AppointmentStatus>("confirmada");
   const [notes, setNotes] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -125,7 +135,7 @@ export function AppointmentModal({
       setDate(appointmentToEdit.date);
       setStartTime(appointmentToEdit.startTime);
       setDurationMinutes(appointmentToEdit.durationMinutes);
-      setPrice(appointmentToEdit.price);
+      setPrice(appointmentToEdit.price ?? "");
       setPaidCash(Boolean(appointmentToEdit.paidCash));
       setStatus(appointmentToEdit.status);
       setNotes(appointmentToEdit.notes || "");
@@ -158,12 +168,22 @@ export function AppointmentModal({
         setClientName(initialClient.name);
         setClientPhone(initialClient.phone);
         setClientEmail(initialClient.email || "");
-        loadClientTreatments(initialClient.id, services[0]?.id ?? 0, true);
+        const svc = initialServiceId ? services.find((x) => x.id === initialServiceId) : undefined;
+        if (svc) {
+          setServiceId(svc.id);
+          setDurationMinutes(svc.durationMinutes);
+          setPrice(svc.price);
+          if (svc.defaultRoomId) setRoomId(svc.defaultRoomId);
+          if (initialProfessionalId) setProfessionalId(initialProfessionalId);
+          loadClientTreatments(initialClient.id, svc.id, false);
+        } else {
+          loadClientTreatments(initialClient.id, services[0]?.id ?? 0, true);
+        }
       }
     }
     setError(null);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [appointmentToEdit, initialRoomId, initialDate, initialTime, rooms, professionals, services, isOpen, initialClient]);
+  }, [appointmentToEdit, initialRoomId, initialDate, initialTime, rooms, professionals, services, isOpen, initialClient, initialServiceId, initialProfessionalId]);
 
   // Si l'usuari tria una clienta habitual del desplegable
   const handleSelectClient = (clientIdStr: string) => {
@@ -230,6 +250,34 @@ export function AppointmentModal({
     }
   }
 
+  // Si la cita té una hora que no és múltiple de 15 (p. ex. 10:05), també ha de sortir
+  if (startTime && !timeOptions.includes(startTime)) {
+    timeOptions.push(startTime);
+    timeOptions.sort();
+  }
+
+  // Fitxa de la clienta (per avisar de les al·lèrgies)
+  const digits = (s?: string | null) => (s || "").replace(/\D/g, "").slice(-9);
+  const clientRecord =
+    clients.find((c) => c.id === selectedClientId) ||
+    (digits(clientPhone).length === 9 ? clients.find((c) => digits(c.phone) === digits(clientPhone)) : undefined);
+  const allergies = clientRecord?.allergies?.trim();
+
+  // Avís si la cita cau fora de l'horari del centre (es pot desar igualment)
+  const toMin = (t: string) => {
+    const [h, m] = t.split(":").map(Number);
+    return h * 60 + (m || 0);
+  };
+  let hoursWarning: string | null = null;
+  const daySched = schedules.find((s) => s.dayOfWeek === dayOfWeek(date));
+  if (daySched && date && startTime) {
+    const st = toMin(startTime), en = st + Number(durationMinutes || 0);
+    const inWin = (a: string, b: string) => !!a && !!b && st >= toMin(a) && en <= toMin(b);
+    if (!daySched.isOpen) hoursWarning = `El centre està tancat els ${daySched.dayName.toLowerCase()}.`;
+    else if (!inWin(daySched.morningStart, daySched.morningEnd) && !inWin(daySched.afternoonStart, daySched.afternoonEnd))
+      hoursWarning = `Fora de l'horari: ${daySched.dayName.toLowerCase()} s'obre de ${daySched.morningStart} a ${daySched.morningEnd} i de ${daySched.afternoonStart} a ${daySched.afternoonEnd}.`;
+  }
+
   // Cada 5 minuts (fins a 3 hores), més la durada actual si és diferent
   const durationOptions = Array.from({ length: 36 }, (_, i) => (i + 1) * 5);
   if (!durationOptions.includes(durationMinutes)) durationOptions.push(durationMinutes);
@@ -258,7 +306,7 @@ export function AppointmentModal({
         date,
         startTime,
         durationMinutes: Number(durationMinutes),
-        price,
+        price: canSeeMoney ? price : undefined,
         paidCash,
         status,
         notes: notes.trim() || null,
@@ -287,9 +335,34 @@ export function AppointmentModal({
     }
   };
 
+  // Tancar la cita d'un sol toc: cobrada (efectiu o targeta) o no s'ha presentat
+  const quickClose = async (newStatus: AppointmentStatus, cash?: boolean) => {
+    if (!appointmentToEdit) return;
+    setLoading(true);
+    setError(null);
+    try {
+      const res = await fetch("/api/appointments", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id: appointmentToEdit.id, status: newStatus, ...(cash !== undefined ? { paidCash: cash } : {}) }),
+      });
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        setError(data.error || "No s'ha pogut desar");
+        return;
+      }
+      onSave(data.data, false);
+      onClose();
+    } catch (err: unknown) {
+      setError("Error de xarxa: " + (err instanceof Error ? err.message : String(err)));
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleDelete = async () => {
     if (!appointmentToEdit || !onDelete) return;
-    if (!confirm("Segur que vols eliminar aquesta cita de l'agenda?")) return;
+    if (!confirm("Segur que vols cancel·lar aquesta cita? Es podrà desfer.")) return;
 
     setLoading(true);
     try {
@@ -302,7 +375,7 @@ export function AppointmentModal({
         setLoading(false);
         return;
       }
-      onDelete(appointmentToEdit.id);
+      onDelete(appointmentToEdit, data.previousStatus || appointmentToEdit.status);
       onClose();
     } catch (err: unknown) {
       setError("Error: " + (err instanceof Error ? err.message : String(err)));
@@ -346,6 +419,29 @@ export function AppointmentModal({
         )}
 
         <form onSubmit={handleSubmit} className="p-6 space-y-5">
+          {appointmentToEdit && (appointmentToEdit.status === "confirmada" || appointmentToEdit.status === "pendent") && (
+            <div className="flex flex-wrap items-center gap-2 rounded-xl bg-stone-50 border border-stone-200 px-3 py-2.5">
+              <span className="text-[11px] font-bold uppercase tracking-wide text-stone-500 mr-1">Tancar la cita:</span>
+              <button type="button" disabled={loading} onClick={() => quickClose("completada", false)} className="px-3 py-1.5 rounded-lg bg-white border border-stone-300 text-xs font-bold text-stone-800 hover:border-terra-400">
+                💳 Cobrada amb targeta
+              </button>
+              <button type="button" disabled={loading} onClick={() => quickClose("completada", true)} className="px-3 py-1.5 rounded-lg bg-salvia-600 text-xs font-bold text-white hover:brightness-95">
+                💶 Cobrada en efectiu
+              </button>
+              <button type="button" disabled={loading} onClick={() => quickClose("no-presentada")} className="px-3 py-1.5 rounded-lg bg-white border border-red-200 text-xs font-bold text-red-700 hover:bg-red-50">
+                🚫 No s&apos;ha presentat
+              </button>
+            </div>
+          )}
+          {allergies && (
+            <div role="alert" className="flex items-start gap-2.5 rounded-xl border-2 border-red-300 bg-red-50 px-3.5 py-2.5 text-red-800">
+              <AlertTriangle className="w-5 h-5 shrink-0 mt-0.5 text-red-600" />
+              <div className="text-sm">
+                <span className="font-extrabold uppercase tracking-wide text-[11px] block">Al·lèrgies</span>
+                <span className="font-semibold">{allergies}</span>
+              </div>
+            </div>
+          )}
           {/* Secció Clienta habitual o nova */}
           <div>
             <div className="flex items-center justify-between mb-2">
@@ -524,8 +620,13 @@ export function AppointmentModal({
           <div className="border-t border-stone-100 pt-3">
             <h4 className="text-xs font-semibold uppercase tracking-wider text-terra-800 mb-2 flex items-center space-x-1.5">
               <Clock className="w-3.5 h-3.5" />
-              <span>Horari i Preu</span>
+              <span>{canSeeMoney ? "Horari i Preu" : "Horari i Pagament"}</span>
             </h4>
+            {hoursWarning && (
+              <p className="mb-2 flex items-center gap-1.5 rounded-lg bg-amber-50 border border-amber-200 px-3 py-1.5 text-xs font-semibold text-amber-800">
+                <AlertTriangle className="w-3.5 h-3.5 shrink-0" /> {hoursWarning} Es pot desar igualment.
+              </p>
+            )}
 
             <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
               <div>
@@ -580,16 +681,22 @@ export function AppointmentModal({
               </div>
 
               <div>
-                <label className="block text-xs font-medium text-stone-700 mb-1">
-                  Preu (€)
-                </label>
-                <input
-                  type="number"
-                  step="0.50"
-                  value={price}
-                  onChange={(e) => setPrice(e.target.value)}
-                  className="w-full px-3 py-2 text-sm border border-stone-300 rounded-lg focus:ring-2 focus:ring-terra-500 font-semibold text-stone-800"
-                />
+                {canSeeMoney ? (
+                  <>
+                    <label className="block text-xs font-medium text-stone-700 mb-1">
+                      Preu (€)
+                    </label>
+                    <input
+                      type="number"
+                      step="0.50"
+                      value={price}
+                      onChange={(e) => setPrice(e.target.value)}
+                      className="w-full px-3 py-2 text-sm border border-stone-300 rounded-lg focus:ring-2 focus:ring-terra-500 font-semibold text-stone-800"
+                    />
+                  </>
+                ) : (
+                  <label className="block text-xs font-medium text-stone-700 mb-1">Pagament</label>
+                )}
                 {/* Per defecte és targeta; només cal marcar quan paga en efectiu */}
                 <div className="mt-1.5 flex bg-stone-100 rounded-lg p-0.5 text-[11px] font-bold">
                   {[
@@ -614,6 +721,16 @@ export function AppointmentModal({
             </div>
           </div>
 
+          {/* Vendre cremes i productes de l'Estoc a la clienta */}
+          {appointmentToEdit && (
+            <ProductSales
+              appointmentId={appointmentToEdit.id}
+              clientName={clientName || appointmentToEdit.clientName}
+              servicePrice={canSeeMoney && price !== "" && Number.isFinite(Number(price)) ? Number(price) : null}
+              canSeeMoney={canSeeMoney}
+            />
+          )}
+
           {/* Estat i Notes */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-3 pt-2">
             <div>
@@ -622,12 +739,13 @@ export function AppointmentModal({
               </label>
               <select
                 value={status}
-                onChange={(e) => setStatus(e.target.value as "confirmada" | "pendent" | "completada" | "cancel·lada")}
+                onChange={(e) => setStatus(e.target.value as AppointmentStatus)}
                 className="w-full px-3 py-2 text-sm border border-stone-300 rounded-lg focus:ring-2 focus:ring-terra-500 bg-white"
               >
                 <option value="confirmada">✅ Confirmada</option>
                 <option value="pendent">⏳ Pendent</option>
                 <option value="completada">✨ Completada</option>
+                <option value="no-presentada">🚫 No s&apos;ha presentat</option>
                 <option value="cancel·lada">❌ Cancel·lada</option>
               </select>
             </div>
@@ -658,8 +776,8 @@ export function AppointmentModal({
                 disabled={loading}
                 className="inline-flex items-center space-x-1.5 px-3 py-2 text-xs font-semibold text-red-600 hover:bg-red-50 rounded-lg border border-red-200 transition-colors"
               >
-                <Trash2 className="w-4 h-4" />
-                <span>Eliminar Cita</span>
+                <Ban className="w-4 h-4" />
+                <span>Cancel·lar la cita</span>
               </button>
             ) : (
               <div />
@@ -672,7 +790,7 @@ export function AppointmentModal({
                 disabled={loading}
                 className="px-4 py-2 text-sm font-medium text-stone-600 hover:bg-stone-100 rounded-lg transition-colors"
               >
-                Cancel·lar
+                Tancar
               </button>
               <button
                 type="submit"
