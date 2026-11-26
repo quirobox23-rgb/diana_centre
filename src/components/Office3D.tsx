@@ -54,6 +54,15 @@ const CABS = [0, 1, 2].map((i) => ({ x0: i * 10, x1: (i + 1) * 10, xc: i * 10 + 
 const CAMILLA = { z: 3.4 }; // centre de la llitera
 const DESK = { x: 7.5, z: 13.2 }; // taulell de recepció
 const SOFA = { x: 24.5, z: 16.2 };
+// Jardí amb la zona de relax, a la dreta del centre
+const GX0 = W + 0.3;
+const GX1 = W + 9.5;
+const LOUNGERS = [
+  { x: GX0 + 2.3, z: 2.6 },
+  { x: GX0 + 5.3, z: 2.6 },
+];
+const BENCH = { x: GX0 + 4.6, z: 13.4 }; // banc al costat del safareig, on descansa l'Aura
+const SCENE_W = GX1; // ample de tota l'escena
 
 const LOOKS: Record<Look, { ropa: number; pelo: number; piel: number; pant: number; largo: boolean; ulleres?: boolean }> = {
   diana: { ropa: 0xf6f2ec, pelo: 0xeee8de, piel: 0xf0cfb2, pant: 0x3b3430, largo: true },
@@ -103,9 +112,10 @@ export function Office3D({ data, onCabinClick, onAuraClick }: Props) {
     controls.maxPolarAngle = 1.15;
     controls.enableZoom = false; // la roda del ratolí ha de fer scroll de la pàgina
     controls.enablePan = false;
-    const TARGET = new THREE.Vector3(W / 2, 0, D / 2);
+    const TARGET = new THREE.Vector3(SCENE_W / 2, 0, D / 2);
     const HOME = new THREE.Vector3(-14, 26, 30);
     camera.position.copy(TARGET.clone().add(HOME));
+    camera.lookAt(TARGET);
     controls.target.copy(TARGET);
 
     const fit = () => {
@@ -113,11 +123,22 @@ export function Office3D({ data, onCabinClick, onAuraClick }: Props) {
       if (!r.width || !r.height) return;
       renderer.setSize(r.width, r.height, false);
       const aspect = r.width / r.height;
-      const h = Math.max(20, 35 / aspect);
-      camera.left = (-h * aspect) / 2;
-      camera.right = (h * aspect) / 2;
-      camera.top = h / 2;
-      camera.bottom = -h / 2;
+      // Encaixa tota l'escena (centre + jardí) a la vista, també en pantalles quadrades del mòbil
+      camera.updateMatrixWorld();
+      let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
+      const p = new THREE.Vector3();
+      for (const x of [-0.5, SCENE_W + 0.5]) for (const y of [0, 3]) for (const z of [-0.5, D + 0.5]) {
+        p.set(x, y, z).applyMatrix4(camera.matrixWorldInverse);
+        minX = Math.min(minX, p.x); maxX = Math.max(maxX, p.x);
+        minY = Math.min(minY, p.y); maxY = Math.max(maxY, p.y);
+      }
+      const margin = 1.06;
+      const cx = (minX + maxX) / 2, cy = (minY + maxY) / 2;
+      const h = Math.max(maxY - minY, (maxX - minX) / aspect) * margin;
+      camera.left = cx - (h * aspect) / 2;
+      camera.right = cx + (h * aspect) / 2;
+      camera.top = cy + h / 2;
+      camera.bottom = cy - h / 2;
       camera.updateProjectionMatrix();
     };
     const ro = new ResizeObserver(fit);
@@ -129,10 +150,10 @@ export function Office3D({ data, onCabinClick, onAuraClick }: Props) {
     scene.add(hemi);
     const sun = new THREE.DirectionalLight(0xffe7cc, 1.0);
     sun.position.set(-8, 30, 26);
-    sun.target.position.set(W / 2, 0, D / 2);
+    sun.target.position.set(SCENE_W / 2, 0, D / 2);
     sun.castShadow = true;
     sun.shadow.mapSize.set(2048, 2048);
-    Object.assign(sun.shadow.camera, { left: -24, right: 24, top: 24, bottom: -24, near: 1, far: 90 });
+    Object.assign(sun.shadow.camera, { left: -28, right: 28, top: 28, bottom: -28, near: 1, far: 90 });
     sun.shadow.bias = -0.0006;
     scene.add(sun, sun.target);
 
@@ -177,6 +198,14 @@ export function Office3D({ data, onCabinClick, onAuraClick }: Props) {
         }
         g.strokeStyle = "rgba(120,100,80,.15)";
         g.strokeRect(0, 0, w, h);
+      }),
+      gespa: canvasTex(128, 128, (g, w, h) => {
+        g.fillStyle = "#8fa86e";
+        g.fillRect(0, 0, w, h);
+        for (let i = 0; i < 2200; i++) {
+          g.fillStyle = `rgba(${rnd() > 0.5 ? "60,90,40" : "200,220,160"},${rnd() * 0.12})`;
+          g.fillRect(rnd() * w, rnd() * h, 1, 2);
+        }
       }),
       catifa: canvasTex(128, 128, (g, w, h) => {
         g.fillStyle = "#c9b79c";
@@ -313,7 +342,7 @@ export function Office3D({ data, onCabinClick, onAuraClick }: Props) {
     // Perímetre
     wall(0, 0, W, 0);
     wall(0, 0, 0, D);
-    wall(W, 0, W, D);
+    wall(W, 0, W, D, false, [(CAB_D + PASS_Z1) / 2], 1.6); // porta al jardí des del passadís
     wall(0, D, W, D, true, [DESK.x + 0.5], 2.2); // aparador de vidre amb la porta d'entrada
     // Cabines: parets entre elles i cap al passadís amb porta
     for (const c of CABS) {
@@ -476,6 +505,63 @@ export function Office3D({ data, onCabinClick, onAuraClick }: Props) {
     floorText("Sala d'espera", 20.0 + 1.5, PASS_Z1 + 0.5, 3.0);
     floorText("Recepció", 1.2 + 1.2, PASS_Z1 + 0.5, 2.4);
 
+    // ---------- Jardí i zona de relax ----------
+    box(GX1 - GX0 + 0.3, 0.36, D + 0.6, mat(0x4f5f3a), (GX0 + GX1) / 2, -0.19, D / 2, scene, false);
+    floor(GX0, GX1, -0.3, D + 0.3, TEX.gespa, 0.0);
+    const pedraJardi = mat(0xd8cfc2, { roughness: 0.9 });
+    // Camí de llambordes des de la porta
+    for (let k = 0; k < 6; k++) {
+      const p = cyl(0.42, 0.42, 0.04, pedraJardi, GX0 + 0.8 + k * 0.95, 0.02, (CAB_D + PASS_Z1) / 2 + (k % 2 ? 0.25 : -0.2), scene, 14);
+      p.castShadow = false;
+    }
+    // Terrassa de fusta amb dues gandules i un para-sol
+    box(7.4, 0.08, 4.6, M.fustaClara, GX0 + 3.8, 0.04, 2.7);
+    LOUNGERS.forEach((l) => {
+      const g = group(l.x, l.z);
+      box(0.75, 0.12, 2.0, M.blanc, 0, 0.42, 0.15, g);
+      const back = box(0.75, 0.12, 0.8, M.blanc, 0, 0.7, -0.95, g);
+      back.rotation.x = 0.6;
+      box(0.68, 0.05, 1.9, mat(0xd8c8b0), 0, 0.5, 0.15, g); // matalàs
+      for (const sx of [-0.33, 0.33]) for (const sz of [-0.7, 1.0]) cyl(0.025, 0.025, 0.4, M.potes, sx, 0.2, sz, g, 6);
+    });
+    // Tauleta amb dos gots entre les gandules
+    cyl(0.32, 0.32, 0.05, M.fusta, GX0 + 3.8, 0.5, 3.0, scene, 18);
+    cyl(0.04, 0.04, 0.45, M.potes, GX0 + 3.8, 0.25, 3.0, scene, 6);
+    cyl(0.05, 0.04, 0.14, new THREE.MeshStandardMaterial({ color: 0xf3c86a, transparent: true, opacity: 0.8 }), GX0 + 3.7, 0.6, 2.95, scene, 10);
+    cyl(0.05, 0.04, 0.14, new THREE.MeshStandardMaterial({ color: 0xf3c86a, transparent: true, opacity: 0.8 }), GX0 + 3.92, 0.6, 3.08, scene, 10);
+    // Para-sol
+    cyl(0.03, 0.03, 2.4, M.fusta, GX0 + 3.8, 1.2, 1.2, scene, 6);
+    const parasol = new THREE.Mesh(new THREE.ConeGeometry(1.9, 0.6, 10, 1, true), mat(0xf1e6d6, { side: THREE.DoubleSide }));
+    parasol.position.set(GX0 + 3.8, 2.5, 1.2);
+    parasol.castShadow = true;
+    scene.add(parasol);
+    // Arbres
+    const tree = (x: number, z: number, h = 2.6) => {
+      cyl(0.12, 0.16, h, M.fusta, x, h / 2, z, scene, 8);
+      for (let k = 0; k < 5; k++) ball(0.75 + rnd() * 0.35, k % 2 ? M.fulla : M.fulla2, x + (rnd() - 0.5) * 0.9, h + rnd() * 0.6, z + (rnd() - 0.5) * 0.9);
+    };
+    tree(GX1 - 1.0, 7.0);
+    tree(GX1 - 1.2, 10.6, 2.2);
+    tree(GX0 + 1.0, D - 1.2, 2.4);
+    // Bardissa als límits del jardí
+    const bardissa = mat(0x5d7a45, { roughness: 0.95 });
+    box(0.6, 0.7, D - 0.4, bardissa, GX1 - 0.3, 0.35, D / 2);
+    box(GX1 - GX0 - 0.6, 0.6, 0.5, bardissa, (GX0 + GX1) / 2 - 0.3, 0.3, D - 0.05);
+    // Safareig amb aigua i banc al costat
+    cyl(1.05, 1.1, 0.3, pedraJardi, GX0 + 6.2, 0.15, 14.2, scene, 28);
+    const aigua = cyl(0.92, 0.92, 0.04, new THREE.MeshStandardMaterial({ color: 0x8cc4d6, roughness: 0.15, metalness: 0.1 }), GX0 + 6.2, 0.31, 14.2, scene, 28);
+    aigua.castShadow = false;
+    const banc = group(BENCH.x, BENCH.z, 0);
+    box(1.8, 0.08, 0.5, M.fusta, -0.2, 0.46, -1.6, banc);
+    box(1.8, 0.45, 0.07, M.fusta, -0.2, 0.72, -1.38, banc);
+    for (const sx of [-0.95, 0.55]) box(0.08, 0.42, 0.45, M.marc, sx, 0.21, -1.6, banc);
+    // Flors
+    for (let k = 0; k < 14; k++) {
+      const col = [0xe8a0a8, 0xf3d27a, 0xffffff, 0xc9a0d8][k % 4];
+      ball(0.08, mat(col), GX0 + 0.6 + rnd() * 2.2, 0.12, D - 1.0 - rnd() * 2.6);
+    }
+    floorText("Jardí · zona de relax", GX0 + 1.0, 5.9, 4.2, "rgba(40,55,30,.75)");
+
     // ---------- Persones ----------
     const people = new THREE.Group();
     scene.add(people);
@@ -588,29 +674,51 @@ export function Office3D({ data, onCabinClick, onAuraClick }: Props) {
         }
       });
 
-      // Professionals lliures: al passadís, davant la seva cabina habitual
+      // Professionals lliures: descansant a les gandules del jardí (si n'hi ha més, dretes a la terrassa)
       d.freePros.forEach((p, i) => {
         const pr = makePerson(p.look);
-        const x = 11.5 + i * 1.6, z = (CAB_D + PASS_Z1) / 2;
-        pr.root.position.set(x, 0, z);
-        pr.root.rotation.y = Math.PI;
-        people.add(pr.root);
-        animated.push({ body: pr.body, arms: pr.arms, mode: "idle", phase: i });
-        addLabel(`<b>${esc(p.name)}</b>${p.detail ? `<span>${esc(p.detail)}</span>` : ""}`, new THREE.Vector3(x, 2.15, z), "pro");
+        let labelPos: THREE.Vector3;
+        if (i < LOUNGERS.length) {
+          const l = LOUNGERS[i];
+          pr.body.rotation.x = Math.PI / 2 - 0.3; // estirada de cara amunt, una mica incorporada
+          pr.root.rotation.y = Math.PI;
+          pr.root.position.set(l.x, 0.66, l.z + 1.05);
+          pr.arms.forEach((a) => (a.rotation.x = 0.1));
+          people.add(pr.root);
+          animated.push({ body: pr.body, arms: pr.arms, mode: "lie", phase: i });
+          labelPos = new THREE.Vector3(l.x, 1.5 + i * 0.6, l.z);
+        } else {
+          const x = GX0 + 2.6 + (i - LOUNGERS.length) * 1.4, z = 8.6; // passejant pel jardí
+          pr.root.position.set(x, 0.08, z);
+          pr.root.rotation.y = Math.PI;
+          people.add(pr.root);
+          animated.push({ body: pr.body, arms: pr.arms, mode: "idle", phase: i });
+          labelPos = new THREE.Vector3(x, 2.2, z);
+        }
+        addLabel(`<b>${esc(p.name)}</b><span>${esc(p.detail || "Descansant")}</span>`, labelPos, "pro");
       });
 
-      // Aura asseguda al taulell
+      // Aura: al taulell quan hi ha avisos per confirmar; si no, descansa al banc del jardí
+      const n = d.pendingCount;
       const au = makePerson("aura");
-      au.root.position.set(DESK.x - 0.6, 0, DESK.z - 0.95);
-      au.root.rotation.y = Math.PI;
       au.body.position.y = -0.44;
       au.legs.forEach((l) => (l.rotation.x = Math.PI / 2));
       people.add(au.root);
-      animated.push({ body: au.body, arms: au.arms, mode: "type", phase: 0 });
-      const n = d.pendingCount;
+      let auraPos: THREE.Vector3;
+      if (n) {
+        au.root.position.set(DESK.x - 0.6, 0, DESK.z - 0.95);
+        au.root.rotation.y = Math.PI;
+        animated.push({ body: au.body, arms: au.arms, mode: "type", phase: 0 });
+        auraPos = new THREE.Vector3(DESK.x - 0.6, 2.0, DESK.z - 0.95);
+      } else {
+        au.root.position.set(BENCH.x - 0.2, 0.04, BENCH.z - 1.62);
+        au.arms.forEach((a) => (a.rotation.x = 0.35));
+        animated.push({ body: au.body, arms: au.arms, mode: "sit", phase: 1 });
+        auraPos = new THREE.Vector3(BENCH.x - 0.2, 1.7, BENCH.z - 1.62);
+      }
       addLabel(
-        `<i style="background:#25D366"></i><b>Aura</b><span>${n ? `${n} per confirmar` : "Tot al dia"}</span>`,
-        new THREE.Vector3(DESK.x - 0.6, 2.0, DESK.z - 0.95),
+        `<i style="background:#25D366"></i><b>Aura</b><span>${n ? `${n} per confirmar` : "Descansant"}</span>`,
+        auraPos,
         n ? "aura alert" : "aura",
         () => cbRef.current.onAuraClick?.()
       );
@@ -684,7 +792,7 @@ export function Office3D({ data, onCabinClick, onAuraClick }: Props) {
       const plane = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0);
       const hit = new THREE.Vector3();
       if (!ray.ray.intersectPlane(plane, hit)) return;
-      if (hit.z >= 0 && hit.z <= CAB_D) {
+      if (hit.z >= 0 && hit.z <= CAB_D && hit.x >= 0 && hit.x < W) {
         const i = Math.floor(hit.x / 10);
         const cab = currentData.current?.cabins[i];
         if (cab?.occupied) cbRef.current.onCabinClick?.(cab);

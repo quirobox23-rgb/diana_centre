@@ -8,7 +8,7 @@ import { MessageCircle, Clock, RotateCcw, Sparkles } from "lucide-react";
 import { Office3D, OfficeSceneData, SceneCabin, Look } from "@/components/Office3D";
 
 // Oficina: el centre en 3D (una sola planta) i al costat el resum del que passa.
-// Les 3 cabines seguides, el passadís i la recepció on seu l'Aura (l'agent de WhatsApp).
+// Les 3 cabines seguides, el passadís, la recepció on seu l'Aura (l'agent de WhatsApp) i el jardí de relax.
 
 interface PendingRequest {
   id: number;
@@ -136,7 +136,7 @@ export function OfficeView({ rooms, professionals, schedules, onOpenPending, onE
       <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-3">
         <div>
           <h2 className="text-xl font-bold text-stone-900">Oficina</h2>
-          <p className="text-xs text-stone-500">El centre en una sola planta: les 3 cabines, el passadís i l&apos;Aura a recepció.</p>
+          <p className="text-xs text-stone-500">El centre en una sola planta: les 3 cabines, la recepció de l&apos;Aura i el jardí on descansen quan no treballen.</p>
         </div>
         <div className="flex items-center gap-3 bg-white border border-terra-100 rounded-2xl px-3 py-2 shadow-xs">
           <Clock className="w-4 h-4 text-terra-600 shrink-0" />
