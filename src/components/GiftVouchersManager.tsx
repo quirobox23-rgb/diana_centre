@@ -264,8 +264,8 @@ const inputCls = "w-full px-3 py-2 text-sm border border-stone-200 rounded-xl ou
 
 function Modal({ title, onClose, children }: { title: string; onClose: () => void; children: React.ReactNode }) {
   return (
-    <div className="fixed inset-0 z-50 bg-stone-900/40 flex items-center justify-center p-4" onClick={onClose}>
-      <div className="bg-white rounded-3xl shadow-2xl w-full max-w-md max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
+    <div className="fixed inset-0 z-50 bg-stone-900/40 flex items-start justify-center p-3 sm:p-4 overflow-y-auto overscroll-contain" onClick={onClose}>
+      <div className="my-auto bg-white rounded-3xl shadow-2xl w-full max-w-md max-h-[90dvh] overflow-y-auto" onClick={e => e.stopPropagation()}>
         <div className="flex items-center justify-between px-5 py-4 border-b border-stone-100">
           <h3 className="font-bold text-stone-900">{title}</h3>
           <button onClick={onClose} className="p-1 text-stone-400 hover:text-stone-700">

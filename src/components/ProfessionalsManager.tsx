@@ -181,8 +181,8 @@ export function ProfessionalsManager({ professionals, rooms = [], onProfessional
 
       {/* Modal */}
       {isModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs">
-          <div className="relative w-full max-w-md bg-white rounded-2xl shadow-2xl border border-moka-100 overflow-hidden">
+        <div className="fixed inset-0 z-50 flex items-start justify-center p-3 sm:p-4 overflow-y-auto overscroll-contain bg-black/60 backdrop-blur-xs">
+          <div className="my-auto relative w-full max-w-md bg-white rounded-2xl shadow-2xl border border-moka-100 overflow-hidden">
             <div className="bg-gradient-to-r from-moka-600 to-moka-600 p-5 text-white flex items-center justify-between">
               <div>
                 <h3 className="text-lg font-bold">
@@ -248,7 +248,7 @@ export function ProfessionalsManager({ professionals, rooms = [], onProfessional
                 </div>
               )}
 
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <label className="block font-medium text-stone-700 mb-1">Telèfon</label>
                   <input
