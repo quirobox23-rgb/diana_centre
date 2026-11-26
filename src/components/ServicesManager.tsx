@@ -245,20 +245,6 @@ export function ServicesManager({ services, rooms, professionals = [], onService
         </div>
       )}
 
-      {/* Llegenda de colors per tipus de tractament (els de Google Calendar) */}
-      <div className="bg-white rounded-2xl border border-stone-200 shadow-xs px-5 py-3">
-        <div className="text-[11px] font-bold uppercase tracking-wider text-stone-500 mb-2">Colors del calendari</div>
-        <div className="flex flex-wrap gap-x-4 gap-y-1.5">
-          {TREATMENT_TYPES.map((t) => (
-            <span key={t.id} className="inline-flex items-center gap-1.5 text-xs text-stone-700">
-              <span className="w-3 h-3 rounded-sm" style={{ backgroundColor: t.color }} />
-              {t.label}
-              <span className="text-stone-400">({t.colorName})</span>
-            </span>
-          ))}
-        </div>
-      </div>
-
       {/* Filtre per seccions */}
       <div className="flex flex-wrap items-center gap-2">
         {categories.map((cat) => (
