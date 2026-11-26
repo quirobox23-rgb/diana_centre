@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useCallback, useEffect, useMemo, useState } from "react";
-import { Package, Plus, Minus, Search, Pencil, Trash2, X, AlertTriangle, History } from "lucide-react";
+import { Package, Plus, Minus, Search, Pencil, Trash2, X, AlertTriangle, History, Lock } from "lucide-react";
 
 interface Product {
   id: number;
@@ -36,7 +36,13 @@ const money = (v: string | number) =>
 const emptyForm = { name: "", category: "", code: "", line: "venda" as Line, price: "", cost: "", stock: "", minStock: "2" };
 
 /** Pestanya d'estoc: què hi ha, què s'ha venut i què queda. */
-export function StockManager() {
+interface StockManagerProps {
+  /** Candado de la dueña obert: es veu l'import del mes (com al Resum) */
+  canSeeMoney?: boolean;
+  onRequestUnlock?: (then?: () => void) => void;
+}
+
+export function StockManager({ canSeeMoney = true, onRequestUnlock }: StockManagerProps = {}) {
   const [items, setItems] = useState<Product[]>([]);
   const [recent, setRecent] = useState<Movement[]>([]);
   const [loading, setLoading] = useState(true);
@@ -209,11 +215,23 @@ export function StockManager() {
           { label: "Productes", value: String(lineItems.length) },
           { label: "Unitats en estoc", value: String(totalUnits) },
           { label: line === "venda" ? "Venuts aquest mes" : "Gastats aquest mes", value: String(outMonth) },
-          { label: line === "venda" ? "Vendes del mes" : "Despesa del mes", value: money(outMonthMoney) },
+          { label: line === "venda" ? "Vendes del mes" : "Despesa del mes", value: money(outMonthMoney), locked: !canSeeMoney },
         ].map((b) => (
           <div key={b.label} className="bg-white rounded-2xl border border-stone-200 px-4 py-3">
             <p className="text-[11px] font-bold uppercase tracking-wider text-stone-400">{b.label}</p>
-            <p className="text-xl font-bold text-stone-900">{b.value}</p>
+            {b.locked ? (
+              <button
+                type="button"
+                onClick={() => onRequestUnlock?.()}
+                title="Els imports només els pot veure la dueña"
+                className="mt-1 inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-bold rounded-lg border bg-white text-stone-600 border-stone-200 hover:bg-stone-50"
+              >
+                <Lock className="w-3.5 h-3.5" />
+                Veure import
+              </button>
+            ) : (
+              <p className="text-xl font-bold text-stone-900">{b.value}</p>
+            )}
           </div>
         ))}
       </div>
