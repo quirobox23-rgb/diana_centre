@@ -21,7 +21,7 @@ export async function POST(request: Request) {
       name: c.name,
       category: c.category,
       durationMinutes: c.durationMinutes,
-      price: "0.00",
+      price: (c.price ?? 0).toFixed(2),
       description: c.description ?? null,
       color: colorForService(c.name, c.category),
       isActive: true,

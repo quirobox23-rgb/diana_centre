@@ -1,5 +1,5 @@
 import { pool } from "./index";
-import { applyTreatmentColorsOnce, assignDefaultProfessionalsOnce, applyRoomLayoutOnce, addNutricosmeticaOnce } from "./treatment-colors-migration";
+import { applyTreatmentColorsOnce, assignDefaultProfessionalsOnce, applyRoomLayoutOnce, addNutricosmeticaOnce, applyTarifesNov26Once } from "./treatment-colors-migration";
 
 // Crea les taules noves si encara no existeixen, perquè no calgui executar
 // "drizzle-kit push" a producció a mà. Només s'executa un cop per instància.
@@ -108,6 +108,7 @@ export function ensureSchema(): Promise<void> {
       await assignDefaultProfessionalsOnce().catch(err => console.error("[pros]", err));
       await applyRoomLayoutOnce().catch(err => console.error("[sales]", err));
       await addNutricosmeticaOnce().catch(err => console.error("[nutri]", err));
+      await applyTarifesNov26Once().catch(err => console.error("[tarifes]", err));
     }).catch(err => {
       ensured = null;
       throw err;
