@@ -1,4 +1,5 @@
 import { pool } from "./index";
+import { CENTRE_CATALOG, TARIFES_NOV26 } from "@/lib/service-catalog";
 import { colorForService, OLD_DEFAULT_COLORS, defaultProsFor, proKeyOf, treatmentTypeOf, type ProKey } from "@/lib/treatment-colors";
 
 const DONE_KEY = "treatment_colors_google_v1";
@@ -179,4 +180,54 @@ export async function addNutricosmeticaOnce(): Promise<void> {
     [NUTRI_KEY, new Date().toISOString()]
   );
   console.log("[serveis] nutricosmètica afegida");
+}
+
+const TARIFES_KEY = "tarifes_nov26_v1";
+const normName = (s: string) => s.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/\s+/g, " ").trim();
+
+/**
+ * Un sol cop: carrega les tarifes del 26/11/2026 sense duplicar.
+ * Si el tractament ja existeix (mateix nom), s'actualitza el preu i la descripció; si no, s'afegeix.
+ * Si el centre encara no ha carregat la carta, no fa res (la carta ja porta aquests preus).
+ */
+export async function applyTarifesNov26Once(): Promise<void> {
+  const done = await pool.query("SELECT 1 FROM app_settings WHERE key = $1", [TARIFES_KEY]);
+  if (done.rowCount) return;
+  const { rows } = await pool.query<{ id: number; name: string }>("SELECT id, name FROM services");
+  const byName = new Map(rows.map((r) => [normName(r.name), r.id]));
+  const loadedCarta = CENTRE_CATALOG.some((c) => byName.has(normName(c.name)));
+  let updated = 0;
+  const newIds: number[] = [];
+  if (loadedCarta) {
+    for (const name of TARIFES_NOV26) {
+      const c = CENTRE_CATALOG.find((x) => x.name === name);
+      if (!c) continue;
+      const id = byName.get(normName(name));
+      if (id) {
+        if (c.price != null) {
+          await pool.query("UPDATE services SET price = $1 WHERE id = $2", [c.price.toFixed(2), id]);
+        }
+        if (c.description) {
+          await pool.query("UPDATE services SET description = $1 WHERE id = $2", [c.description, id]);
+        }
+        updated++;
+      } else {
+        const ins = await pool.query<{ id: number }>(
+          `INSERT INTO services (name, category, duration_minutes, price, description, color, is_active)
+           VALUES ($1, $2, $3, $4, $5, $6, true) RETURNING id`,
+          [c.name, c.category, c.durationMinutes, (c.price ?? 0).toFixed(2), c.description ?? null, colorForService(c.name, c.category)]
+        );
+        newIds.push(...ins.rows.map((r) => r.id));
+      }
+    }
+    if (newIds.length) {
+      await assignDefaultProfessionals(newIds).catch((err) => console.error("[pros]", err));
+      await assignDefaultRooms(newIds).catch((err) => console.error("[sales]", err));
+    }
+  }
+  await pool.query(
+    "INSERT INTO app_settings (key, value) VALUES ($1, $2) ON CONFLICT (key) DO NOTHING",
+    [TARIFES_KEY, new Date().toISOString()]
+  );
+  console.log(`[tarifes] ${updated} actualitzats, ${newIds.length} afegits`);
 }

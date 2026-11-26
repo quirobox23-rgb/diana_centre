@@ -53,6 +53,8 @@ export interface CatalogItem {
   /** true quan la carta no deia la durada i n'hem posat una per defecte */
   durationToConfirm?: boolean;
   description?: string;
+  /** Preu de la tarifa del centre (si el sabem) */
+  price?: number;
 }
 
 const item = (category: string, name: string, durationMinutes: number, extra: Partial<CatalogItem> = {}): CatalogItem => ({
@@ -64,13 +66,15 @@ const item = (category: string, name: string, durationMinutes: number, extra: Pa
 
 export const CENTRE_CATALOG: CatalogItem[] = [
   // ULLS
-  item("Ulls", "Extensió de pestanyes", 120),
-  item("Ulls", "Manteniment extensió de pestanyes", 60),
+  item("Ulls", "Extensió de pestanyes", 120, { price: 65 }),
+  item("Ulls", "Manteniment extensió de pestanyes", 60, { price: 20, description: "Cada 2 setmanes" }),
   item("Ulls", "Lifting de pestanyes", 60),
-  item("Ulls", "Permanent de pestanyes", 60),
+  item("Ulls", "Permanent de pestanyes", 60, { price: 21 }),
+  item("Ulls", "Permanent de pestanyes + tint", 75, { price: 32, durationToConfirm: true }),
   item("Ulls", "Tint de pestanyes", 15),
   item("Ulls", "Tint de celles", 15),
-  item("Ulls", "Allisament de celles", 30, { durationToConfirm: true }),
+  item("Ulls", "Allisament de celles", 30, { durationToConfirm: true, price: 21 }),
+  item("Ulls", "Allisament de celles + tint", 45, { durationToConfirm: true, price: 30 }),
   item("Ulls", "Tractament de contorn d'ulls", 60, { description: "Ulleres, bosses i arrugues" }),
 
   // FACIALS
@@ -92,6 +96,9 @@ export const CENTRE_CATALOG: CatalogItem[] = [
   item("Depilació", "Depilació cama sencera", 20),
   item("Depilació", "Cama sencera + aixelles", 30),
   item("Depilació", "Cama sencera + aixelles + celles + llavi", 40),
+  item("Depilació", "Depilació celles i llavi", 15, { durationToConfirm: true, price: 9 }),
+  item("Depilació", "Celles + llavi + aixelles + cames senceres + engonals", 50, { durationToConfirm: true }),
+  item("Depilació", "Celles + llavi + aixelles + engonals + mitja cama", 45, { durationToConfirm: true }),
   item("Depilació", "Depilació làser mèdica", 30, { durationToConfirm: true }),
   item("Depilació", "Depilació elèctrica", 30, { durationToConfirm: true }),
 
@@ -106,9 +113,17 @@ export const CENTRE_CATALOG: CatalogItem[] = [
   item("Corporal", "Rituals corporals", 60),
 
   // MANICURA I PEDICURA
-  item("Mans i Peus", "Manicura completa", 40),
-  item("Mans i Peus", "Pedicura", 30),
-  item("Mans i Peus", "Pedicura completa", 40, { description: "Ungles clavades, ulls de poll, durícies..." }),
+  item("Mans i Peus", "Manicura completa", 40, { price: 10, description: "Sense esmaltar, amb torn i hidratació" }),
+  item("Mans i Peus", "Manicura completa + esmaltat Vinylux", 50, { durationToConfirm: true, price: 15 }),
+  item("Mans i Peus", "Manicura completa + esmaltat semipermanent", 60, { durationToConfirm: true, price: 25 }),
+  item("Mans i Peus", "Manicura completa + allargament + esmaltat semipermanent", 90, { durationToConfirm: true, price: 47 }),
+  item("Mans i Peus", "Pedicura", 30, { price: 16, description: "Llimat, cutícules i hidratació" }),
+  item("Mans i Peus", "Pedicura completa", 40, { price: 22, description: "Llimat, cutícules, durícies i hidratació" }),
+  item("Mans i Peus", "Pedicura + esmaltat Vinylux", 40, { durationToConfirm: true, price: 21 }),
+  item("Mans i Peus", "Pedicura + esmaltat semipermanent", 50, { durationToConfirm: true, price: 31 }),
+  item("Mans i Peus", "Pedicura completa + esmaltat Vinylux", 50, { durationToConfirm: true, price: 27 }),
+  item("Mans i Peus", "Pedicura completa + esmaltat semipermanent", 60, { durationToConfirm: true, price: 37 }),
+  item("Mans i Peus", "Reconstrucció ungla del peu", 30, { durationToConfirm: true }),
   item("Mans i Peus", "Esmaltat CND Vinylux", 10),
   item("Mans i Peus", "Esmaltat semipermanent CND Shellac", 20),
   item("Mans i Peus", "Ungles Acrylic Gel amb semipermanent", 60, { durationToConfirm: true, description: "Allargament i reconstrucció" }),
@@ -126,4 +141,32 @@ export const CENTRE_CATALOG: CatalogItem[] = [
 
   // NUTRICOSMÈTICA
   item("Nutricosmètica", "Assessorament de nutricosmètica", 30, { durationToConfirm: true, description: "Complements per a la pell, els cabells i les ungles" }),
+];
+
+/**
+ * Tarifes que va passar el centre el 26/11/2026 (manicura, pedicura, pestanyes, celles i depilació).
+ * Es carreguen un sol cop: si el tractament ja hi és, se li posa el preu (i la descripció) de la tarifa;
+ * si no hi és, s'afegeix a la seva secció.
+ */
+export const TARIFES_NOV26: string[] = [
+  "Manicura completa",
+  "Manicura completa + esmaltat Vinylux",
+  "Manicura completa + esmaltat semipermanent",
+  "Manicura completa + allargament + esmaltat semipermanent",
+  "Pedicura",
+  "Pedicura completa",
+  "Pedicura + esmaltat Vinylux",
+  "Pedicura + esmaltat semipermanent",
+  "Pedicura completa + esmaltat Vinylux",
+  "Pedicura completa + esmaltat semipermanent",
+  "Reconstrucció ungla del peu",
+  "Allisament de celles + tint",
+  "Allisament de celles",
+  "Permanent de pestanyes",
+  "Permanent de pestanyes + tint",
+  "Extensió de pestanyes",
+  "Manteniment extensió de pestanyes",
+  "Depilació celles i llavi",
+  "Celles + llavi + aixelles + cames senceres + engonals",
+  "Celles + llavi + aixelles + engonals + mitja cama",
 ];
