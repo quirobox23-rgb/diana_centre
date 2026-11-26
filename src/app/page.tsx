@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useRef } from "react";
 import { Navbar } from "@/components/Navbar";
 import { MultiRoomCalendar } from "@/components/MultiRoomCalendar";
 import { PendingRequests } from "@/components/PendingRequests";
@@ -21,6 +21,42 @@ import { addDays, todayStr } from "@/lib/dates";
 
 export default function EsteticaDianaApp() {
   const [activeTab, setActiveTab] = useState<"calendar" | "clients" | "office" | "services" | "schedules" | "professionals" | "pending" | "summary" | "vouchers" | "stock">("pending");
+  type Tab = typeof activeTab;
+  // Cada canvi de pantalla queda a l'historial: el botó "enrere" del mòbil torna a la pantalla anterior.
+  const navDepth = useRef(0);
+  const tabRef = useRef<Tab>("pending");
+  const changeTab = useCallback((tab: Tab) => {
+    if (tabRef.current !== tab) {
+      try {
+        // Conservem l'estat de Next.js; sense ell, Next recarrega la pàgina en tornar enrere.
+        window.history.pushState({ ...window.history.state, dianaTab: tab }, "");
+        navDepth.current += 1;
+      } catch {}
+    }
+    tabRef.current = tab;
+    setActiveTab(tab);
+    window.scrollTo(0, 0);
+  }, []);
+  const goBack = useCallback(() => {
+    if (navDepth.current > 0) window.history.back();
+    else changeTab("calendar");
+  }, [changeTab]);
+  useEffect(() => {
+    try {
+      window.history.replaceState({ ...window.history.state, dianaTab: "pending" }, "");
+    } catch {}
+    const onPop = (e: PopStateEvent) => {
+      const tab = (e.state as { dianaTab?: Tab } | null)?.dianaTab;
+      if (tab) {
+        navDepth.current = Math.max(0, navDepth.current - 1);
+        tabRef.current = tab;
+        setActiveTab(tab);
+        window.scrollTo(0, 0);
+      }
+    };
+    window.addEventListener("popstate", onPop);
+    return () => window.removeEventListener("popstate", onPop);
+  }, []);
   // Candado de la dueña: obre els imports del Resum i anul·lar xecs regal
   const [lock, setLock] = useState({ configured: true, unlocked: false });
   const [lockModal, setLockModal] = useState<{ mode: LockMode; then?: () => void } | null>(null);
@@ -288,7 +324,8 @@ export default function EsteticaDianaApp() {
       {/* Barra de navegació principal */}
       <Navbar
         activeTab={activeTab}
-        onTabChange={setActiveTab}
+        onTabChange={changeTab}
+        onBack={goBack}
         onNewAppointmentClick={() => handleOpenNewAppointment()}
         pendingCount={pendingCount}
         ownerUnlocked={lock.unlocked}
@@ -311,7 +348,7 @@ export default function EsteticaDianaApp() {
 
       {/* Toast Notificació */}
       {toastMessage && (
-        <div className="fixed bottom-5 right-5 z-50 bg-stone-900 text-white px-4 py-3 rounded-2xl shadow-2xl flex items-center space-x-2.5 text-xs font-semibold border border-stone-700 animate-in slide-in-from-bottom duration-200">
+        <div className="fixed bottom-20 sm:bottom-5 right-3 sm:right-5 left-3 sm:left-auto z-50 bg-stone-900 text-white px-4 py-3 rounded-2xl shadow-2xl flex items-center space-x-2.5 text-xs font-semibold border border-stone-700 animate-in slide-in-from-bottom duration-200">
           <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
           <span>{toastMessage}</span>
           {toastAction && (
@@ -330,7 +367,7 @@ export default function EsteticaDianaApp() {
       )}
 
       {/* Contingut Principal segons la pestanya */}
-      <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6">
+      <main className="flex-1 max-w-7xl w-full mx-auto px-3 sm:px-6 lg:px-8 pt-3 pb-24 sm:py-6">
         {loadingInitial ? (
           <div className="min-h-[400px] flex flex-col items-center justify-center text-center space-y-3">
             <div className="w-10 h-10 border-3 border-terra-600 border-t-transparent rounded-full animate-spin" />
@@ -393,7 +430,7 @@ export default function EsteticaDianaApp() {
                 rooms={rooms}
                 professionals={professionals}
                 schedules={schedules}
-                onOpenPending={() => setActiveTab("pending")}
+                onOpenPending={() => changeTab("pending")}
                 onEditAppointment={handleOpenEditAppointment}
               />
             )}
@@ -459,7 +496,7 @@ export default function EsteticaDianaApp() {
       />
 
       {/* Peu de Pàgina */}
-      <footer className="bg-white border-t border-terra-100 py-6 mt-12 text-xs text-stone-500">
+      <footer className="hidden sm:block bg-white border-t border-terra-100 py-6 mt-12 text-xs text-stone-500">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row items-center justify-between gap-3">
           <div className="flex items-center space-x-2">
             <span className="font-bold text-stone-800">Estètica Diana</span>
