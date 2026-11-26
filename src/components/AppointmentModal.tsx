@@ -390,8 +390,8 @@ export function AppointmentModal({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs overflow-y-auto">
-      <div className="relative w-full max-w-2xl bg-white rounded-2xl shadow-2xl border border-terra-100 overflow-hidden my-8">
+    <div className="fixed inset-0 z-50 flex items-start justify-center p-3 sm:p-4 overflow-y-auto overscroll-contain bg-black/60 backdrop-blur-xs">
+      <div className="relative w-full max-w-2xl bg-white rounded-2xl shadow-2xl border border-terra-100 overflow-hidden my-auto">
         {/* Capçalera */}
         <div className="bg-gradient-to-r from-terra-600 via-arcilla-600 to-terra-700 p-5 text-white flex items-center justify-between">
           <div className="flex items-center space-x-3">

@@ -1,6 +1,6 @@
 "use client";
 
-import React from "react";
+import React, { useEffect, useRef } from "react";
 import { Sparkles, Calendar, Building2, Scissors, Clock, Users, Plus, UserCheck, MessageCircle, LogOut, BarChart3, Gift, Lock, LockOpen, KeyRound, Package, Download } from "lucide-react";
 
 type TabId = "calendar" | "clients" | "office" | "services" | "schedules" | "professionals" | "pending" | "summary" | "vouchers" | "stock";
@@ -17,6 +17,13 @@ interface NavbarProps {
 }
 
 export function Navbar({ activeTab, onTabChange, onNewAppointmentClick, pendingCount = 0, ownerUnlocked = false, lockedTabs = [], onLockClick, onChangeKey }: NavbarProps) {
+  // En el mòbil les pestanyes no hi caben: portem la pestanya activa a la vista.
+  const tabsRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const el = tabsRef.current?.querySelector<HTMLElement>('[data-active="true"]');
+    el?.scrollIntoView({ inline: "center", block: "nearest", behavior: "smooth" });
+  }, [activeTab]);
+
   interface TabItem {
     id: TabId;
     label: string;
@@ -45,20 +52,20 @@ export function Navbar({ activeTab, onTabChange, onNewAppointmentClick, pendingC
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16">
           {/* Logo i Marca */}
-          <div className="flex items-center space-x-3 cursor-pointer" onClick={() => onTabChange("calendar")}>
-            <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-terra-500 via-arcilla-500 to-moka-600 flex items-center justify-center text-white shadow-md">
+          <div className="flex items-center space-x-2 sm:space-x-3 cursor-pointer min-w-0" onClick={() => onTabChange("calendar")}>
+            <div className="w-9 h-9 sm:w-10 sm:h-10 shrink-0 rounded-2xl bg-gradient-to-br from-terra-500 via-arcilla-500 to-moka-600 flex items-center justify-center text-white shadow-md">
               <Sparkles className="w-5 h-5" />
             </div>
             <div>
-              <h1 className="text-lg font-bold tracking-tight text-stone-900">Estètica Diana</h1>
+              <h1 className="text-base sm:text-lg font-bold tracking-tight leading-tight text-stone-900">Estètica Diana</h1>
             </div>
           </div>
 
           {/* Botó Nova Cita Acció Directa */}
-          <div className="flex items-center space-x-3">
+          <div className="flex items-center space-x-1 sm:space-x-3 shrink-0">
             <button
               onClick={onNewAppointmentClick}
-              className="inline-flex items-center space-x-1.5 px-4 py-2 text-xs font-bold text-white bg-gradient-to-r from-terra-600 to-arcilla-600 hover:from-terra-700 hover:to-arcilla-700 rounded-xl shadow-md hover:shadow-lg transition-all"
+              className="inline-flex items-center whitespace-nowrap space-x-1.5 px-3 sm:px-4 py-2 text-xs font-bold text-white bg-gradient-to-r from-terra-600 to-arcilla-600 hover:from-terra-700 hover:to-arcilla-700 rounded-xl shadow-md hover:shadow-lg transition-all"
             >
               <Plus className="w-4 h-4" />
               <span>Nova Cita</span>
@@ -107,7 +114,7 @@ export function Navbar({ activeTab, onTabChange, onNewAppointmentClick, pendingC
         </div>
 
         {/* Pestanyes de navegació */}
-        <div className="flex space-x-1 overflow-x-auto pb-2 scrollbar-none border-t border-stone-100 pt-1">
+        <div ref={tabsRef} className="flex space-x-1 overflow-x-auto pb-2 scrollbar-none border-t border-stone-100 pt-1">
           {tabs.map((tab) => {
             const Icon = tab.icon;
             const isActive = activeTab === tab.id;
@@ -115,6 +122,7 @@ export function Navbar({ activeTab, onTabChange, onNewAppointmentClick, pendingC
             return (
               <button
                 key={tab.id}
+                data-active={isActive}
                 onClick={() => onTabChange(tab.id)}
                 className={`flex items-center space-x-2 px-3.5 py-2 text-xs font-bold rounded-xl transition-all whitespace-nowrap ${
                   isActive

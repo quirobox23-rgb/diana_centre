@@ -48,11 +48,11 @@ export function OwnerLockModal({ mode, reason, onClose, onUnlocked }: Props) {
   };
 
   return (
-    <div className="fixed inset-0 z-[60] bg-stone-900/50 flex items-center justify-center p-4" onClick={onClose}>
+    <div className="fixed inset-0 z-[60] bg-stone-900/50 flex items-start justify-center p-3 sm:p-4 overflow-y-auto overscroll-contain" onClick={onClose}>
       <form
         onSubmit={submit}
         onClick={e => e.stopPropagation()}
-        className="bg-white rounded-3xl shadow-2xl w-full max-w-xs p-6 space-y-4"
+        className="my-auto bg-white rounded-3xl shadow-2xl w-full max-w-xs p-6 space-y-4"
       >
         <div className="flex items-start justify-between">
           <div className="w-10 h-10 rounded-2xl bg-terra-50 border border-terra-100 flex items-center justify-center">

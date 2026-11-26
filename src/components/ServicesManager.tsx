@@ -299,28 +299,28 @@ export function ServicesManager({ services, rooms, professionals = [], onService
               </h3>
               <ul className="divide-y divide-stone-100">
                 {items.map((svc) => (
-                  <li key={svc.id} className={`px-5 py-2.5 flex items-center gap-3 ${svc.isActive ? "" : "opacity-50"}`}>
-                    <div className="flex-1 min-w-0">
+                  <li key={svc.id} className={`px-4 sm:px-5 py-2.5 flex flex-wrap sm:flex-nowrap items-center gap-x-3 gap-y-1 ${svc.isActive ? "" : "opacity-50"}`}>
+                    <div className="w-full sm:w-auto sm:flex-1 min-w-0">
                       <div className="text-sm font-semibold text-stone-900 flex items-center gap-2 min-w-0">
-                        <span className="truncate">{svc.name}</span>
+                        <span className="sm:truncate">{svc.name}</span>
                         <span title={googleColorName(svc.color) ?? svc.color} className="inline-flex">
                           <ColorDot color={svc.color} size={16} />
                         </span>
                         {!svc.isActive && <span className="ml-2 text-[10px] font-bold text-stone-400">desactivat</span>}
                       </div>
-                      {svc.description && <div className="text-[11px] text-stone-400 truncate">{svc.description}</div>}
+                      {svc.description && <div className="text-[11px] text-stone-400 line-clamp-2 sm:truncate">{svc.description}</div>}
                     </div>
-                    <span className="text-xs text-stone-500 inline-flex items-center gap-1 shrink-0 w-16 justify-end whitespace-nowrap">
+                    <span className="text-xs text-stone-500 inline-flex items-center gap-1 shrink-0 sm:w-16 sm:justify-end whitespace-nowrap">
                       <Clock className="w-3.5 h-3.5 text-terra-400" />
                       {svc.durationMinutes} min
                     </span>
-                    <span className={`text-xs font-bold shrink-0 w-20 text-right whitespace-nowrap ${Number(svc.price) > 0 ? "text-stone-800" : "text-amber-600"}`}>
+                    <span className={`text-xs font-bold shrink-0 sm:w-20 sm:text-right whitespace-nowrap ${Number(svc.price) > 0 ? "text-stone-800" : "text-amber-600"}`}>
                       {Number(svc.price) > 0 ? `${Number(svc.price).toFixed(Number(svc.price) % 1 ? 2 : 0)} €` : "sense preu"}
                     </span>
                     <button
                       onClick={() => openEditModal(svc)}
                       title="Modificar"
-                      className="p-1.5 text-stone-400 hover:text-terra-700 hover:bg-terra-50 rounded-lg"
+                      className="ml-auto sm:ml-0 p-1.5 text-stone-400 hover:text-terra-700 hover:bg-terra-50 rounded-lg"
                     >
                       <Edit2 className="w-3.5 h-3.5" />
                     </button>
@@ -343,8 +343,8 @@ export function ServicesManager({ services, rooms, professionals = [], onService
 
       {/* Modal de Crear o Modificar Servei */}
       {isModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs overflow-y-auto">
-          <div className="relative w-full max-w-lg bg-white rounded-2xl shadow-2xl border border-terra-100 overflow-hidden my-8">
+        <div className="fixed inset-0 z-50 flex items-start justify-center p-3 sm:p-4 overflow-y-auto overscroll-contain bg-black/60 backdrop-blur-xs">
+          <div className="relative w-full max-w-lg bg-white rounded-2xl shadow-2xl border border-terra-100 overflow-hidden my-auto">
             <div className="bg-gradient-to-r from-terra-600 to-arcilla-600 p-5 text-white flex items-center justify-between">
               <div>
                 <h3 className="text-lg font-bold">
@@ -382,7 +382,7 @@ export function ServicesManager({ services, rooms, professionals = [], onService
                 />
               </div>
 
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <label className="block font-medium text-stone-700 mb-1">Categoria</label>
                   <select
@@ -409,7 +409,7 @@ export function ServicesManager({ services, rooms, professionals = [], onService
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <label className="block font-medium text-stone-700 mb-1">Durada (Minuts)</label>
                   <select

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useSyncExternalStore } from "react";
+import React, { useState, useEffect, useRef, useSyncExternalStore } from "react";
 import {
   Calendar as CalendarIcon,
   ChevronLeft,
@@ -122,6 +122,14 @@ export function MultiRoomCalendar({
 }: MultiRoomCalendarProps) {
   // Mode de visualització: "day" (graella horària de 3 sales) o "week" (graella 6 dies amb les 3 sales sub-columnes)
   const [calendarMode, setCalendarMode] = useState<"day" | "week">("day");
+  // Al mòbil la setmana no hi cap sencera: portem el dia triat a la vista.
+  const weekScrollRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const box = weekScrollRef.current;
+    if (calendarMode !== "week" || !box || box.scrollWidth <= box.clientWidth) return;
+    const day = box.querySelector<HTMLElement>(`[data-week-day="${selectedDate}"]`);
+    if (day) box.scrollLeft = Math.max(0, day.offsetLeft - 70);
+  }, [calendarMode, selectedDate]);
   const [selectedRoomFilter, setSelectedRoomFilter] = useState<string>("all");
   // Al mòbil també es veuen les 3 cabines alhora: les cites surten estretes i es despleguen en tocar-les
   const [selectedProfFilter, setSelectedProfFilter] = useState<string>("all");
@@ -632,17 +640,18 @@ export function MultiRoomCalendar({
       {/* 2. CALENDARI SETMANAL REAL: eix horari a l'esquerra, els 6 dies com a columnes */}
       {calendarMode === "week" && (
         <div className="bg-white rounded-2xl shadow-xs border border-stone-200 overflow-hidden">
-          <div className="overflow-x-auto">
+          <div ref={weekScrollRef} className="overflow-x-auto overscroll-x-contain">
             <div className="min-w-[900px]">
               {/* Capçalera amb els 6 dies */}
               <div className="grid grid-cols-[70px_repeat(6,1fr)] border-b border-stone-200 sticky top-0 bg-white z-20">
-                <div className="p-2 border-r border-stone-200" />
+                <div className="p-2 border-r border-stone-200 sticky left-0 z-10 bg-white" />
                 {weekDays.map((d) => {
                   const isDayToday = d.dateStr === todayStr();
                   const dayApts = getFilteredAppointments(d.dateStr);
                   return (
                     <button
                       key={d.dateStr}
+                      data-week-day={d.dateStr}
                       onClick={() => onDateChange(d.dateStr)}
                       className={`p-2 text-center border-r border-stone-100 last:border-r-0 hover:bg-stone-50 transition-colors ${
                         d.dateStr === selectedDate ? "bg-terra-50" : ""
@@ -673,8 +682,8 @@ export function MultiRoomCalendar({
                 className="grid grid-cols-[70px_repeat(6,1fr)] relative"
                 style={{ height: `${TOTAL_MINUTES * PIXELS_PER_MINUTE}px` }}
               >
-                {/* Eix d'hores */}
-                <div className="border-r border-stone-200 bg-stone-50/70 relative">
+                {/* Eix d'hores (es queda fix a l'esquerra quan es llisca la setmana al mòbil) */}
+                <div className="border-r border-stone-200 bg-stone-50 sticky left-0 z-20">
                   {TIME_SLOTS.map((time) => {
                     const mins = timeToMinutes(time) - START_MINUTES;
                     const isHour = time.endsWith(":00");

@@ -321,8 +321,8 @@ export function StockManager() {
 
       {/* Finestra: venda / entrada / recompte */}
       {move && (
-        <div className="fixed inset-0 z-[60] bg-stone-900/50 flex items-center justify-center p-4" onClick={() => setMove(null)}>
-          <form onSubmit={saveMove} onClick={(e) => e.stopPropagation()} className="bg-white rounded-3xl shadow-2xl w-full max-w-xs p-6 space-y-4">
+        <div className="fixed inset-0 z-[60] bg-stone-900/50 flex items-start justify-center p-3 sm:p-4 overflow-y-auto overscroll-contain" onClick={() => setMove(null)}>
+          <form onSubmit={saveMove} onClick={(e) => e.stopPropagation()} className="my-auto bg-white rounded-3xl shadow-2xl w-full max-w-xs p-6 space-y-4">
             <div className="flex items-start justify-between">
               <div>
                 <h3 className="font-bold text-stone-900">
@@ -352,8 +352,8 @@ export function StockManager() {
 
       {/* Finestra: producte nou o editar */}
       {form && (
-        <div className="fixed inset-0 z-[60] bg-stone-900/50 flex items-center justify-center p-4" onClick={() => setForm(null)}>
-          <form onSubmit={saveForm} onClick={(e) => e.stopPropagation()} className="bg-white rounded-3xl shadow-2xl w-full max-w-sm p-6 space-y-3">
+        <div className="fixed inset-0 z-[60] bg-stone-900/50 flex items-start justify-center p-3 sm:p-4 overflow-y-auto overscroll-contain" onClick={() => setForm(null)}>
+          <form onSubmit={saveForm} onClick={(e) => e.stopPropagation()} className="my-auto bg-white rounded-3xl shadow-2xl w-full max-w-sm p-6 space-y-3">
             <div className="flex items-start justify-between">
               <h3 className="font-bold text-stone-900">{form.id ? "Editar producte" : "Nou producte"}</h3>
               <button type="button" onClick={() => setForm(null)} className="p-1 text-stone-400 hover:text-stone-700">

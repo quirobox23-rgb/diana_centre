@@ -82,3 +82,12 @@
 .office-btn:hover { border-color: #c06a44; }
 .office-label em { font-style: normal; font-weight: 700; color: #f3c9a6; padding-left: 5px; margin-left: 1px; border-left: 1px solid rgba(255,255,255,.18); }
 @media (max-width: 640px) { .office-label .t { display: none; } .office-label { font-size: 10px; } }
+
+/* Mòbil: amb lletra de menys de 16px, l'iPhone fa zoom en tocar un camp i la pantalla queda descol·locada. */
+@media (max-width: 639px) {
+  input:not([type="checkbox"]):not([type="radio"]):not([type="range"]),
+  select,
+  textarea {
+    font-size: 16px;
+  }
+}

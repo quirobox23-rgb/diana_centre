@@ -166,8 +166,8 @@ export function AppointmentAccount({ appointmentId, clientName, serviceName, ser
     { label, value, onRemove, strong, pay }: { label: React.ReactNode; value: string | null; onRemove?: () => void; strong?: boolean; pay?: React.ReactNode }
   ) => (
     <li key={key} className="flex flex-wrap items-center justify-between gap-x-2 gap-y-1 px-3 py-1.5 text-sm">
-      <span className={`min-w-0 flex-1 truncate ${strong ? "font-semibold text-stone-800" : ""}`}>{label}</span>
-      <span className="flex items-center gap-1.5 shrink-0">
+      <span className={`min-w-[9rem] flex-1 truncate ${strong ? "font-semibold text-stone-800" : ""}`}>{label}</span>
+      <span className="ml-auto flex items-center gap-1.5 shrink-0">
         {pay}
         {value && <span className="text-stone-700 text-xs font-semibold tabular-nums w-16 text-right">{value}</span>}
         {onRemove ? (
@@ -198,8 +198,8 @@ export function AppointmentAccount({ appointmentId, clientName, serviceName, ser
 
   return (
     <div className="rounded-xl border border-terra-100 bg-terra-50/40 p-3 space-y-2">
-      <div className="flex items-center justify-between gap-2">
-        <span className="flex items-center gap-2 text-xs font-bold uppercase tracking-wide text-terra-800">
+      <div className="flex flex-wrap items-center justify-between gap-x-2 gap-y-0.5">
+        <span className="flex items-center gap-2 text-xs font-bold uppercase tracking-wide text-terra-800 whitespace-nowrap">
           <Receipt className="w-4 h-4" /> Compte de la cita
         </span>
         <span className="text-[11px] text-stone-500">Tria a cada línia si es paga amb targeta o en efectiu</span>
