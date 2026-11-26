@@ -32,18 +32,18 @@ export function Navbar({ activeTab, onTabChange, onNewAppointmentClick, pendingC
     badge?: number;
   }
 
+  // Ordre per ús: primer el que es fa servir cada dia.
   const tabs: TabItem[] = [
     { id: "pending", label: "Per confirmar", icon: MessageCircle, badge: pendingCount },
     { id: "calendar", label: "Calendari", icon: Calendar },
-    { id: "office", label: "Oficina", icon: Building2 },
-    { id: "clients", label: "Clientes", icon: Users },
     { id: "vouchers", label: "Xecs regal", icon: Gift },
+    { id: "clients", label: "Clientes", icon: Users },
     { id: "stock", label: "Estoc", icon: Package },
     { id: "summary", label: "Resum", icon: BarChart3 },
-    
     { id: "services", label: "Serveis", icon: Scissors },
     { id: "schedules", label: "Horaris", icon: Clock },
     { id: "professionals", label: "Professionals", icon: UserCheck },
+    { id: "office", label: "Oficina", icon: Building2 },
   ];
 
   return (
