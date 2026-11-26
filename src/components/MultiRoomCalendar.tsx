@@ -15,6 +15,7 @@ import {
   Smartphone,
   CalendarDays,
   CalendarRange,
+  SlidersHorizontal,
 } from "lucide-react";
 import { Room, Professional, Service, Appointment } from "@/types";
 import { addDays, dayOfWeek, todayStr } from "@/lib/dates";
@@ -133,6 +134,9 @@ export function MultiRoomCalendar({
   const [selectedRoomFilter, setSelectedRoomFilter] = useState<string>("all");
   // Al mòbil també es veuen les 3 cabines alhora: les cites surten estretes i es despleguen en tocar-les
   const [selectedProfFilter, setSelectedProfFilter] = useState<string>("all");
+  // Mòbil: els filtres de sala i professional van plegats perquè el calendari tingui més lloc.
+  const [showFilters, setShowFilters] = useState(false);
+  const filtersActive = selectedRoomFilter !== "all" || selectedProfFilter !== "all";
   const [selectedStatusFilter, setSelectedStatusFilter] = useState<string>("all");
   const [selectedWeekDayTab, setSelectedWeekDayTab] = useState<number>(0);
   // Al mòbil les cites són estretes: el primer toc les desplega i el segon obre la fitxa
@@ -270,8 +274,8 @@ export function MultiRoomCalendar({
   return (
     <div className="space-y-4">
       {/* Barra Superior de Data i Controls */}
-      <div className="bg-white rounded-2xl shadow-xs border border-terra-100 p-4">
-        <div className="flex flex-col lg:flex-row items-center justify-between gap-4">
+      <div className="bg-white rounded-2xl shadow-xs border border-terra-100 p-3 sm:p-4">
+        <div className="flex flex-col lg:flex-row items-center justify-between gap-2.5 lg:gap-4">
           {/* Navegació de dates */}
           <div className="flex items-center space-x-2 w-full lg:w-auto">
             <button
@@ -312,7 +316,8 @@ export function MultiRoomCalendar({
             />
           </div>
 
-          {/* Selector de Mode de Calendari (DIA / SETMANA) */}
+          {/* Selector de Mode de Calendari (DIA / SETMANA) + botó de filtres al mòbil */}
+          <div className="flex items-center gap-2">
           <div className="flex items-center bg-stone-100 rounded-xl p-1 border border-stone-200">
             <button
               onClick={() => setCalendarMode("day")}
@@ -337,9 +342,20 @@ export function MultiRoomCalendar({
               <span>Setmana</span>
             </button>
           </div>
+            <button
+              type="button"
+              onClick={() => setShowFilters((v) => !v)}
+              className={`sm:hidden inline-flex items-center gap-1.5 px-3 py-2 text-xs font-bold rounded-xl border ${
+                showFilters || filtersActive ? "bg-terra-50 border-terra-200 text-terra-700" : "bg-white border-stone-200 text-stone-600"
+              }`}
+            >
+              <SlidersHorizontal className="w-4 h-4" />
+              <span>Filtres{filtersActive ? " ·" : ""}</span>
+            </button>
+          </div>
 
           {/* Desplegables de Filtratge */}
-          <div className="flex flex-wrap items-center gap-2 w-full lg:w-auto justify-end">
+          <div className={`${showFilters ? "flex" : "hidden"} sm:flex flex-wrap items-center gap-2 w-full lg:w-auto justify-center sm:justify-end`}>
             {/* Desplegable de Sales */}
             <div className="flex items-center space-x-1.5 bg-stone-50 px-2.5 py-1 rounded-xl border border-stone-200 text-xs">
               <Layers className="w-3.5 h-3.5 text-terra-600" />
@@ -380,7 +396,7 @@ export function MultiRoomCalendar({
         </div>
 
         {/* Resum discret de la jornada */}
-        <p className="mt-3 pt-3 border-t border-stone-100 text-xs text-stone-500">
+        <p className="mt-2.5 pt-2.5 sm:mt-3 sm:pt-3 border-t border-stone-100 text-xs text-stone-500 text-center sm:text-left">
           <span className="font-semibold text-stone-800">{todayAppointments.filter((a) => a.status !== "cancel·lada").length}</span> cites
           {" · "}
           {confirmedCount} confirmades
