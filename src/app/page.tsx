@@ -420,7 +420,7 @@ export default function EsteticaDianaApp() {
             {activeTab === "summary" &&
               <ProfessionalSummary professionals={professionals} canSeeMoney={isAdmin} onRequestUnlock={requireOwner} />}
 
-            {activeTab === "stock" && <StockManager />}
+            {activeTab === "stock" && <StockManager canSeeMoney={isAdmin} onRequestUnlock={requireOwner} />}
 
             {activeTab === "vouchers" && <GiftVouchersManager services={services} isAdmin={isAdmin} onRequestUnlock={requireOwner} />}
 

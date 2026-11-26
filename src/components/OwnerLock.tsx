@@ -66,7 +66,7 @@ export function OwnerLockModal({ mode, reason, onClose, onUnlocked }: Props) {
           <h3 className="font-bold text-stone-900">{title}</h3>
           <p className="text-xs text-stone-500 mt-1">
             {mode === "setup"
-              ? "Tria una clau que només sàpigues tu. Obrirà els imports del Resum i anul·lar xecs regal."
+              ? "Tria una clau que només sàpigues tu. Obrirà els imports del Resum i de l'Estoc, i anul·lar xecs regal."
               : mode === "change"
                 ? "Escriu la clau actual i la nova."
                 : reason || "Escriu la clau de la dueña per continuar. Es tornarà a tancar sola al cap d'una hora."}
